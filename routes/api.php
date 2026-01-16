@@ -19,15 +19,17 @@ use App\Http\Controllers\RiviewController;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+// Route untuk mengambil daftar produk (Method GET)
+    Route::get('/produk', [App\Http\Controllers\ProdukController::class, 'index']);
 
-// 2. Route Public (Bisa diakses tanpa Login)
-Route::get('/produk', [produkController::class, 'index']); // List Barang
-Route::get('/produk/{id}', [produkController::class, 'show']); // Detail Barang
-Route::post('/register', [AuthController::class, 'register']); // Daftar
-Route::post('/login', [AuthController::class, 'login']); // Masuk
+    // 2. Route Public (Bisa diakses tanpa Login)
+    Route::get('/produk', [produkController::class, 'index']); // List Barang
+    Route::get('/produk/{id}', [produkController::class, 'show']); // Detail Barang
+    Route::post('/register', [AuthController::class, 'register']); // Daftar
+    Route::post('/login', [AuthController::class, 'login']); // Masuk
 
-// 3. Route Protected (Harus Login / Punya Token)
-Route::middleware('auth:sanctum')->group(function () {
+    // 3. Route Protected (Harus Login / Punya Token)
+    Route::middleware('auth:sanctum')->group(function () {
     
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
