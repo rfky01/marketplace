@@ -18,15 +18,6 @@ function App() {
     return (
         <BrowserRouter>
             <div className="w-full">
-                {/* Navbar Sederhana */}
-                <nav className="mb-4 flex justify-between bg-white p-4 shadow rounded">
-                    <Link to="/" className="font-bold text-lg text-blue-600">Marketplace</Link>
-                    <div>
-                        <Link to="/login" className="mr-4 text-gray-600 hover:text-blue-500">Login</Link>
-                        <Link to="/register" className="text-gray-600 hover:text-blue-500">Register</Link>
-                    </div>
-                </nav>
-
                 {/* Tempat Ganti Halaman */}
                 <Routes>
                     {/* Route Utama diarahkan ke Dashboard */}

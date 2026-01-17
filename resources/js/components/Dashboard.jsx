@@ -84,7 +84,7 @@ export default function Dashboard() {
             
             {/* --- NAVBAR --- */}
             <nav className="bg-white shadow-md sticky top-0 z-50 w-full">
-                <div className="w-[98%] mx-auto h-16 flex items-center justify-between px-4">
+                <div className="w-[90%] mx-auto h-16 flex items-center justify-between px-4">
                     
                     {/* 1. LOGO KIRI */}
                     <div className="flex items-center gap-8">
@@ -151,13 +151,13 @@ export default function Dashboard() {
                                         <div className="flex flex-col gap-1">
                                             {user.role === 'penjual' && (
                                                 <Link to="/my-products" className="px-3 py-2 hover:bg-gray-50 rounded-md text-gray-700 text-sm font-medium flex justify-between items-center">
-                                                    Toko Saya <span className="text-green-600 text-xs bg-green-100 px-2 py-0.5 rounded">Penjual</span>
+                                                    📦 Toko Saya <span className="text-green-600 text-xs bg-green-100 px-2 py-0.5 rounded">Penjual</span>
                                                 </Link>
                                             )}
-                                            <Link to="/orders" className="px-3 py-2 hover:bg-gray-50 rounded-md text-gray-700 text-sm font-medium">Daftar Pesanan</Link>
+                                            <Link to="/orders" className="px-3 py-2 hover:bg-gray-50 rounded-md text-gray-700 text-sm font-medium">🛍️ Daftar Pesanan</Link>
                                         </div>
                                         <hr className="border-gray-100 my-2"/>
-                                        <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-red-500 hover:bg-red-50 rounded-md text-sm font-bold flex items-center gap-2">Keluar</button>
+                                        <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-red-500 hover:bg-red-50 rounded-md text-sm font-bold flex items-center gap-2">🚪 Keluar</button>
                                     </div>
                                 )}
                             </div>
@@ -167,31 +167,44 @@ export default function Dashboard() {
             </nav>
 
             {/* CONTENT AREA */}
-            <div className="w-[98%] mx-auto pb-10 pt-6">
-                
-                {/* --- KOTAK MERAH SUDAH DIHAPUS TOTAL DI SINI --- */}
+            <div className="w-[90%] mx-auto pb-10 pt-12">
                 
                 {/* Grid Produk */}
                 {products.length === 0 ? (
                     <div className="text-center py-20 bg-white rounded-xl shadow"><p className="text-gray-500 text-lg">Belum ada produk tersedia.</p></div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+                    // --- PERBAIKAN GRID: lg:grid-cols-6 (Laptop Standar = 6 Kolom) ---
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                         {products.map((product) => (
-                            <div key={product.id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition duration-300 transform hover:-translate-y-1 flex flex-col h-full group border border-gray-100">
+                            <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition duration-300 transform hover:-translate-y-1 flex flex-col h-full group">
                                 <Link to={`/product/${product.id}`} className="block cursor-pointer relative">
-                                    <img src={product.foto_barang} alt={product.nama_barang} className="w-full h-52 object-cover group-hover:opacity-90 transition" onError={(e) => { e.target.src = "https://via.placeholder.com/300?text=No+Image"; }} />
-                                    {product.stok_barang <= 0 && (<div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"><span className="text-white font-bold text-lg bg-red-600 px-3 py-1 rounded">HABIS</span></div>)}
+                                    {/* GAMBAR TETAP CROP (object-cover) AGAR RAPI */}
+                                    <img 
+                                        src={product.foto_barang} 
+                                        alt={product.nama_barang} 
+                                        className="w-full h-40 object-cover group-hover:opacity-90 transition" 
+                                        onError={(e) => { e.target.src = "https://via.placeholder.com/300?text=No+Image"; }} 
+                                    />
+                                    {product.stok_barang <= 0 && (<div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"><span className="text-white font-bold text-xs bg-red-600 px-2 py-1 rounded">HABIS</span></div>)}
                                 </Link>
-                                <div className="p-4 flex flex-col flex-1">
-                                    <Link to={`/product/${product.id}`} className="no-underline"><h3 className="text-lg font-semibold text-gray-800 mb-0 truncate hover:text-green-600 transition">{product.nama_barang}</h3></Link>
-                                    <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-3">{product.kategori}</p>
-                                    <div className="flex justify-between items-center mb-3">
-                                        <span className="text-gray-800 font-bold text-lg">{formatRupiah(product.harga_barang)}</span>
-                                        <span className={`text-xs px-2 py-1 rounded font-medium ${product.stok_barang > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>Stok: {product.stok_barang}</span>
-                                    </div>
-                                    <div className="mt-auto pt-3 border-t border-gray-100 flex items-center gap-2">
-                                        <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-xs">👤</div>
-                                        <span className="text-xs text-gray-600 truncate max-w-[150px]">{product.user ? product.user.name : 'Unknown'}</span>
+                                <div className="p-3 flex flex-col flex-1">
+                                    <Link to={`/product/${product.id}`} className="no-underline">
+                                        <h3 
+                                            className="text-sm font-semibold text-gray-800 mb-1 line-clamp-2 leading-snug hover:text-green-600 transition min-h-[40px]"
+                                            title={product.nama_barang}
+                                        >
+                                            {product.nama_barang}
+                                        </h3>
+                                    </Link>
+                                    
+                                    <p className="text-[10px] text-gray-500 uppercase tracking-wide font-medium mb-2">{product.kategori}</p>
+                                    
+                                    <div className="flex flex-col gap-1 mb-2">
+                                        <span className="text-gray-800 font-bold text-base">{formatRupiah(product.harga_barang)}</span>
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">Stok {product.stok_barang}</span>
+                                            <span className="text-[10px] text-gray-400 truncate max-w-[100px]">{product.user ? product.user.name : 'Unknown'}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

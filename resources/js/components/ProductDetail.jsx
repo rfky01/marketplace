@@ -178,7 +178,7 @@ export default function ProductDetail() {
 
                         <div className="mb-8 w-full">
                             <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wide mb-3">Deskripsi</h3>
-                            <div className="prose text-gray-600 p-6 bg-gray-50 rounded-xl border border-gray-100 text-base leading-relaxed whitespace-pre-line break-all break-words w-full">
+                            <div className="prose text-gray-600 p-6 bg-gray-50 rounded-xl border border-gray-100 text-base leading-relaxed whitespace-pre-line">
                                 {product.deskripsi}
                             </div>
                         </div>
