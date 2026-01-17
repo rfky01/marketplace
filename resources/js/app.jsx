@@ -8,6 +8,7 @@ import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import Orders from './components/Orders';
+import AddProduct from './components/AddProduct';
 
 function App() {
     return (
@@ -29,6 +30,7 @@ function App() {
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
                     <Route path="/orders" element={<Orders />} />
+                    <Route path="/add-product" element={<AddProduct />} />
                 </Routes>
             </div>
         </BrowserRouter>

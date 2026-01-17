@@ -6,7 +6,7 @@ export default function Dashboard() {
     const [products, setProducts] = useState([]);
     const [user, setUser] = useState({});
 
-    // Cek Login & Ambil Data
+    // 1. Cek Login & Ambil Data
     useEffect(() => {
         const token = localStorage.getItem('token');
         const userData = localStorage.getItem('user');
@@ -19,7 +19,7 @@ export default function Dashboard() {
         }
     }, []);
 
-    // Fungsi Ambil Data Produk
+    // 2. Fungsi Ambil Data Produk
     const fetchProducts = async () => {
         try {
             const response = await fetch('http://127.0.0.1:8000/api/produk');
@@ -32,51 +32,65 @@ export default function Dashboard() {
         }
     };
 
-    // --- FUNGSI BARU: BELI SEKARANG ---
+    // 3. FUNGSI BELI (Fitur Lama)
     const handleBuy = async (productId) => {
-        // 1. Konfirmasi Pembelian
         if(!confirm("Apakah Anda yakin ingin membeli barang ini?")) return;
 
         const token = localStorage.getItem('token');
-        console.log("Token yang dikirim:", token);
         
-        // 2. Siapkan Data (Sesuai format OrderController Anda)
-        const payload = {
-            items: [
-                {
-                    produk_id: productId,
-                    jumlah: 1 // Default beli 1 dulu
-                }
-            ]
-        };
-
         try {
-            // 3. Kirim Request ke API Laravel
             const response = await fetch('http://127.0.0.1:8000/api/orders', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`, // Wajib pakai Token
+                    'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                    items: [{ produk_id: productId, jumlah: 1 }]
+                })
             });
 
             const data = await response.json();
 
-            // 4. Cek Hasil
             if (response.ok) {
                 alert(`Pembelian Berhasil!\nKode Invoice: ${data.data.invoice_code}`);
-                
-                // Refresh daftar produk agar Stok berkurang di tampilan
-                fetchProducts(); 
+                fetchProducts(); // Refresh stok
             } else {
                 alert("Gagal Membeli: " + (data.message || "Terjadi kesalahan"));
             }
-
         } catch (error) {
             console.error("Error buying product:", error);
-            alert("Terjadi kesalahan sistem.");
+        }
+    };
+
+    // 4. FUNGSI BUKA TOKO (Fitur C2C Baru)
+    const handleOpenShop = async () => {
+        if(!confirm("Apakah Anda ingin mulai berjualan dan membuka toko?")) return;
+
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/open-shop', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
+                }
+            });
+            const data = await response.json();
+            
+            if (response.ok) {
+                alert("Selamat! Toko Anda aktif.");
+                
+                // Update data user di local storage & state agar tombol berubah otomatis
+                const updatedUser = { ...user, role: 'penjual' };
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                setUser(updatedUser);
+            } else {
+                alert("Gagal: " + data.message);
+            }
+        } catch (error) {
+            console.error("Error opening shop:", error);
         }
     };
 
@@ -99,28 +113,43 @@ export default function Dashboard() {
             {/* NAVBAR */}
             <nav className="bg-white shadow-md p-4 mb-6 sticky top-0 z-50">
                 <div className="container mx-auto flex justify-between items-center">
-                    <h1 className="text-xl font-bold text-blue-600">Marketplace</h1>
+                    <h1 className="text-xl font-bold text-blue-600">Marketplace C2C</h1>
                     <div className="flex items-center gap-4">
                         <span className="text-gray-700 hidden sm:block">Halo, <b>{user.name}</b></span>
-                        
-                        {/* LINK KE HALAMAN ORDER */}
-                        <Link to="/orders" className="text-blue-600 hover:text-blue-800 font-medium">
-                            Riwayat Pesanan
-                        </Link>
-
-                        <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm transition shadow">
-                            Logout
-                        </button>
+                        <Link to="/orders" className="text-blue-600 hover:text-blue-800 font-medium">Riwayat Pesanan</Link>
+                        <button onClick={handleLogout} className="bg-red-500 text-white px-4 py-2 rounded text-sm hover:bg-red-600 transition">Logout</button>
                     </div>
                 </div>
             </nav>
 
-            {/* CONTENT */}
             <div className="container mx-auto p-4">
-                <h2 className="text-2xl font-bold mb-6 text-gray-800">Produk Terbaru</h2>
+                {/* SECTION HEADER & AKSI C2C */}
+                <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-lg shadow-sm">
+                    <h2 className="text-2xl font-bold text-gray-800">Produk Terbaru</h2>
+                    
+                    {/* LOGIKA TOMBOL BERDASARKAN ROLE */}
+                    {user.role === 'pembeli' ? (
+                        <button 
+                            onClick={handleOpenShop}
+                            className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg shadow-lg transform transition hover:scale-105 flex items-center gap-2"
+                        >
+                            🏪 Buka Toko Gratis
+                        </button>
+                    ) : (
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-semibold text-green-700 bg-green-100 px-3 py-1 rounded-full border border-green-200">
+                                ✓ Akun Penjual
+                            </span>
+                            <Link to="/add-product" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow flex items-center gap-2 decoration-none">
+                                + Upload Produk
+                            </Link>
+                        </div>
+                    )}
+                </div>
                 
+                {/* GRID PRODUK */}
                 {products.length === 0 ? (
-                    <div className="text-center py-20">
+                    <div className="text-center py-20 bg-white rounded-xl shadow">
                         <p className="text-gray-500 text-lg">Belum ada produk tersedia.</p>
                     </div>
                 ) : (
@@ -135,7 +164,6 @@ export default function Dashboard() {
                                         className="w-full h-48 object-cover"
                                         onError={(e) => { e.target.src = "https://via.placeholder.com/300?text=No+Image"; }}
                                     />
-                                    {/* Badge Stok Habis */}
                                     {product.stok_barang <= 0 && (
                                         <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                                             <span className="text-white font-bold text-lg bg-red-600 px-3 py-1 rounded">HABIS</span>
@@ -147,10 +175,6 @@ export default function Dashboard() {
                                     <h3 className="text-lg font-semibold text-gray-800 mb-1 truncate">{product.nama_barang}</h3>
                                     <p className="text-gray-500 text-xs mb-3 uppercase tracking-wide">{product.kategori}</p>
                                     
-                                    <p className="text-gray-600 text-sm mb-4 line-clamp-2 min-h-[40px]">
-                                        {product.deskripsi}
-                                    </p>
-                                    
                                     <div className="flex justify-between items-center mb-4 pt-2 border-t">
                                         <span className="text-blue-600 font-bold text-lg">{formatRupiah(product.harga_barang)}</span>
                                         <span className={`text-xs px-2 py-1 rounded font-medium ${product.stok_barang > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -158,10 +182,9 @@ export default function Dashboard() {
                                         </span>
                                     </div>
 
-                                    {/* TOMBOL BELI */}
                                     <button 
                                         onClick={() => handleBuy(product.id)}
-                                        disabled={product.stok_barang <= 0} // Matikan tombol jika stok 0
+                                        disabled={product.stok_barang <= 0}
                                         className={`w-full font-bold py-2 rounded transition shadow-md ${
                                             product.stok_barang > 0 
                                             ? 'bg-blue-600 hover:bg-blue-700 text-white' 

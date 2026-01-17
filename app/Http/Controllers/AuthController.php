@@ -19,7 +19,7 @@ class AuthController extends Controller
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string',
             'address' => 'nullable|string',
-            'role' => 'required|in:pembeli,penjual',
+            // 'role' dihapus dari validasi karena otomatis
         ]);
 
         $user = User::create([
@@ -28,11 +28,11 @@ class AuthController extends Controller
             'password' => Hash::make($validatedData['password']),
             'phone' => $validatedData['phone'],
             'address' => $validatedData['address'],
-            'role' => $validatedData['role'],
+            'role' => 'pembeli', // <--- HARDCODE: SEMUA JADI PEMBELI DULU
         ]);
 
         return response()->json([
-            'message' => 'Registrasi Berhasil sebagai ' . $user->role,
+            'message' => 'Registrasi Berhasil',
             'data' => $user
         ], 201);
     }
