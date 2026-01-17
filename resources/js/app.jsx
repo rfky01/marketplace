@@ -9,11 +9,15 @@ import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import Orders from './components/Orders';
 import AddProduct from './components/AddProduct';
+import MyProducts from './components/MyProducts';
+import EditProduct from './components/EditProduct';
+import ProductDetail from './components/ProductDetail';
+import Cart from './components/Cart';
 
 function App() {
     return (
         <BrowserRouter>
-            <div className="container mx-auto p-4">
+            <div className="w-full">
                 {/* Navbar Sederhana */}
                 <nav className="mb-4 flex justify-between bg-white p-4 shadow rounded">
                     <Link to="/" className="font-bold text-lg text-blue-600">Marketplace</Link>
@@ -31,6 +35,10 @@ function App() {
                     <Route path="/register" element={<Register />} />
                     <Route path="/orders" element={<Orders />} />
                     <Route path="/add-product" element={<AddProduct />} />
+                    <Route path="/my-products" element={<MyProducts />} />
+                    <Route path="/edit-product/:id" element={<EditProduct />} />
+                    <Route path="/product/:id" element={<ProductDetail />} />
+                    <Route path="/cart" element={<Cart />} />
                 </Routes>
             </div>
         </BrowserRouter>

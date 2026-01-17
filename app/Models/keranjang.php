@@ -1,42 +1,31 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Models;
 
-use Illuminate\Http\Request;
-use App\Models\Keranjang;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
-class KeranjangController extends Controller
+class Keranjang extends Model
 {
-    // Lihat isi keranjang user yang sedang login
-    public function index()
+    use HasFactory;
+
+    protected $table = 'keranjang'; // Sesuai nama tabel di migration Anda
+
+    protected $fillable = [
+        'user_id',
+        'produk_id',
+        'jumlah'
+    ];
+
+    // Relasi ke Produk
+    public function produk()
     {
-        $data = Keranjang::where('user_id', auth()->id())->get();
-        
-        return response()->json([
-            'message' => 'Isi Keranjang Anda',
-            'data' => $data
-        ]);
+        return $this->belongsTo(produk::class, 'produk_id');
     }
 
-    // Tambah barang ke keranjang
-    public function store(Request $request)
+    // Relasi ke User
+    public function user()
     {
-        // Validasi input
-        $request->validate([
-            'produk_id' => 'required',
-            'jumlah' => 'required|integer'
-        ]);
-
-        // Simpan ke tabel 'keranjang'
-        $item = Keranjang::create([
-            'user_id' => auth()->id(),       // Ambil ID user otomatis
-            'produk_id' => $request->produk_id,
-            'jumlah' => $request->jumlah
-        ]);
-
-        return response()->json([
-            'message' => 'Berhasil masuk keranjang',
-            'data' => $item
-        ]);
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

@@ -18,11 +18,13 @@ class DetailPesanan extends Model
         'total_harga'
     ];
 
+    // Relasi ke Produk
     public function produk()
     {
         return $this->belongsTo(produk::class, 'produk_id');
     }
 
+    // Relasi ke Pesanan Induk
     public function pesanan()
     {
         return $this->belongsTo(Pesanan::class, 'pesanan_id');

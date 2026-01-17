@@ -15,97 +15,100 @@ class OrderController extends Controller
     // FITUR CHECKOUT (Membuat Pesanan)
     public function store(Request $request)
     {
-        // 1. Validasi Input
         $request->validate([
             'items' => 'required|array',
-            'items.*.produk_id' => 'required|exists:produk,id', // Pastikan nama tabel benar
+            'items.*.produk_id' => 'required|exists:produk,id',
             'items.*.jumlah' => 'required|integer|min:1',
+            'nama_penerima' => 'required|string',
+            'email_penerima' => 'required|email',
+            'telepon_penerima' => 'required|string',
+            'alamat_pengiriman' => 'required|string',
+            'waktu_pengiriman' => 'required|date',
+            'metode_pembayaran' => 'required|string',
         ]);
 
-        try {
-            DB::beginTransaction();
+        $user = $request->user();
+        $invoice_code = 'INV-' . time() . '-' . $user->id;
+        $grand_total = 0;
 
-            // --- BUAT PESANAN UTAMA (HEADER) ---
-            $invoice = 'INV-' . date('Ymd') . '-' . strtoupper(Str::random(5));
+        // 1. Buat Pesanan Utama
+        $pesanan = Pesanan::create([
+            'user_id' => $user->id,
+            'invoice_code' => $invoice_code,
+            'tanggal' => now(),
+            'status' => 'pending',
+            'grand_total' => 0,
+            'nama_penerima' => $request->nama_penerima,
+            'email_penerima' => $request->email_penerima,
+            'telepon_penerima' => $request->telepon_penerima,
+            'alamat_pengiriman' => $request->alamat_pengiriman,
+            'catatan' => $request->catatan,
+            'waktu_pengiriman' => $request->waktu_pengiriman,
+            'metode_pembayaran' => $request->metode_pembayaran,
+        ]);
 
-            $pesanan = Pesanan::create([
-                'user_id'      => $request->user()->id,
-                'invoice_code' => $invoice,
-                'tanggal'      => now(),
-                'status'       => 'pending',
-                'grand_total'  => 0 // Nilai awal 0
-            ]);
-
-            // 2. Hitung Total Harga & Simpan Detail
-            $grandTotal = 0;
-
-            foreach ($request->items as $item) {
-                // Cari produk
-                $produk = produk::find($item['produk_id']);
-
-                // Cek Stok
-                if (!$produk || $produk->stok_barang < $item['jumlah']) {
-                    DB::rollBack();
-                    return response()->json(['message' => 'Stok habis untuk barang: ' . $produk->nama_barang], 400);
-                }
-
-                // HITUNG SUBTOTAL
-                $subtotal = $produk->harga_barang * $item['jumlah'];
-
-                // Simpan Detail Pesanan
-                DetailPesanan::create([
-                    'pesanan_id'  => $pesanan->id,
-                    'produk_id'   => $item['produk_id'],
-                    'jumlah'      => $item['jumlah'],
-                    'total_harga' => $subtotal
-                ]);
-
-                // Kurangi stok produk
-                $produk->decrement('stok_barang', $item['jumlah']);
-
-                // Tambahkan ke Grand Total
-                $grandTotal += $subtotal;
+        // 2. Simpan Detail Barang
+        foreach ($request->items as $item) {
+            $produk = produk::find($item['produk_id']);
+            
+            if ($produk->stok_barang < $item['jumlah']) {
+                return response()->json(['message' => 'Stok barang tidak cukup: ' . $produk->nama_barang], 400);
             }
 
-            // Update Total Harga di Pesanan Utama
-            $pesanan->update(['grand_total' => $grandTotal]);
+            $subtotal = $produk->harga_barang * $item['jumlah'];
+            $grand_total += $subtotal;
 
-            DB::commit();
+            // Kurangi Stok
+            $produk->decrement('stok_barang', $item['jumlah']);
 
-            // BARIS INI YANG TADI ERROR (Sekarang sudah diperbaiki)
-            return response()->json(['message' => 'Pesanan berhasil dibuat', 'data' => $pesanan]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['message' => 'Gagal membuat pesanan: ' . $e->getMessage()], 500);
+            // Masuk ke DetailPesanan
+            DetailPesanan::create([
+                'pesanan_id' => $pesanan->id,
+                'produk_id' => $produk->id,
+                'jumlah' => $item['jumlah'],
+                'harga_satuan' => $produk->harga_barang,
+                'total_harga'  => $subtotal
+            ]);
         }
+
+        // 3. Update Grand Total
+        $pesanan->update(['grand_total' => $grand_total]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pesanan berhasil dibuat',
+            'data' => $pesanan
+        ]);
     }
 
-    // ... method store ada di atas sini ...
-
-    // 1. MELIHAT SEMUA PESANAN (History)
+    // 1. MELIHAT SEMUA PESANAN (History) - SUDAH DIPERBAIKI
     public function index(Request $request)
     {
-        // Ambil semua pesanan milik user yang sedang login
         $orders = Pesanan::where('user_id', $request->user()->id)
-                         ->orderBy('created_at', 'desc') // Urutkan dari yang terbaru
-                         ->get();
+            // PERBAIKAN: Gunakan 'detailPesanan' (sesuai Model Pesanan.php)
+            ->with(['detailPesanan.produk' => function ($query) {
+                $query->withTrashed(); 
+            }])
+            ->latest()
+            ->get();
 
         return response()->json([
             'success' => true,
             'message' => 'Daftar riwayat pesanan Anda',
             'data'    => $orders 
-            // Field 'status' akan otomatis muncul di dalam data ini
         ]);
     }
 
-    // FITUR 2: Melihat Detail Satu Pesanan (Optional tapi berguna)
+    // FITUR 2: Melihat Detail Satu Pesanan - SUDAH DIPERBAIKI
     public function show(Request $request, $id)
     {
-        // Cari pesanan berdasarkan ID DAN pastikan milik user tersebut
         $order = Pesanan::where('id', $id)
-                        ->where('user_id', $request->user()->id)
-                        ->first();
+            ->where('user_id', $request->user()->id)
+            // PERBAIKAN: Gunakan 'detailPesanan'
+            ->with(['detailPesanan.produk' => function ($query) {
+                $query->withTrashed();
+            }])
+            ->first();
 
         if (!$order) {
             return response()->json(['message' => 'Pesanan tidak ditemukan atau bukan milik Anda'], 404);
@@ -118,29 +121,22 @@ class OrderController extends Controller
         ]);
     }
 
+    // FITUR: Update Status (Penjual)
     public function updateStatus(Request $request, $id)
     {
-        // 1. Cek apakah user adalah PENJUAL?
-        // (Asumsi di tabel user ada kolom 'role')
         if ($request->user()->role !== 'penjual') {
             return response()->json(['message' => 'Hanya penjual yang boleh mengubah status'], 403);
         }
 
-        // 2. Validasi input status
         $request->validate([
             'status' => ['required', 'in:accepted,dikirim,selesai']
         ]);
 
-        // 3. Cari Pesanan
         $pesanan = Pesanan::find($id);
 
         if (!$pesanan) {
             return response()->json(['message' => 'Pesanan tidak ditemukan'], 404);
         }
-
-        // 4. Logika Perubahan Status (Optional: Agar alurnya rapi)
-        // Contoh: Tidak boleh langsung loncat dari 'pending' ke 'selesai' tanpa 'accepted'
-        // Tapi untuk sekarang kita buat fleksibel dulu sesuai request Anda.
         
         $pesanan->status = $request->status;
         $pesanan->save();
@@ -150,8 +146,6 @@ class OrderController extends Controller
             'data' => $pesanan
         ]);
     }
-
-    // ... method lainnya ...
 
     // FITUR: Penjual Membatalkan Pesanan
     public function cancelOrder(Request $request, $id)
@@ -170,20 +164,15 @@ class OrderController extends Controller
             return response()->json(['message' => 'Pesanan sudah diproses, tidak bisa batal.'], 400);
         }
 
-        // --- MULAI TRANSAKSI DATABASE ---
         DB::transaction(function () use ($pesanan) {
-            // 1. Kembalikan Stok
             $this->restoreStock($pesanan);
-
-            // 2. Ubah Status
             $pesanan->status = 'dibatalkan oleh penjual';
             $pesanan->save();
         });
-        // --- SELESAI TRANSAKSI ---
 
         return response()->json([
             'message' => 'Pesanan dibatalkan dan stok telah dikembalikan',
-            'data' => $pesanan->load('detailPesanan.Produk') // Tampilkan detail barangnya
+            'data' => $pesanan
         ]);
     }
 
@@ -191,8 +180,8 @@ class OrderController extends Controller
     public function cancelOrderByBuyer(Request $request, $id)
     {
         $pesanan = Pesanan::where('id', $id)
-                          ->where('user_id', $request->user()->id)
-                          ->first();
+            ->where('user_id', $request->user()->id)
+            ->first();
 
         if (!$pesanan) {
             return response()->json(['message' => 'Pesanan tidak ditemukan'], 404);
@@ -202,35 +191,32 @@ class OrderController extends Controller
             return response()->json(['message' => 'Pesanan sudah diproses penjual, tidak bisa batal.'], 400);
         }
 
-        // --- MULAI TRANSAKSI DATABASE ---
         DB::transaction(function () use ($pesanan) {
-            // 1. Kembalikan Stok
             $this->restoreStock($pesanan);
-
-            // 2. Ubah Status
             $pesanan->status = 'dibatalkan oleh pembeli';
             $pesanan->save();
         });
-        // --- SELESAI TRANSAKSI ---
 
         return response()->json([
             'message' => 'Anda membatalkan pesanan. Stok barang telah dikembalikan.',
-            'data' => $pesanan->load('detailPesanan.Produk')
+            'data' => $pesanan
         ]);
     }
 
-    // Fungsi Pembantu untuk Mengembalikan Stok
+    // Fungsi Pembantu untuk Mengembalikan Stok - SUDAH DIPERBAIKI
     private function restoreStock($pesanan)
     {
-        // Ambil detail pesanan beserta produknya
-        $pesanan->load('detailPesanan.Produk');
+        // PERBAIKAN: Gunakan 'detailPesanan'
+        $pesanan->load(['detailPesanan.produk' => function($q) {
+            $q->withTrashed();
+        }]);
 
+        // PERBAIKAN: Gunakan 'detailPesanan'
         foreach ($pesanan->detailPesanan as $detail) {
-            $produk = $detail->Produk; // Mengambil data produk terkait
+            $produk = $detail->produk; 
             
             if ($produk) {
-                // Tambahkan stok lama dengan jumlah yang dibatalkan
-                $produk->stok_barang += $detail->jumlah;  // Gunakan 'stok_barang' sesuai database 
+                $produk->stok_barang += $detail->jumlah;
                 $produk->save();
             }
         }

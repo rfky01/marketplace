@@ -11,16 +11,30 @@ class Pesanan extends Model
 
     protected $table = 'pesanan';
 
+    // HANYA BOLEH ADA SATU $fillable
     protected $fillable = [
         'user_id',
         'invoice_code',
         'tanggal',
         'grand_total',
-        'status'
+        'status',
+        // Data Tambahan (Checkout Lengkap)
+        'nama_penerima',
+        'email_penerima',
+        'telepon_penerima',
+        'alamat_pengiriman',
+        'catatan',
+        'waktu_pengiriman',
+        'metode_pembayaran'
+    ];
+
+    protected $casts = [
+        'tanggal' => 'datetime',
+        'waktu_pengiriman' => 'datetime',
     ];
 
     // Relasi: Pesanan punya banyak Detail Barang
-    public function detail()
+    public function detailPesanan()
     {
         return $this->hasMany(DetailPesanan::class, 'pesanan_id');
     }
@@ -29,11 +43,5 @@ class Pesanan extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
-    }
-
-    public function detailPesanan()
-    {
-        // Pastikan nama model DetailPesanan benar (sesuai nama file Anda)
-        return $this->hasMany(DetailPesanan::class, 'pesanan_id', 'id');
     }
 }

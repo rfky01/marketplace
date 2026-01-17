@@ -9,23 +9,21 @@ use Illuminate\Support\Facades\Storage;
 class ProdukController extends Controller
 {
     // 1. MENAMPILKAN SEMUA PRODUK (Public)
-    // Fitur: Bisa Search nama & Filter kategori
     public function index(Request $request)
     {
-        $query = produk::query();
+        $query = \App\Models\produk::query(); 
 
-        // Fitur Filter Kategori (Gunakan 'kategori' sesuai database)
+        // Filter Kategori
         if ($request->has('category')) {
             $query->where('kategori', $request->category);
         }
-
-        // Fitur Search Nama (Gunakan 'nama_barang' sesuai database)
+        // Search Nama
         if ($request->has('search')) {
             $query->where('nama_barang', 'like', '%' . $request->search . '%');
         }
 
-        // Ambil data terbaru
-        $products = $query->latest()->get();
+        // Include Data User (Penjual)
+        $products = $query->with('user')->latest()->get(); 
 
         return response()->json([
             'success' => true,
@@ -37,7 +35,8 @@ class ProdukController extends Controller
     // 2. MENAMPILKAN DETAIL 1 PRODUK
     public function show($id)
     {
-        $produk = produk::find($id);
+        // Tambah with user biar detail penjual muncul
+        $produk = produk::with(['user', 'updater'])->find($id); 
 
         if (!$produk) {
             return response()->json(['message' => 'Produk tidak ditemukan'], 404);
@@ -85,25 +84,111 @@ class ProdukController extends Controller
         ]);
     }
 
-    // 4. HAPUS BARANG
-    public function destroy(Request $request, $id)
+    // 4. AMBIL PRODUK MILIK USER SENDIRI (Fitur My Products)
+    public function userIndex(Request $request)
     {
-        $produk = produk::find($id);
+        $user = $request->user();
+
+        $products = \App\Models\produk::where('user_id', $user->id)
+                    ->with('updater') // <--- PENTING: Agar nama pengedit muncul di frontend
+                    ->latest()
+                    ->get();
+
+        return response()->json([
+            'success' => true,
+            'data'    => $products
+        ]);
+    }
+
+    // 5. UPDATE PRODUK (Edit)
+    public function update(Request $request, $id)
+    {
+        $produk = \App\Models\produk::find($id);
 
         if (!$produk) {
             return response()->json(['message' => 'Produk tidak ditemukan'], 404);
         }
 
-        // Cek Kepemilikan (Gunakan 'user_id' sesuai database, bukan seller_id)
+        // Cek Kepemilikan
+        if ($request->user()->id !== $produk->user_id) {
+            return response()->json(['message' => 'Anda dilarang mengedit barang orang lain'], 403);
+        }
+
+        // Validasi
+        $request->validate([
+            'nama_barang'  => 'required|string',
+            'harga_barang' => 'required|integer',
+            'stok_barang'  => 'required|integer',
+            'kategori'     => 'required|string',
+            'deskripsi'    => 'required|string',
+            'foto_barang'  => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        ]);
+
+        // Cek apakah user upload foto baru?
+        if ($request->hasFile('foto_barang')) {
+            // Hapus foto lama
+            if ($produk->foto_barang) {
+                $oldPath = str_replace(url('storage/'), '', $produk->foto_barang);
+                Storage::disk('public')->delete($oldPath);
+            }
+            // Upload foto baru
+            $imagePath = $request->file('foto_barang')->store('products', 'public');
+            $produk->foto_barang = url('storage/' . $imagePath);
+        }
+
+        // Update Data
+        $produk->update([
+            'nama_barang'  => $request->nama_barang,
+            'harga_barang' => $request->harga_barang,
+            'stok_barang'  => $request->stok_barang,
+            'kategori'     => $request->kategori,
+            'deskripsi'    => $request->deskripsi,
+            
+            // --- PENTING: Simpan siapa yang mengedit ---
+            'updated_by'   => $request->user()->id 
+            // ------------------------------------------
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Produk berhasil diperbarui',
+            'data'    => $produk
+        ]);
+    }
+
+    // 6. HAPUS BARANG (Soft Delete)
+    public function destroy(Request $request, $id)
+    {
+        $produk = \App\Models\produk::find($id);
+
+        if (!$produk) {
+            return response()->json(['message' => 'Produk tidak ditemukan'], 404);
+        }
+
+        // Cek Kepemilikan
         if ($request->user()->id !== $produk->user_id) {
             return response()->json(['message' => 'Anda dilarang menghapus barang orang lain'], 403);
         }
 
+        // Cek Status Pesanan Aktif
+        $pesananAktif = \App\Models\DetailPesanan::where('produk_id', $produk->id)
+            ->whereHas('pesanan', function($query) {
+                $query->whereIn('status', ['pending', 'accepted', 'dikirim']);
+            })
+            ->exists();
+
+        if ($pesananAktif) {
+            return response()->json([
+                'message' => 'Gagal: Produk sedang dalam proses transaksi (Pending/Dikirim). Selesaikan dulu pesanan tersebut.'
+            ], 400);
+        }
+
+        // Soft Delete
         $produk->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'Barang berhasil dihapus'
+            'message' => 'Produk berhasil dihapus'
         ]);
     }
 }

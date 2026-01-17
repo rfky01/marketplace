@@ -45,8 +45,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // FITUR C2C: Buka Toko (Upgrade dari Pembeli ke Penjual)
     Route::post('/open-shop', [ShopController::class, 'openShop']);
 
+    // Route Produk Saya
+    Route::get('/my-products', [ProdukController::class, 'userIndex']);
+    
+    // Route Hapus Produk
+    Route::delete('/produk/{id}', [ProdukController::class, 'destroy']);
+
     // Produk (Upload barang - Logic pengecekan "Penjual" ada di Controller)
     Route::post('/produk', [produkController::class, 'store']); 
+
+    Route::put('/produk/{id}', [ProdukController::class, 'update']);
 
     // Order (Transaksi)
     Route::post('/orders', [OrderController::class, 'store']);                    // Beli barang
@@ -62,6 +70,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Keranjang
     Route::get('/keranjang', [KeranjangController::class, 'index']);
     Route::post('/keranjang', [KeranjangController::class, 'store']);
+    Route::put('/keranjang/{id}', [App\Http\Controllers\KeranjangController::class, 'update']);
+    Route::delete('/keranjang/{id}', [App\Http\Controllers\KeranjangController::class, 'destroy']);
 
     // Review
     Route::post('/riview', [RiviewController::class, 'store']);
