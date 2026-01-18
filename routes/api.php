@@ -6,7 +6,7 @@ use App\Http\Controllers\produkController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\KeranjangController;
+use App\Http\Controllers\keranjangController;
 use App\Http\Controllers\RiviewController;
 use App\Http\Controllers\ShopController; // Pastikan ini ada
 
@@ -67,11 +67,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']); 
 
-    // Keranjang
-    Route::get('/keranjang', [KeranjangController::class, 'index']);
-    Route::post('/keranjang', [KeranjangController::class, 'store']);
-    Route::put('/keranjang/{id}', [App\Http\Controllers\KeranjangController::class, 'update']);
-    Route::delete('/keranjang/{id}', [App\Http\Controllers\KeranjangController::class, 'destroy']);
+    // keranjang
+    Route::get('/keranjang', [keranjangController::class, 'index']);
+    Route::post('/keranjang', [keranjangController::class, 'store']);
+    Route::put('/keranjang/{id}', [App\Http\Controllers\keranjangController::class, 'update']);
+    Route::delete('/keranjang/{id}', [App\Http\Controllers\keranjangController::class, 'destroy']);
 
     // Review
     Route::post('/riview', [RiviewController::class, 'store']);

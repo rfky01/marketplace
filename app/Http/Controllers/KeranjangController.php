@@ -3,26 +3,26 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Keranjang;
+use App\Models\keranjang;
 use App\Models\produk;
 
-class KeranjangController extends Controller
+class keranjangController extends Controller
 {
-    // 1. TAMPILKAN ISI KERANJANG
+    // 1. TAMPILKAN ISI keranjang
     public function index(Request $request)
     {
-        $cartItems = Keranjang::where('user_id', $request->user()->id)
+        $keranjangItems = keranjang::where('user_id', $request->user()->id)
                     ->with('produk') // Load data produk (nama, harga, gambar)
                     ->latest()
                     ->get();
 
         return response()->json([
             'success' => true,
-            'data' => $cartItems
+            'data' => $keranjangItems
         ]);
     }
 
-    // 2. TAMBAH KE KERANJANG
+    // 2. TAMBAH KE keranjang
     public function store(Request $request)
     {
         $request->validate([
@@ -39,7 +39,7 @@ class KeranjangController extends Controller
         }
 
         // Cek apakah barang sudah ada di keranjang user?
-        $existingItem = Keranjang::where('user_id', $user->id)
+        $existingItem = keranjang::where('user_id', $user->id)
                         ->where('produk_id', $request->produk_id)
                         ->first();
 
@@ -49,7 +49,7 @@ class KeranjangController extends Controller
             $existingItem->save();
         } else {
             // Jika belum ada, buat baru
-            Keranjang::create([
+            keranjang::create([
                 'user_id'   => $user->id,
                 'produk_id' => $request->produk_id,
                 'jumlah'    => $request->jumlah
@@ -59,10 +59,10 @@ class KeranjangController extends Controller
         return response()->json(['success' => true, 'message' => 'Produk masuk keranjang']);
     }
 
-    // 3. UPDATE JUMLAH (Tambah/Kurang di halaman Keranjang)
+    // 3. UPDATE JUMLAH (Tambah/Kurang di halaman keranjang)
     public function update(Request $request, $id)
     {
-        $item = Keranjang::find($id);
+        $item = keranjang::find($id);
         if (!$item || $item->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Item tidak ditemukan'], 404);
         }
@@ -80,10 +80,10 @@ class KeranjangController extends Controller
         return response()->json(['success' => true]);
     }
 
-    // 4. HAPUS DARI KERANJANG
+    // 4. HAPUS DARI keranjang
     public function destroy(Request $request, $id)
     {
-        $item = Keranjang::where('id', $id)->where('user_id', $request->user()->id)->first();
+        $item = keranjang::where('id', $id)->where('user_id', $request->user()->id)->first();
         
         if ($item) {
             $item->delete();

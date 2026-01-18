@@ -120,8 +120,8 @@ export default function Dashboard() {
                         ) : null}
                         {/* --------------------------------------------- */}
 
-                        {/* Keranjang */}
-                        <Link to="/cart" className="relative group">
+                        {/* keranjang */}
+                        <Link to="/keranjang" className="relative group">
                             <span className="text-2xl text-gray-500 group-hover:text-green-600 transition">🛒</span>
                         </Link>
 

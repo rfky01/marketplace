@@ -12,7 +12,7 @@ import AddProduct from './components/AddProduct';
 import MyProducts from './components/MyProducts';
 import EditProduct from './components/EditProduct';
 import ProductDetail from './components/ProductDetail';
-import Cart from './components/Cart';
+import Keranjang from './components/Keranjang';
 
 function App() {
     return (
@@ -29,7 +29,7 @@ function App() {
                     <Route path="/my-products" element={<MyProducts />} />
                     <Route path="/edit-product/:id" element={<EditProduct />} />
                     <Route path="/product/:id" element={<ProductDetail />} />
-                    <Route path="/cart" element={<Cart />} />
+                    <Route path="/Keranjang" element={<Keranjang />} />
                 </Routes>
             </div>
         </BrowserRouter>

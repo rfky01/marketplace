@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 
 export default function ProductDetail() {
@@ -6,11 +6,16 @@ export default function ProductDetail() {
     const navigate = useNavigate();
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState({}); // State untuk data user di navbar
 
     // --- STATE ---
-    const [showBuyModal, setShowBuyModal] = useState(false); // Modal Beli Langsung
-    const [showCartModal, setShowCartModal] = useState(false); // Modal Keranjang
-    const [quantity, setQuantity] = useState(1); // Jumlah untuk Keranjang
+    const [showBuyModal, setShowBuyModal] = useState(false);
+    const [showKeranjangModal, setShowKeranjangModal] = useState(false);
+    const [quantity, setQuantity] = useState(1);
+
+    // --- STATE NAVBAR (DROPDOWN) ---
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
 
     const [orderForm, setOrderForm] = useState({
         jumlah: 1,
@@ -28,6 +33,7 @@ export default function ProductDetail() {
         const userData = localStorage.getItem('user');
         if(userData) {
             const parsed = JSON.parse(userData);
+            setUser(parsed); // Simpan data user untuk Navbar
             setOrderForm(prev => ({
                 ...prev,
                 nama_penerima: parsed.name,
@@ -36,9 +42,20 @@ export default function ProductDetail() {
                 alamat_pengiriman: parsed.address || ''
             }));
         }
+
+        // Event Listener untuk menutup dropdown saat klik di luar
+        function handleClickOutside(event) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
     }, [id]);
 
-    // --- FUNGSI-FUNGSI LOGIKA (HARUS DI SINI, SEBELUM RETURN) ---
+    // --- FUNGSI-FUNGSI LOGIKA ---
     
     const fetchProductDetail = async () => {
         try {
@@ -54,20 +71,26 @@ export default function ProductDetail() {
         finally { setLoading(false); }
     };
 
-    // 1. BUKA POPUP KERANJANG
-    const openCartModal = () => {
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+    };
+
+    // 1. BUKA POPUP Keranjang
+    const openKeranjangModal = () => {
         const token = localStorage.getItem('token');
         if (!token) {
             alert("Silakan login dulu");
             navigate('/login');
             return;
         }
-        setQuantity(1); // Reset jumlah jadi 1
-        setShowCartModal(true);
+        setQuantity(1);
+        setShowKeranjangModal(true);
     };
 
-    // 2. SIMPAN KE KERANJANG (API)
-    const confirmAddToCart = async () => {
+    // 2. SIMPAN KE Keranjang (API)
+    const confirmAddToKeranjang = async () => {
         const token = localStorage.getItem('token');
         try {
             const response = await fetch('http://127.0.0.1:8000/api/keranjang', {
@@ -84,12 +107,18 @@ export default function ProductDetail() {
             const data = await response.json();
             
             if (response.ok) {
-                alert(`Berhasil! ${quantity} item masuk keranjang 🛒`);
-                setShowCartModal(false);
+                if(confirm(`Berhasil! ${quantity} item masuk Keranjang 🛒. Mau lihat keranjang?`)) {
+                    navigate('/keranjang');
+                } else {
+                    setShowKeranjangModal(false);
+                }
             } else {
-                alert("Gagal: " + data.message);
+                alert("Gagal: " + (data.message || "Terjadi kesalahan sistem"));
             }
-        } catch (error) { console.error(error); }
+        } catch (error) { 
+            console.error(error); 
+            alert("Terjadi kesalahan koneksi ke server.");
+        }
     };
 
     // 3. HANDLE FORM BELI LANGSUNG
@@ -137,11 +166,54 @@ export default function ProductDetail() {
     if (!product) return null;
 
     return (
-        <div className="min-h-screen bg-gray-100 py-8 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-6xl mx-auto">
-                <Link to="/" className="inline-flex items-center text-gray-600 hover:text-blue-600 mb-6 transition group font-medium">
-                    <span className="mr-2">⬅️</span> Kembali ke Katalog
-                </Link>
+        <div className="min-h-screen bg-gray-50 font-sans pb-20">
+            
+            {/* --- NAVBAR (Ditambahkan Baru) --- */}
+            <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
+                <div className="max-w-7xl mx-auto h-16 flex items-center justify-between px-4 lg:px-8">
+                    
+                    {/* Logo Kiri */}
+                    <div className="flex items-center gap-8">
+                        <Link to="/" className="text-2xl font-bold text-blue-600 tracking-tight decoration-none">
+                            Marketplace<span className="text-gray-700">Plus</span>
+                        </Link>
+                    </div>
+
+                    {/* Area Kanan Navbar */}
+                    <div className="flex items-center gap-6">
+                        
+                        {/* 1. Kembali Belanja (Pindah ke Sini) */}
+                        <Link to="/" className="hidden md:inline-flex items-center text-gray-500 hover:text-blue-600 font-medium transition no-underline text-sm border-r border-gray-300 pr-6">
+                            <span className="mr-1 text-lg"></span> Dashboard
+                        </Link>
+
+                        {/* 2. Ikon Keranjang */}
+                        <Link to="/keranjang" className="relative group decoration-none">
+                            <span className="text-2xl text-gray-400 group-hover:text-blue-600 transition">🛒</span>
+                        </Link>
+
+                        {/* 3. Profil User */}
+                        <div className="relative" ref={dropdownRef}>
+                            <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition">
+                                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold text-gray-600">{user.name?.charAt(0).toUpperCase()}</div>
+                                <div className="text-left hidden sm:block">
+                                    <p className="text-xs text-gray-500">Halo,</p>
+                                    <p className="text-sm font-bold text-gray-800 max-w-[100px] truncate">{user.name}</p>
+                                </div>
+                            </button>
+                            {isDropdownOpen && (
+                                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 p-2 z-50">
+                                    <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-red-500 hover:bg-red-50 rounded-md text-sm font-bold">🚪 Keluar</button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <div className="max-w-6xl mx-auto px-4">
+                
+                {/* Tombol kembali yang lama sudah dihapus dari sini */}
 
                 <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col">
                     
@@ -196,7 +268,7 @@ export default function ProductDetail() {
                         {/* TOMBOL AKSI */}
                         <div className="flex gap-4 mt-auto">
                             <button 
-                                onClick={openCartModal} // Panggil fungsi di atas
+                                onClick={openKeranjangModal} 
                                 disabled={product.stok_barang <= 0}
                                 className="flex-1 py-4 rounded-xl font-bold text-lg border-2 border-blue-600 text-blue-600 hover:bg-blue-50 transition flex items-center justify-center gap-2"
                             >
@@ -221,13 +293,13 @@ export default function ProductDetail() {
                 </div>
             </div>
 
-            {/* --- MODAL 1: KERANJANG --- */}
-            {showCartModal && (
+            {/* --- MODAL 1: Keranjang --- */}
+            {showKeranjangModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4 animate-fade-in">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 transform transition-all scale-100">
                         <div className="flex justify-between items-center mb-4 border-b pb-2">
                             <h3 className="text-lg font-bold text-gray-800">Masukkan ke Keranjang</h3>
-                            <button onClick={() => setShowCartModal(false)} className="text-gray-400 hover:text-red-500 font-bold text-xl">&times;</button>
+                            <button onClick={() => setShowKeranjangModal(false)} className="text-gray-400 hover:text-red-500 font-bold text-xl">&times;</button>
                         </div>
                         
                         <div className="mb-6">
@@ -241,8 +313,8 @@ export default function ProductDetail() {
                         </div>
 
                         <div className="flex gap-3">
-                            <button onClick={() => setShowCartModal(false)} className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600 font-medium">Batal</button>
-                            <button onClick={confirmAddToCart} className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold shadow">Simpan</button>
+                            <button onClick={() => setShowKeranjangModal(false)} className="flex-1 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600 font-medium">Batal</button>
+                            <button onClick={confirmAddToKeranjang} className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold shadow">Simpan</button>
                         </div>
                     </div>
                 </div>
