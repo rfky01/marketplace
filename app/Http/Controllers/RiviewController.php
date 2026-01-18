@@ -24,9 +24,9 @@ class RiviewController extends Controller
 
         // 2. LOGIKA VALIDASI PEMBELIAN (PENTING!)
 
-        // A. Cek apakah Pesanan milik User & Statusnya sudah 'selesai'
-        // 'selesai' harus disesuaikan dengan enum status di database Anda (misal: 'completed', 'done', 'success')
-        // Jika status di database Anda saat ini masih 'pending', ganti 'selesai' jadi 'pending' dulu untuk tes.
+        // A. Cek apakah Pesanan milik User & Statusnya sudah 'finished'
+        // 'finished' harus disesuaikan dengan enum status di database Anda (misal: 'completed', 'done', 'success')
+        // Jika status di database Anda saat ini masih 'pending', ganti 'finished' jadi 'pending' dulu untuk tes.
         $pesanan = Pesanan::where('id', $request->pesanan_id)
                     ->where('user_id', $userId)
                     ->first();
@@ -35,10 +35,10 @@ class RiviewController extends Controller
             return response()->json(['message' => 'Pesanan tidak ditemukan atau bukan milik Anda'], 404);
         }
 
-        // Uncomment baris di bawah ini jika ingin memaksa status harus selesai dulu baru bisa riview
+        // Uncomment baris di bawah ini jika ingin memaksa status harus finished dulu baru bisa riview
         /*
-        if ($pesanan->status !== 'selesai') {
-            return response()->json(['message' => 'Anda baru bisa riview setelah pesanan selesai'], 400);
+        if ($pesanan->status !== 'finished') {
+            return response()->json(['message' => 'Anda baru bisa riview setelah pesanan finished'], 400);
         }
         */
 

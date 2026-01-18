@@ -13,6 +13,7 @@ import MyProducts from './components/MyProducts';
 import EditProduct from './components/EditProduct';
 import ProductDetail from './components/ProductDetail';
 import Keranjang from './components/Keranjang';
+import SellerOrders from './components/SellerOrders';
 
 function App() {
     return (
@@ -30,6 +31,7 @@ function App() {
                     <Route path="/edit-product/:id" element={<EditProduct />} />
                     <Route path="/product/:id" element={<ProductDetail />} />
                     <Route path="/Keranjang" element={<Keranjang />} />
+                    <Route path="/seller-orders" element={<SellerOrders />} />
                 </Routes>
             </div>
         </BrowserRouter>

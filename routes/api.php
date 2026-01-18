@@ -8,7 +8,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\keranjangController;
 use App\Http\Controllers\RiviewController;
-use App\Http\Controllers\ShopController; // Pastikan ini ada
+use App\Http\Controllers\ShopController;
+use App\Http\Controllers\Api\SellerOrderController;
 
 /*
 |--------------------------------------------------------------------------
@@ -47,6 +48,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Route Produk Saya
     Route::get('/my-products', [ProdukController::class, 'userIndex']);
+
+    Route::get('/seller/orders', [SellerOrderController::class, 'index']);
+    Route::put('/seller/orders/{id}', [SellerOrderController::class, 'update']);
     
     // Route Hapus Produk
     Route::delete('/produk/{id}', [ProdukController::class, 'destroy']);

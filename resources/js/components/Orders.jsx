@@ -84,7 +84,11 @@ export default function Orders() {
         navigate('/login');
     };
 
-    const formatRupiah = (num) => new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR', minimumFractionDigits:0}).format(num);
+    const formatRupiah = (num) => {
+        const n = Number(num); // Paksa ubah ke angka
+        if (isNaN(n)) return 'Rp 0'; // Jika gagal, tampilkan 0
+        return new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR', minimumFractionDigits:0}).format(n);
+    };
     const formatDate = (dateString) => {
         const options = { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' };
         return new Date(dateString).toLocaleDateString('id-ID', options);
@@ -163,21 +167,21 @@ export default function Orders() {
                     <div className="space-y-6">
                         {orders.map((order) => (
                             <div key={order.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                                
-                                {/* Header Pesanan */}
-                                <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                                    <div>
-                                        <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">No. Invoice</p>
-                                        <p className="text-sm font-bold text-gray-800 font-mono">{order.invoice_code || `INV-${order.id}`}</p>
-                                        <p className="text-xs text-gray-500 mt-1">{formatDate(order.created_at)}</p>
+                                    
+                                    {/* Header Pesanan */}
+                                    <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                        <div>
+                                            <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">No. Invoice</p>
+                                            <p className="text-sm font-bold text-gray-800 font-mono">{order.invoice_code || `INV-${order.id}`}</p>
+                                            <p className="text-xs text-gray-500 mt-1">{formatDate(order.created_at)}</p>
+                                        </div>
+                                        <div className={`px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wide 
+                                            ${order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                                            order.status === 'success' ? 'bg-green-100 text-green-700' : 
+                                            'bg-red-100 text-red-700'}`}>
+                                            {order.status}
+                                        </div>
                                     </div>
-                                    <div className={`px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wide 
-                                        ${order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
-                                          order.status === 'success' ? 'bg-green-100 text-green-700' : 
-                                          'bg-red-100 text-red-700'}`}>
-                                        {order.status}
-                                    </div>
-                                </div>
 
                                 {/* List Item */}
                                 <div className="p-6">
@@ -206,7 +210,7 @@ export default function Orders() {
                                 <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
                                     <div>
                                         <p className="text-xs text-gray-500">Total Tagihan</p>
-                                        <p className="text-xl font-extrabold text-blue-600">{formatRupiah(order.total_harga)}</p>
+                                        <p className="text-xl font-extrabold text-blue-600">{formatRupiah(order.grand_total)}</p>
                                     </div>
                                     
                                     {order.status === 'pending' && (
@@ -214,7 +218,7 @@ export default function Orders() {
                                             onClick={() => handleCancelOrder(order.id)}
                                             className="px-6 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm font-bold hover:bg-red-100 transition"
                                         >
-                                            ❌ Batalkan Pesanan
+                                            CENCEL
                                         </button>
                                     )}
                                 </div>

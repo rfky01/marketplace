@@ -173,13 +173,13 @@ class ProdukController extends Controller
         // Cek Status Pesanan Aktif
         $pesananAktif = \App\Models\DetailPesanan::where('produk_id', $produk->id)
             ->whereHas('pesanan', function($query) {
-                $query->whereIn('status', ['pending', 'accepted', 'dikirim']);
+                $query->whereIn('status', ['pending', 'accepted', 'sent', 'finished']);
             })
             ->exists();
 
         if ($pesananAktif) {
             return response()->json([
-                'message' => 'Gagal: Produk sedang dalam proses transaksi (Pending/Dikirim). Selesaikan dulu pesanan tersebut.'
+                'message' => 'Gagal: Produk sedang dalam proses transaksi (Pending/sent). Selesaikan dulu pesanan tersebut.'
             ], 400);
         }
 

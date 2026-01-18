@@ -129,7 +129,7 @@ class OrderController extends Controller
         }
 
         $request->validate([
-            'status' => ['required', 'in:accepted,dikirim,selesai']
+            'status' => ['required', 'in:accepted,sent,finished']
         ]);
 
         $pesanan = Pesanan::find($id);
@@ -166,7 +166,7 @@ class OrderController extends Controller
 
         DB::transaction(function () use ($pesanan) {
             $this->restoreStock($pesanan);
-            $pesanan->status = 'dibatalkan oleh penjual';
+            $pesanan->status = 'canceled by seller';
             $pesanan->save();
         });
 
@@ -193,7 +193,7 @@ class OrderController extends Controller
 
         DB::transaction(function () use ($pesanan) {
             $this->restoreStock($pesanan);
-            $pesanan->status = 'dibatalkan oleh pembeli';
+            $pesanan->status = 'canceled by buyer';
             $pesanan->save();
         });
 

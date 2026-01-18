@@ -20,10 +20,10 @@ return new class extends Migration
             $table->enum('status', [
                 'pending', 
                 'accepted', 
-                'dikirim', 
-                'selesai', 
-                'dibatalkan oleh penjual',
-                'dibatalkan oleh pembeli'
+                'sent', 
+                'finished', 
+                'canceled by seller',
+                'canceled by buyer'
                 ])->default('pending');
             $table->timestamps();
         });

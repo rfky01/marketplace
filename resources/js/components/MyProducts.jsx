@@ -1,154 +1,209 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function MyProducts() {
-    const navigate = useNavigate();
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState({});
+    
+    // --- STATE NAVBAR ---
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const dropdownRef = useRef(null);
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
+
         if (!token) {
             navigate('/login');
-        } else {
-            fetchMyProducts();
+            return;
         }
+
+        if (userData) setUser(JSON.parse(userData));
+
+        fetchMyProducts();
+
+        // Event Listener untuk menutup dropdown
+        function handleClickOutside(event) {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
     }, []);
 
     const fetchMyProducts = async () => {
         const token = localStorage.getItem('token');
         try {
             const response = await fetch('http://127.0.0.1:8000/api/my-products', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json'
-                }
+                headers: { Authorization: `Bearer ${token}` }
             });
             const data = await response.json();
             if (data.success) {
                 setProducts(data.data);
             }
         } catch (error) {
-            console.error("Error fetching my products:", error);
+            console.error(error);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleDelete = async (productId) => {
-        if(!confirm("Yakin ingin menghapus produk ini?")) return;
+    const deleteProduct = async (id) => {
+        if(!confirm('Yakin ingin menghapus produk ini?')) return;
 
         const token = localStorage.getItem('token');
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/produk/${productId}`, {
+            const response = await fetch(`http://127.0.0.1:8000/api/produk/${id}`, {
                 method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json'
-                }
+                headers: { Authorization: `Bearer ${token}` }
             });
-            
-            const data = await response.json(); 
-
-            if (response.ok) {
-                alert("Produk berhasil dihapus!");
-                fetchMyProducts(); 
+            if(response.ok){
+                alert("Produk berhasil dihapus");
+                fetchMyProducts();
             } else {
-                alert("Gagal: " + (data.message || "Terjadi kesalahan sistem"));
+                alert("Gagal menghapus produk");
             }
-
         } catch (error) {
-            console.error("Error deleting:", error);
+            console.error(error);
         }
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
     };
 
     const formatRupiah = (num) => new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR', minimumFractionDigits:0}).format(num);
 
+    if (loading) return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+    );
+
     return (
-        <div className="min-h-screen bg-gray-100 p-6">
-            <div className="container mx-auto max-w-5xl"> 
-                
-                {/* HEADER */}
-                <div className="flex justify-between items-center mb-6 bg-white p-4 rounded-lg shadow-sm">
-                    <h2 className="text-xl font-bold text-gray-800">Manajemen Produk Saya</h2>
-                    <div className="flex gap-3">
-                        <Link to="/add-product" className="bg-blue-600 text-white font-bold py-2 px-4 rounded text-sm shadow hover:bg-blue-700 decoration-none flex items-center gap-2">
-                            <span>+</span> Tambah
+        <div className="min-h-screen bg-gray-50 w-full font-sans pb-20">
+            
+            {/* --- NAVBAR --- */}
+            <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
+                <div className="max-w-7xl mx-auto h-16 flex items-center justify-between px-4 lg:px-8">
+                    
+                    {/* Logo Kiri */}
+                    <div className="flex items-center gap-8">
+                        <Link to="/" className="text-2xl font-bold text-blue-600 tracking-tight decoration-none">
+                            Marketplace<span className="text-gray-700">Plus</span>
                         </Link>
-                        <Link to="/" className="bg-gray-500 text-white font-bold py-2 px-4 rounded text-sm shadow hover:bg-gray-600 decoration-none">
+                    </div>
+
+                    {/* Area Kanan Navbar (FITUR PINDAHAN ADA DI SINI) */}
+                    <div className="flex items-center gap-4">
+                        
+                        {/* 1. Tombol Dashboard (Pindah ke sini) */}
+                        <Link to="/" className="text-gray-500 hover:text-blue-600 font-medium px-4 py-2 transition decoration-none">
                             Dashboard
                         </Link>
+
+                        {/* 2. Tombol Tambah Produk (Pindah ke sini) */}
+                        <Link to="/add-product" className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold hover:bg-blue-700 transition shadow-md flex items-center gap-2 decoration-none">
+                            <span>+</span> Tambah Produk
+                        </Link>
+
+                        <Link to="/seller-orders" className="text-gray-600 hover:text-blue-600 font-bold px-3 py-2 transition decoration-none border-l border-gray-300 ml-2">
+                           Pesanan Masuk
+                        </Link>
+
+                        {/* Separator Kecil */}
+                        <div className="h-6 w-px bg-gray-300 mx-2"></div>
+
+                        {/* 3. Profil User */}
+                        <div className="relative" ref={dropdownRef}>
+                            <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition">
+                                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold text-gray-600">{user.name?.charAt(0).toUpperCase()}</div>
+                                <div className="text-left hidden sm:block">
+                                    <p className="text-xs text-gray-500">Halo,</p>
+                                    <p className="text-sm font-bold text-gray-800 max-w-[100px] truncate">{user.name}</p>
+                                </div>
+                            </button>
+                            {isDropdownOpen && (
+                                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 p-2 z-50">
+                                    <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-red-500 hover:bg-red-50 rounded-md text-sm font-bold">🚪 Keluar</button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
+            </nav>
 
-                {/* CONTENT */}
-                {loading ? (
-                    <p className="text-center text-gray-500">Memuat produk...</p>
-                ) : products.length === 0 ? (
-                    <div className="text-center py-20 bg-white rounded-xl shadow">
-                        <p className="text-gray-500 text-lg mb-4">Anda belum memiliki produk.</p>
-                        <Link to="/add-product" className="text-blue-600 font-bold hover:underline">Mulai Jualan Sekarang</Link>
+            {/* --- KONTEN UTAMA --- */}
+            <div className="max-w-6xl mx-auto px-4">
+                
+                {/* Judul Halaman (Tombol lama sudah dihapus) */}
+                <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-3xl font-bold text-gray-800">Manajemen Produk Saya</h1>
+                    <div className="text-gray-500 text-sm">Total: {products.length} Produk</div>
+                </div>
+
+                {products.length === 0 ? (
+                    <div className="bg-white p-12 rounded-2xl shadow-sm text-center border border-gray-100">
+                        <div className="text-6xl mb-4">📦</div>
+                        <h2 className="text-xl font-bold text-gray-800 mb-2">Belum ada produk</h2>
+                        <p className="text-gray-500 mb-6">Mulai jualan dengan menambahkan produk pertamamu!</p>
+                        <Link to="/add-product" className="inline-block bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-700 transition shadow-lg decoration-none">
+                            + Tambah Produk
+                        </Link>
                     </div>
                 ) : (
-                    <div className="flex flex-col gap-4">
+                    <div className="grid grid-cols-1 gap-6">
                         {products.map((product) => (
-                            <div key={product.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col sm:flex-row items-center gap-4 hover:shadow-md transition">
+                            <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col sm:flex-row items-center gap-6 transition hover:shadow-md">
                                 
-                                {/* 1. GAMBAR (Kiri) */}
-                                <img 
-                                    src={product.foto_barang} 
-                                    alt={product.nama_barang} 
-                                    className="w-full sm:w-24 h-24 object-cover rounded-md border border-gray-100" 
-                                    onError={(e)=>{e.target.src="https://via.placeholder.com/150"}}
-                                />
-                                
-                                {/* 2. INFO PRODUK (Tengah) - Saya hapus duplikatnya di sini */}
+                                {/* Gambar */}
+                                <div className="w-full sm:w-32 h-32 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                                    <img 
+                                        src={product.foto_barang} 
+                                        alt={product.nama_barang} 
+                                        className="w-full h-full object-cover"
+                                        onError={(e)=>{e.target.src="https://via.placeholder.com/150"}}
+                                    />
+                                </div>
+
+                                {/* Info */}
                                 <div className="flex-1 w-full text-center sm:text-left">
                                     <h3 
-                                        className="font-bold text-lg text-gray-800 line-clamp-2 break-all overflow-hidden"
-                                        title={product.nama_barang}
+                                        className="text-xl font-bold text-gray-800 mb-1 line-clamp-2 break-all leading-tight"
+                                        title={product.nama_barang} // Tooltip agar nama full muncul saat di-hover
                                     >
                                         {product.nama_barang}
                                     </h3>
-                                    <p className="text-xs text-gray-500 uppercase mb-2">{product.kategori}</p>
-                                    
-                                    <div className="flex items-center justify-center sm:justify-start gap-4 text-sm mb-2">
-                                        <span className="text-blue-600 font-bold">{formatRupiah(product.harga_barang)}</span>
-                                        <span className="text-gray-400">|</span>
-                                        <span className={`px-2 py-0.5 rounded text-xs border ${product.stok_barang > 0 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-                                            Stok: {product.stok_barang}
-                                        </span>
+                                    <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded uppercase font-bold mb-2">{product.kategori}</span>
+                                    <div className="flex flex-col sm:flex-row gap-4 text-sm text-gray-500 justify-center sm:justify-start">
+                                        <p className="text-blue-600 font-bold text-lg">{formatRupiah(product.harga_barang)}</p>
+                                        <span className="hidden sm:block">|</span>
+                                        <p>Stok: <span className="font-bold text-gray-800">{product.stok_barang}</span></p>
                                     </div>
-
-                                    {/* INFO TIMESTAMP */}
-                                    <div className="text-xs text-gray-400 flex flex-col sm:flex-row gap-1 sm:gap-4 mt-2 border-t pt-2">
-                                        <span className="flex items-center gap-1">
-                                            📅 Dibuat: {new Date(product.created_at).toLocaleDateString('id-ID')}
-                                        </span>
-                                        
-                                        {/* Hanya muncul jika pernah diedit */}
-                                        {product.updated_by && product.updater && (
-                                            <span className="flex items-center gap-1 text-yellow-600 bg-yellow-50 px-2 rounded w-fit">
-                                                update by: {product.updater.name} ({new Date(product.updated_at).toLocaleDateString('id-ID')})
-                                            </span>
-                                        )}
-                                    </div>
+                                    <p className="text-xs text-gray-400 mt-2">Dibuat: {new Date(product.created_at).toLocaleDateString()}</p>
                                 </div>
 
-                                {/* 3. TOMBOL AKSI (Kanan) */}
-                                <div className="flex gap-2 w-full sm:w-auto">
+                                {/* Aksi */}
+                                <div className="flex gap-3">
                                     <Link 
-                                        to={`/edit-product/${product.id}`}
-                                        className="flex-1 sm:flex-none bg-yellow-400 text-white px-4 py-2 rounded font-medium hover:bg-yellow-500 transition text-sm flex items-center justify-center gap-1 decoration-none"
+                                        to={`/edit-product/${product.id}`} 
+                                        className="px-5 py-2 bg-yellow-400 text-yellow-900 rounded-lg font-bold hover:bg-yellow-500 transition decoration-none flex items-center gap-2"
                                     >
                                         ✏️ Edit
                                     </Link>
-
                                     <button 
-                                        onClick={() => handleDelete(product.id)}
-                                        className="flex-1 sm:flex-none bg-red-100 text-red-600 px-4 py-2 rounded font-medium hover:bg-red-200 transition text-sm border border-red-200 flex items-center justify-center gap-1"
+                                        onClick={() => deleteProduct(product.id)}
+                                        className="px-5 py-2 bg-red-100 text-red-600 rounded-lg font-bold hover:bg-red-200 transition flex items-center gap-2"
                                     >
-                                        🗑 Hapus
+                                        🗑️ Hapus
                                     </button>
                                 </div>
 
