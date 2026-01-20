@@ -13,7 +13,7 @@ export default function Keranjang() {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
 
-    // --- KODE BARU: STATE UNTUK MODAL CHECKOUT ---
+    // --- STATE UNTUK MODAL CHECKOUT ---
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
     const [checkoutForm, setCheckoutForm] = useState({
         telepon: '',
@@ -21,7 +21,6 @@ export default function Keranjang() {
         waktu_kirim: '',
         metode_pembayaran: 'COD'
     });
-    // ---------------------------------------------
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -148,16 +147,16 @@ export default function Keranjang() {
     const grandTotal = checkoutItems.reduce((total, item) => total + ((item.produk?.harga_barang || 0) * item.jumlah), 0);
     const totalItems = checkoutItems.reduce((total, item) => total + item.jumlah, 0);
 
-    // --- KODE BARU: BUKA MODAL ---
+    // --- BUKA MODAL ---
     const handleOpenCheckoutModal = () => {
         if (selectedItems.length === 0) return alert("Pilih minimal satu barang untuk dibeli!");
         setIsCheckoutModalOpen(true);
     };
 
-    // --- KODE BARU: PROSES CHECKOUT DARI MODAL ---
+    // --- PROSES CHECKOUT ---
     const handleConfirmCheckout = async () => {
-        // Validasi Form
-        if (!checkoutForm.telepon || !checkoutForm.alamat || !checkoutForm.waktu_kirim) {
+        // Validasi Form (Waktu kirim dihapus dari validasi karena akan otomatis)
+        if (!checkoutForm.telepon || !checkoutForm.alamat) {
             alert("Mohon lengkapi data pengiriman!");
             return;
         }
@@ -171,10 +170,10 @@ export default function Keranjang() {
                 })),
                 nama_penerima: user.name,
                 email_penerima: user.email || "email@example.com",
-                // Menggunakan data dari Form State
                 telepon_penerima: checkoutForm.telepon,
                 alamat_pengiriman: checkoutForm.alamat,
-                waktu_pengiriman: checkoutForm.waktu_kirim,
+                // KARENA INPUT DIHAPUS, KITA KIRIM WAKTU SEKARANG SECARA OTOMATIS
+                waktu_pengiriman: new Date().toISOString(), 
                 metode_pembayaran: checkoutForm.metode_pembayaran
             };
 
@@ -191,13 +190,12 @@ export default function Keranjang() {
 
             if (response.ok) {
                 alert("Checkout Berhasil! ✅");
-                // Hapus item dari keranjang setelah sukses
                 for (const itemId of selectedItems) {
                     await fetch(`http://127.0.0.1:8000/api/keranjang/${itemId}`, {
                         method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
                     });
                 }
-                setIsCheckoutModalOpen(false); // Tutup modal
+                setIsCheckoutModalOpen(false); 
                 navigate('/orders');
             } else {
                 alert("Gagal Checkout: " + (data.message || "Terjadi kesalahan"));
@@ -222,26 +220,18 @@ export default function Keranjang() {
             {/* --- NAVBAR --- */}
             <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
                 <div className="max-w-7xl mx-auto h-16 flex items-center justify-between px-4 lg:px-8">
-                    
-                    {/* Logo Kiri */}
                     <div className="flex items-center gap-8">
                         <Link to="/" className="text-2xl font-bold text-blue-600 tracking-tight decoration-none">
                             Marketplace<span className="text-gray-700">Plus</span>
                         </Link>
                     </div>
-
-                    {/* Area Kanan Navbar */}
                     <div className="flex items-center gap-6">
-                        
                         <div className="hidden md:flex items-center gap-2">
                             <h1 className="text-lg font-bold text-gray-800 m-0">Keranjang Belanja</h1>
                         </div>
-
                         <Link to="/" className="hidden md:inline-flex items-center text-gray-500 hover:text-blue-600 font-medium transition no-underline text-sm border-l border-gray-300 pl-6">
                             <span className="mr-1 text-lg"></span> Kembali Belanja
                         </Link>
-
-                        {/* Profil User */}
                         <div className="relative" ref={dropdownRef}>
                             <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition">
                                 <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold text-gray-600">{user.name?.charAt(0).toUpperCase()}</div>
@@ -256,12 +246,12 @@ export default function Keranjang() {
                                         <div className="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center text-blue-900 font-bold text-lg">{user.name.charAt(0).toUpperCase()}</div>
                                         <div><p className="font-bold text-gray-800">{user.name}</p><p className="text-xs text-blue-800 font-semibold"></p></div>
                                     </div>
-                                        <hr className="border-gray-100 mb-2"/>
-                                        <div className="flex flex-col gap-1">
-                                            {user.role === 'penjual' && (
-                                            <Link to="/my-products" className="px-3 py-2 hover:bg-gray-50 rounded-md text-gray-700 text-sm font-medium flex justify-between items-center">
-                                                Toko Saya <span className="text-blue-900 text-xs bg-blue-100 px-2 py-0.5 rounded">Penjual</span>
-                                            </Link>
+                                    <hr className="border-gray-100 mb-2"/>
+                                    <div className="flex flex-col gap-1">
+                                        {user.role === 'penjual' && (
+                                        <Link to="/my-products" className="px-3 py-2 hover:bg-gray-50 rounded-md text-gray-700 text-sm font-medium flex justify-between items-center">
+                                            Toko Saya <span className="text-blue-900 text-xs bg-blue-100 px-2 py-0.5 rounded">Penjual</span>
+                                        </Link>
                                         )}
                                         <Link to="/orders" className="px-3 py-2 hover:bg-gray-50 rounded-md text-gray-700 text-sm font-medium">Daftar Pesanan</Link>
                                     </div>
@@ -275,9 +265,7 @@ export default function Keranjang() {
             </nav>
 
             <div className="max-w-6xl mx-auto px-4">
-                
                 <div className="mb-4"></div>
-
                 {keranjangItems.length === 0 ? (
                     <div className="bg-white p-12 rounded-2xl shadow-sm text-center">
                         <div className="flex justify-center mb-4">
@@ -290,11 +278,8 @@ export default function Keranjang() {
                     </div>
                 ) : (
                     <div className="flex flex-col lg:flex-row gap-8">
-                        
-                        {/* --- LIST BARANG (KIRI) --- */}
+                        {/* LIST BARANG */}
                         <div className="flex-1 space-y-4">
-                            
-                            {/* Header Pilih Semua */}
                             <div className="bg-white p-4 rounded-xl shadow-sm flex items-center gap-3 border border-gray-100">
                                 <input 
                                     type="checkbox" 
@@ -304,12 +289,8 @@ export default function Keranjang() {
                                 />
                                 <span className="text-gray-700 font-bold text-sm">Pilih Semua ({keranjangItems.length})</span>
                             </div>
-
-                            {/* Loop Items */}
                             {keranjangItems.map((item) => (
                                 <div key={item.id} className={`bg-white p-4 rounded-xl shadow-sm flex items-center gap-4 border transition ${selectedItems.includes(item.id) ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-100'}`}>
-                                    
-                                    {/* Checkbox Per Item */}
                                     <div className="flex-shrink-0">
                                         <input 
                                             type="checkbox" 
@@ -318,8 +299,6 @@ export default function Keranjang() {
                                             className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
                                         />
                                     </div>
-
-                                    {/* Gambar */}
                                     <div className="w-24 h-24 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden border border-gray-100 group">
                                         <Link to={`/product/${item.produk?.id}`}>
                                             <img 
@@ -330,18 +309,12 @@ export default function Keranjang() {
                                             />
                                         </Link>
                                     </div>
-
-                                    {/* Judul & Info */}
                                     <div className="flex-1 min-w-0 pr-2">
                                         <Link to={`/product/${item.produk?.id}`} className="block hover:text-blue-600 transition">
-                                            <h3 
-                                                className="font-bold text-lg text-gray-800 mb-1 line-clamp-2 leading-snug break-all"
-                                                title={item.produk?.nama_barang}
-                                            >
+                                            <h3 className="font-bold text-lg text-gray-800 mb-1 line-clamp-2 leading-snug break-all" title={item.produk?.nama_barang}>
                                                 {item.produk?.nama_barang || "Produk Tidak Tersedia"}
                                             </h3>
                                         </Link>
-                                        
                                         <div className="text-blue-600 font-bold text-lg mb-1">
                                             {formatRupiah(item.produk?.harga_barang || 0)}
                                         </div>
@@ -349,8 +322,6 @@ export default function Keranjang() {
                                             Sisa Stok: {item.produk?.stok_barang || 0}
                                         </div>
                                     </div>
-
-                                    {/* Kontrol Kanan */}
                                     <div className="flex flex-col items-end gap-3 flex-shrink-0">
                                         <div className="flex items-center border border-gray-200 rounded-lg bg-white">
                                             <button 
@@ -365,24 +336,18 @@ export default function Keranjang() {
                                                 className="px-3 py-1 text-blue-600 hover:bg-blue-50 font-bold disabled:opacity-30"
                                             > + </button>
                                         </div>
-
-                                        <button 
-                                            onClick={() => removeItem(item.id)} 
-                                            className="text-red-500 hover:text-red-700 font-bold text-xs"
-                                        >
+                                        <button onClick={() => removeItem(item.id)} className="text-red-500 hover:text-red-700 font-bold text-xs">
                                             Hapus
                                         </button>
                                     </div>
-
                                 </div>
                             ))}
                         </div>
 
-                        {/* --- RINGKASAN BELANJA (KANAN) --- */}
+                        {/* RINGKASAN BELANJA */}
                         <div className="w-full lg:w-96">
                             <div className="bg-white rounded-2xl shadow-sm p-6 sticky top-24 border border-gray-100">
                                 <h3 className="font-bold text-xl text-gray-800 mb-6">Ringkasan Belanja</h3>
-                                
                                 <div className="space-y-4 mb-6">
                                     <div className="flex justify-between text-gray-600 text-sm">
                                         <span>Total Barang (Dipilih)</span>
@@ -393,14 +358,12 @@ export default function Keranjang() {
                                         <span className="font-bold text-green-600">Gratis</span>
                                     </div>
                                 </div>
-
                                 <div className="border-t border-gray-100 pt-4 mb-6">
                                     <div className="flex justify-between items-end">
                                         <span className="font-bold text-gray-800">Total Harga</span>
                                         <span className="font-extrabold text-2xl text-blue-600">{formatRupiah(grandTotal)}</span>
                                     </div>
                                 </div>
-
                                 <button 
                                     onClick={handleOpenCheckoutModal} 
                                     disabled={selectedItems.length === 0}
@@ -414,56 +377,53 @@ export default function Keranjang() {
                                 </button>
                             </div>
                         </div>
-
                     </div>
                 )}
             </div>
 
             {/* ================================================== */}
-            {/* === KODE BARU: MODAL POPUP CHECKOUT (Checkout) === */}
+            {/* === POPUP CHECKOUT (WAKTU KIRIM DIHAPUS) === */}
             {/* ================================================== */}
             {isCheckoutModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 animate-fade-in">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
                         
-                        {/* Modal Header */}
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                        {/* Header */}
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white">
                             <div>
                                 <h3 className="text-lg font-bold text-gray-800">Checkout Barang</h3>
-                                <p className="text-xs text-gray-500">{checkoutItems[0]?.produk?.nama_barang}</p>
+                                <p className="text-xs text-gray-500">Membeli {totalItems} jenis barang</p>
                             </div>
                             <button onClick={() => setIsCheckoutModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 hover:bg-gray-100 text-gray-600 transition">
                                 ✕
                             </button>
                         </div>
 
-                        {/* Modal Body (Scrollable) */}
+                        {/* Body Form */}
                         <div className="p-6 overflow-y-auto space-y-4">
                             
-                            {/* Grid 2 Kolom */}
+                            {/* Baris 1: Telepon & Total Item */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">No. Telepon</label>
                                     <input 
-                                        type="number" 
+                                        type="tel" 
+                                        inputMode="numeric"
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition"
+                                        placeholder="08xx..."
                                         value={checkoutForm.telepon}
                                         onChange={(e) => setCheckoutForm({...checkoutForm, telepon: e.target.value})}
-                                        placeholder="08xx..."
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Total Item</label>
-                                    <input 
-                                        type="text" 
-                                        className="w-full border border-gray-200 bg-gray-100 rounded-lg px-3 py-2 text-gray-500 cursor-not-allowed font-bold"
-                                        value={totalItems}
-                                        disabled
-                                    />
+                                    <div className="w-full border border-gray-200 bg-gray-100 rounded-lg px-3 py-2 text-gray-600 font-bold">
+                                        {totalItems} Pcs
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Alamat Full Width */}
+                            {/* Baris 2: Alamat */}
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Alamat Pengiriman</label>
                                 <textarea 
@@ -474,41 +434,30 @@ export default function Keranjang() {
                                 ></textarea>
                             </div>
 
-                            {/* Grid 2 Kolom Bawah */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Waktu Kirim</label>
-                                    <input 
-                                        type="datetime-local" 
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition text-sm"
-                                        value={checkoutForm.waktu_kirim}
-                                        onChange={(e) => setCheckoutForm({...checkoutForm, waktu_kirim: e.target.value})}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Pembayaran</label>
-                                    <select 
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition"
-                                        value={checkoutForm.metode_pembayaran}
-                                        onChange={(e) => setCheckoutForm({...checkoutForm, metode_pembayaran: e.target.value})}
-                                    >
-                                        <option value="COD">COD (Bayar di Tempat)</option>
-                                        <option value="Transfer">Transfer Bank</option>
-                                        <option value="E-Wallet">E-Wallet</option>
-                                    </select>
-                                </div>
+                            {/* Baris 3: Pembayaran (Waktu Kirim DIHAPUS, Pembayaran jadi Full Width) */}
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Pembayaran</label>
+                                <select 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition"
+                                    value={checkoutForm.metode_pembayaran}
+                                    onChange={(e) => setCheckoutForm({...checkoutForm, metode_pembayaran: e.target.value})}
+                                >
+                                    <option value="COD">COD (Bayar di Tempat)</option>
+                                    <option value="Transfer">Transfer Bank</option>
+                                    <option value="E-Wallet">E-Wallet</option>
+                                </select>
                             </div>
                         </div>
 
-                        {/* Modal Footer */}
-                        <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+                        {/* Footer */}
+                        <div className="p-6 bg-white border-t border-gray-100 flex justify-between items-center">
                             <div>
                                 <p className="text-xs text-gray-500 font-bold mb-1">Total Tagihan:</p>
                                 <p className="text-xl font-extrabold text-blue-600">{formatRupiah(grandTotal)}</p>
                             </div>
                             <button 
                                 onClick={handleConfirmCheckout}
-                                className="px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg hover:shadow-xl transform active:scale-95"
+                                className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg hover:shadow-xl transform active:scale-95"
                             >
                                 Konfirmasi Pesanan
                             </button>

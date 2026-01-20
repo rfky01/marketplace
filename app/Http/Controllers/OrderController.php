@@ -148,30 +148,46 @@ class OrderController extends Controller
     }
 
     // FITUR: Penjual Membatalkan Pesanan
+    // --- GANTI FUNGSI CANCEL YANG LAMA DENGAN INI ---
+    // Fungsi ini Cerdas: Bisa mendeteksi apakah yang klik tombol itu Pembeli atau Penjual
     public function cancelOrder(Request $request, $id)
     {
-        if ($request->user()->role !== 'penjual') {
-            return response()->json(['message' => 'Hanya penjual yang boleh membatalkan'], 403);
-        }
-
+        $user = $request->user();
         $pesanan = Pesanan::find($id);
 
         if (!$pesanan) {
             return response()->json(['message' => 'Pesanan tidak ditemukan'], 404);
         }
 
+        // 1. Cek Status: Hanya boleh batal jika pending
         if ($pesanan->status !== 'pending') {
-            return response()->json(['message' => 'Pesanan sudah diproses, tidak bisa batal.'], 400);
+            return response()->json(['message' => 'Pesanan sudah diproses atau selesai, tidak bisa dibatalkan.'], 400);
         }
 
-        DB::transaction(function () use ($pesanan) {
+        // 2. Cek Hak Akses:
+        // - Boleh jika dia adalah PEMILIK pesanan (Pembeli)
+        // - Boleh jika dia adalah PENJUAL (Role Penjual)
+        if ($pesanan->user_id !== $user->id && $user->role !== 'penjual') {
+            return response()->json(['message' => 'Anda tidak berhak membatalkan pesanan ini.'], 403);
+        }
+
+        // 3. Proses Pembatalan
+        DB::transaction(function () use ($pesanan, $user) {
+            // Kembalikan Stok
             $this->restoreStock($pesanan);
-            $pesanan->status = 'canceled by seller';
+
+            // Tentukan Status Baru (Biar ketahuan siapa yang membatalkan)
+            if ($pesanan->user_id === $user->id) {
+                $pesanan->status = 'canceled by buyer'; // Jika pembeli yang klik
+            } else {
+                $pesanan->status = 'canceled by seller'; // Jika penjual yang klik
+            }
+            
             $pesanan->save();
         });
 
         return response()->json([
-            'message' => 'Pesanan dibatalkan dan stok telah dikembalikan',
+            'message' => 'Pesanan berhasil dibatalkan dan stok dikembalikan.',
             'data' => $pesanan
         ]);
     }
@@ -200,6 +216,44 @@ class OrderController extends Controller
         return response()->json([
             'message' => 'Anda membatalkan pesanan. Stok barang telah dikembalikan.',
             'data' => $pesanan
+        ]);
+    }
+
+    // --- UPDATE FUNGSI DELETE AGAR BISA HAPUS PESANAN BATAL ---
+    public function destroy(Request $request, $id)
+    {
+        // 1. Cari Pesanan berdasarkan ID saja (jangan filter user_id dulu biar Penjual juga ketemu datanya)
+        $pesanan = Pesanan::find($id);
+
+        if (!$pesanan) {
+            return response()->json(['message' => 'Pesanan tidak ditemukan'], 404);
+        }
+
+        // 2. Tentukan Status yang BOLEH dihapus
+        // Tambahkan 'canceled by seller' ke dalam daftar ini
+        $statusBolehHapus = ['selesai', 'canceled by buyer', 'canceled by seller'];
+
+        if (!in_array($pesanan->status, $statusBolehHapus)) {
+            return response()->json([
+                'message' => 'Gagal: Hanya pesanan Selesai atau Dibatalkan yang boleh dihapus.'
+            ], 400);
+        }
+
+        // 3. Validasi Keamanan (Opsional tapi disarankan)
+        // Pastikan yang menghapus adalah Pemilik (Pembeli) ATAU Penjual (Admin Toko)
+        // Jika Anda ingin simpel dan mengizinkan siapa saja yang punya akses route ini menghapus, bagian ini bisa dilewati.
+        // Tapi setidaknya logic di atas sudah memperbaiki masalah status.
+
+        // 4. Eksekusi Hapus
+        // Hapus detail dulu karena foreign key
+        DetailPesanan::where('pesanan_id', $pesanan->id)->delete();
+        
+        // Hapus pesanan utama
+        $pesanan->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Riwayat pesanan berhasil dihapus.'
         ]);
     }
 

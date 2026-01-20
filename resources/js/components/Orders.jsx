@@ -68,18 +68,24 @@ export default function Orders() {
                 method: 'PUT',
                 headers: { 
                     Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 }
             });
             
+            const data = await response.json(); 
+
             if (response.ok) {
                 alert("Pesanan berhasil dibatalkan");
                 fetchOrders();
             } else {
-                alert("Gagal membatalkan pesanan");
+                // Tampilkan pesan error asli dari Laravel
+                alert("Gagal: " + (data.message || "Terjadi kesalahan sistem"));
+                console.error("Detail Error:", data);
             }
         } catch (error) {
             console.error(error);
+            alert("Gagal: Kesalahan koneksi ke server.");
         }
     };
 

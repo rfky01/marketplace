@@ -58,16 +58,26 @@ export default function SellerOrders() {
         }
     };
 
+    // --- FUNGSI UPDATE STATUS (DIPERBAIKI UNTUK MENANGANI PEMBATALAN) ---
     const handleUpdateStatus = async (item, newStatus) => {
         if (newStatus === 'dibatalkan' && !confirm("Yakin ingin menolak/membatalkan pesanan ini?")) return;
 
         const token = localStorage.getItem('token');
+        
+        // LOGIKA PERBAIKAN: 
+        // Jika status 'dibatalkan', gunakan route cancel yang sama dengan pembeli.
+        // Jika status lain (dikirim/selesai), gunakan route update seller biasa.
+        const url = newStatus === 'dibatalkan' 
+            ? `http://127.0.0.1:8000/api/orders/${item.id}/cancel`
+            : `http://127.0.0.1:8000/api/seller/orders/${item.id}`;
+
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/seller/orders/${item.id}`, {
+            const response = await fetch(url, {
                 method: 'PUT',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json' // Penting agar error terbaca
                 },
                 body: JSON.stringify({ status: newStatus })
             });
@@ -75,10 +85,10 @@ export default function SellerOrders() {
             const data = await response.json();
 
             if(response.ok) {
-                // alert("Berhasil"); // Optional alert
+                // alert("Berhasil"); 
                 fetchSellerOrders();
             } else {
-                alert("Gagal: " + data.message);
+                alert("Gagal: " + (data.message || "Terjadi kesalahan"));
             }
         } catch (error) {
             console.error(error);
@@ -106,7 +116,8 @@ export default function SellerOrders() {
                 method: 'PUT',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({ 
                     status: 'accepted',
@@ -121,7 +132,7 @@ export default function SellerOrders() {
                 setIsAcceptModalOpen(false);
                 fetchSellerOrders();
             } else {
-                alert("Gagal: " + data.message);
+                alert("Gagal: " + (data.message || "Terjadi kesalahan"));
             }
         } catch (error) {
             console.error(error);
@@ -253,7 +264,7 @@ export default function SellerOrders() {
                     <div className="grid grid-cols-1 gap-6">
                         {sellerOrders.map((item) => {
                             const currentStatus = item.pesanan?.status || 'pending';
-                            const isCancelled = currentStatus.includes('dibatalkan');
+                            const isCancelled = currentStatus.includes('dibatalkan') || currentStatus.includes('cancel');
 
                             return (
                                 <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition">
