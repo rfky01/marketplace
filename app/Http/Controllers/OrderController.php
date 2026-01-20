@@ -81,13 +81,13 @@ class OrderController extends Controller
         ]);
     }
 
-    // 1. MELIHAT SEMUA PESANAN (History) - SUDAH DIPERBAIKI
+    // 1. MELIHAT SEMUA PESANAN (History)
     public function index(Request $request)
     {
         $orders = Pesanan::where('user_id', $request->user()->id)
-            // PERBAIKAN: Gunakan 'detailPesanan' (sesuai Model Pesanan.php)
-            ->with(['detailPesanan.produk' => function ($query) {
-                $query->withTrashed(); 
+            // PERBAIKAN: Gunakan 'detail_pesanan' (sesuai Model) dan load 'user'
+            ->with(['detail_pesanan.produk' => function ($query) {
+                $query->withTrashed()->with('user'); 
             }])
             ->latest()
             ->get();
@@ -99,14 +99,14 @@ class OrderController extends Controller
         ]);
     }
 
-    // FITUR 2: Melihat Detail Satu Pesanan - SUDAH DIPERBAIKI
+    // FITUR 2: Melihat Detail Satu Pesanan
     public function show(Request $request, $id)
     {
         $order = Pesanan::where('id', $id)
             ->where('user_id', $request->user()->id)
-            // PERBAIKAN: Gunakan 'detailPesanan'
-            ->with(['detailPesanan.produk' => function ($query) {
-                $query->withTrashed();
+            // PERBAIKAN: Gunakan 'detail_pesanan' (sesuai Model)
+            ->with(['detail_pesanan.produk' => function ($query) {
+                $query->withTrashed()->with('user');
             }])
             ->first();
 
@@ -203,16 +203,15 @@ class OrderController extends Controller
         ]);
     }
 
-    // Fungsi Pembantu untuk Mengembalikan Stok - SUDAH DIPERBAIKI
+    // Fungsi Pembantu untuk Mengembalikan Stok
     private function restoreStock($pesanan)
     {
-        // PERBAIKAN: Gunakan 'detailPesanan'
-        $pesanan->load(['detailPesanan.produk' => function($q) {
+        // PERBAIKAN: Gunakan 'detail_pesanan'
+        $pesanan->load(['detail_pesanan.produk' => function($q) {
             $q->withTrashed();
         }]);
 
-        // PERBAIKAN: Gunakan 'detailPesanan'
-        foreach ($pesanan->detailPesanan as $detail) {
+        foreach ($pesanan->detail_pesanan as $detail) {
             $produk = $detail->produk; 
             
             if ($produk) {

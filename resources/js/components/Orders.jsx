@@ -105,7 +105,7 @@ export default function Orders() {
         }
     };
 
-    // --- HANDLER RATING (DIPERBAIKI) ---
+    // --- HANDLER RATING ---
     const openRatingModal = (order) => {
         setSelectedOrder(order);
         setRating(0);
@@ -119,8 +119,6 @@ export default function Orders() {
             return;
         }
 
-        // --- PERBAIKAN LOGIKA DISINI ---
-        // Karena Backend mewajibkan 'produk_id', kita ambil produk pertama dari pesanan ini
         const targetProductId = selectedOrder.detail_pesanan && selectedOrder.detail_pesanan.length > 0 
             ? selectedOrder.detail_pesanan[0].produk_id 
             : null;
@@ -137,14 +135,13 @@ export default function Orders() {
                 headers: { 
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json' // Penting: Agar error backend terbaca sebagai JSON
+                    'Accept': 'application/json'
                 },
-                // --- SESUAIKAN BODY DENGAN POSTMAN ---
                 body: JSON.stringify({
                     pesanan_id: selectedOrder.id,
-                    produk_id: targetProductId, // Backend WAJIB butuh ini
+                    produk_id: targetProductId,
                     rating: rating,
-                    comment: reviewText // Backend WAJIB butuh 'comment', bukan 'comment'
+                    comment: reviewText
                 })
             });
 
@@ -154,7 +151,6 @@ export default function Orders() {
                 alert("Ulasan berhasil dikirim! Terima kasih.");
                 setIsRatingModalOpen(false);
             } else {
-                // Tampilkan pesan error detail dari backend jika ada
                 alert("Gagal: " + (data.message || "Terjadi kesalahan"));
             }
         } catch (error) {
@@ -162,7 +158,6 @@ export default function Orders() {
             alert("Terjadi kesalahan koneksi atau server error.");
         }
     };
-    // ----------------------------------
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -176,7 +171,7 @@ export default function Orders() {
         return new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR', minimumFractionDigits:0}).format(n);
     };
     const formatDate = (dateString) => {
-        const options = { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+        const options = { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
         return new Date(dateString).toLocaleDateString('id-ID', options);
     };
 
@@ -233,80 +228,131 @@ export default function Orders() {
                         </Link>
                     </div>
                 ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         {orders.map((order) => (
-                            <div key={order.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                                <div className="bg-gray-50 px-4 py-2 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                                    <div>
-                                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">No. Invoice</p>
-                                        <div className="flex items-center gap-2">
-                                            <p className="text-sm font-bold text-gray-800 font-mono">{order.invoice_code || `INV-${order.id}`}</p>
-                                            <span className="text-gray-300">|</span>
-                                            <p className="text-xs text-gray-500">{formatDate(order.created_at)}</p>
-                                        </div>
+                            <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                                
+                                {/* Header Pesanan */}
+                                <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-xs font-bold text-gray-700 font-mono">{order.invoice_code || `INV-${order.id}`}</p>
+                                        <span className="text-gray-300">|</span>
+                                        <p className="text-[10px] text-gray-500">{formatDate(order.created_at)}</p>
                                     </div>
-                                    <div className={`px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide 
-                                        ${order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
-                                          order.status === 'selesai' ? 'bg-green-100 text-green-700' : 
-                                          order.status === 'dikirim' ? 'bg-purple-100 text-purple-700' :
-                                          'bg-red-100 text-red-700'}`}>
+                                    <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide 
+                                        ${order.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border border-yellow-100' : 
+                                          order.status === 'selesai' ? 'bg-green-50 text-green-700 border border-green-100' : 
+                                          order.status === 'dikirim' ? 'bg-purple-50 text-purple-700 border border-purple-100' :
+                                          'bg-red-50 text-red-700 border border-red-100'}`}>
                                         {order.status}
                                     </div>
                                 </div>
 
-                                <div className="p-4">
+                                {/* LIST PRODUK (GRID 4 KOLOM) */}
+                                <div className="p-3 space-y-3">
                                     {order.detail_pesanan?.map((detail, index) => (
-                                        <div key={index} className="flex items-center gap-3 mb-2 last:mb-0">
-                                            <div className="w-14 h-14 bg-gray-100 rounded-md overflow-hidden flex-shrink-0 border border-gray-200">
-                                                <img 
-                                                    src={detail.produk?.foto_barang} 
-                                                    alt={detail.produk?.nama_barang} 
-                                                    className="w-full h-full object-cover"
-                                                    onError={(e)=>{e.target.src="https://via.placeholder.com/150"}}
-                                                />
+                                        <div key={index} className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_auto] gap-4 items-start border-b border-dashed border-gray-100 pb-3 last:border-0 last:pb-0">
+                                            
+                                            {/* 1. INFO PRODUK */}
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0 border border-gray-200">
+                                                    <img 
+                                                        src={detail.produk?.foto_barang} 
+                                                        alt={detail.produk?.nama_barang} 
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e)=>{e.target.src="https://via.placeholder.com/150"}}
+                                                    />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="font-bold text-gray-800 text-sm line-clamp-1">{detail.produk?.nama_barang || 'Produk dihapus'}</h4>
+                                                    <p className="text-[11px] text-gray-500">{detail.jumlah} x {formatRupiah(detail.produk?.harga_barang || 0)}</p>
+                                                </div>
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h4 className="font-bold text-gray-800 text-sm line-clamp-1">{detail.produk?.nama_barang || 'Produk dihapus'}</h4>
-                                                <p className="text-xs text-gray-500">{detail.jumlah} barang x {formatRupiah(detail.produk?.harga_barang || 0)}</p>
+
+                                            {/* 2. INFO PENJUAL */}
+                                            <div className="hidden md:block">
+                                                <div className="p-2 rounded border border-gray-100 bg-gray-50 text-[10px]">
+                                                    <div className="mb-1">
+                                                        <span className="font-bold text-gray-400 uppercase block mb-0.5">Penjual</span>
+                                                        <div className="flex items-center gap-1 font-semibold text-gray-700">
+                                                            <span className="text-base">👤</span>
+                                                            <span className="truncate">
+                                                                {detail.produk?.user?.name || "Official Store"}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex items-center gap-1 text-gray-500">
+                                                            <span className="text-xs">📞</span>
+                                                            {/* PERBAIKAN: Menampilkan nomor telepon penjual */}
+                                                            <span>
+                                                                {detail.produk?.user?.phone}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="text-right flex-shrink-0">
+
+                                            {/* 3. INFO PENGIRIMAN */}
+                                            <div className="hidden md:block">
+                                                {index === 0 && (
+                                                    <div className="p-2 bg-blue-50 bg-opacity-40 rounded border border-blue-100 text-[10px]">
+                                                        <div className="mb-1">
+                                                            <span className="font-bold text-gray-400 uppercase">Kirim ke: </span>
+                                                            <span className="font-semibold text-gray-700 truncate block">
+                                                                {order.alamat_pengiriman || "-"}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-bold text-blue-800">
+                                                                ⏰ {formatDate(order.waktu_pengiriman || order.created_at)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* 4. HARGA */}
+                                            <div className="text-right">
                                                 <p className="font-bold text-gray-800 text-sm">{formatRupiah((detail.produk?.harga_barang || 0) * detail.jumlah)}</p>
                                             </div>
+
                                         </div>
                                     ))}
                                 </div>
 
-                                <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-3">
+                                {/* Footer */}
+                                <div className="px-3 py-2 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
                                     <div className="flex items-center gap-2">
-                                        <p className="text-xs text-gray-500">Total Tagihan:</p>
-                                        <p className="text-lg font-bold text-blue-600">{formatRupiah(order.grand_total)}</p>
+                                        <p className="text-[11px] text-gray-500 font-bold">Total:</p>
+                                        <p className="text-base font-extrabold text-blue-700">{formatRupiah(order.grand_total)}</p>
                                     </div>
                                     
-                                    <div className="flex gap-2 w-full sm:w-auto">
+                                    <div className="flex gap-2">
                                         {order.status.toLowerCase().includes('dibatalkan') || order.status.toLowerCase().includes('cancel') ? (
                                             <button 
                                                 onClick={() => handleDeleteHistory(order.id)}
-                                                className="w-full sm:w-auto px-4 py-1.5 bg-red-50 text-gray-600 border border-red-200 rounded-md text-xs font-bold hover:bg-red-100 transition"
+                                                className="px-3 py-1 bg-white text-gray-500 border border-gray-300 rounded text-[10px] font-bold hover:bg-gray-100 transition shadow-sm"
                                             >
-                                                Hapus Riwayat
+                                                Hapus
                                             </button>
                                         ) : null}
 
                                         {order.status === 'pending' ? (
                                             <button 
                                                 onClick={() => handleCancelOrder(order.id)}
-                                                className="w-full sm:w-auto px-4 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded-md text-xs font-bold hover:bg-red-100 transition"
+                                                className="px-3 py-1 bg-white text-red-600 border border-red-200 rounded text-[10px] font-bold hover:bg-red-50 transition shadow-sm"
                                             >
-                                                Batalkan Pesanan
+                                                Batalkan
                                             </button>
                                         ) : null}
 
                                         {order.status === 'selesai' && (
                                             <button 
                                                 onClick={() => openRatingModal(order)}
-                                                className="w-full sm:w-auto px-4 py-1.5 bg-yellow-400 text-white border border-yellow-500 rounded-md text-xs font-bold hover:bg-yellow-500 transition shadow-sm flex items-center justify-center gap-1"
+                                                className="px-3 py-1 bg-yellow-400 text-white rounded text-[10px] font-bold hover:bg-yellow-500 transition shadow-sm flex items-center gap-1"
                                             >
-                                                ★ Beri Ulasan
+                                                ★ Ulasan
                                             </button>
                                         )}
                                     </div>

@@ -244,32 +244,51 @@ export default function Dashboard() {
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                        {processedProducts.map((product) => (
-                            <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition duration-300 transform hover:-translate-y-1 flex flex-col h-full group">
-                                <Link to={`/product/${product.id}`} className="block cursor-pointer relative">
-                                    <img 
-                                        src={product.foto_barang} 
-                                        alt={product.nama_barang} 
-                                        className="w-full h-40 object-cover group-hover:opacity-90 transition" 
-                                        onError={(e) => { e.target.src = "https://via.placeholder.com/300?text=No+Image"; }} 
-                                    />
-                                    {product.stok_barang <= 0 && (<div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"><span className="text-white font-bold text-xs bg-red-600 px-2 py-1 rounded">HABIS</span></div>)}
-                                </Link>
-                                <div className="p-3 flex flex-col flex-1">
-                                    <Link to={`/product/${product.id}`} className="no-underline">
-                                        <h3 className="text-sm font-semibold text-gray-800 mb-1 line-clamp-2 leading-snug hover:text-blue-900 transition min-h-[40px]" title={product.nama_barang}>{product.nama_barang}</h3>
+                        {processedProducts.map((product) => {
+                            // --- HITUNG RATING DISINI ---
+                            const ulasan = product.ulasan || [];
+                            const ratingCount = ulasan.length;
+                            const totalRating = ulasan.reduce((acc, curr) => acc + parseInt(curr.rating), 0);
+                            const avgRating = ratingCount > 0 ? (totalRating / ratingCount).toFixed(1) : 0;
+                            // ----------------------------
+
+                            return (
+                                <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition duration-300 transform hover:-translate-y-1 flex flex-col h-full group">
+                                    <Link to={`/product/${product.id}`} className="block cursor-pointer relative">
+                                        <img 
+                                            src={product.foto_barang} 
+                                            alt={product.nama_barang} 
+                                            className="w-full h-40 object-cover group-hover:opacity-90 transition" 
+                                            onError={(e) => { e.target.src = "https://via.placeholder.com/300?text=No+Image"; }} 
+                                        />
+                                        {product.stok_barang <= 0 && (<div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"><span className="text-white font-bold text-xs bg-red-600 px-2 py-1 rounded">HABIS</span></div>)}
                                     </Link>
-                                    <div className="mb-1">
-                                        <span className="text-gray-800 font-bold text-base">{formatRupiah(product.harga_barang)}</span>
-                                    </div>
-                                    <p className="text-[10px] text-gray-500 uppercase tracking-wide font-medium mb-3">{product.kategori}</p>
-                                    <div className="flex items-center gap-1 mt-auto">
-                                        <span className="text-[10px] bg-blue-100 text-blue-900 px-1.5 py-0.5 rounded font-bold">Stok {product.stok_barang}</span>
-                                        <span className="text-[10px] text-gray-400 truncate max-w-[100px]">{product.user ? product.user.name : 'Unknown'}</span>
+                                    <div className="p-3 flex flex-col flex-1">
+                                        <Link to={`/product/${product.id}`} className="no-underline">
+                                            <h3 className="text-sm font-semibold text-gray-800 mb-1 line-clamp-2 leading-snug hover:text-blue-900 transition min-h-[40px]" title={product.nama_barang}>{product.nama_barang}</h3>
+                                        </Link>
+                                        
+                                        {/* Harga */}
+                                        <div className="mb-1">
+                                            <span className="text-gray-800 font-bold text-base">{formatRupiah(product.harga_barang)}</span>
+                                        </div>
+                                        <p className="text-[10px] text-gray-500 uppercase tracking-wide font-medium mb-3">{product.kategori}</p>
+
+                                        {/* --- rating --- */}
+                                        <div className="flex items-center gap-1 mb-2">
+                                            <span className="text-yellow-400 text-xs">★</span>
+                                            <span className="text-xs font-bold text-gray-600">{avgRating > 0 ? avgRating : '0.0'}</span>
+                                            <span className="text-[10px] text-gray-400">({ratingCount})</span>
+                                        </div>
+
+                                        <div className="flex items-center gap-1 mt-auto">
+                                            <span className="text-[10px] bg-blue-100 text-blue-900 px-1.5 py-0.5 rounded font-bold">Stok {product.stok_barang}</span>
+                                            <span className="text-[10px] text-gray-400 truncate max-w-[100px]">{product.user ? product.user.name : 'Unknown'}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>

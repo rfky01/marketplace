@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 class ProdukController extends Controller
 {
     // 1. MENAMPILKAN SEMUA PRODUK (Public)
+    // 1. MENAMPILKAN SEMUA PRODUK (Public)
     public function index(Request $request)
     {
         $query = \App\Models\produk::query(); 
@@ -22,8 +23,9 @@ class ProdukController extends Controller
             $query->where('nama_barang', 'like', '%' . $request->search . '%');
         }
 
-        // Include Data User (Penjual)
-        $products = $query->with('user')->latest()->get(); 
+        // PERBAIKAN DISINI: 
+        // Tambahkan 'ulasan' di dalam with() agar data rating ikut terkirim ke Dashboard
+        $products = $query->with(['user', 'ulasan'])->latest()->get(); 
 
         return response()->json([
             'success' => true,
@@ -35,8 +37,9 @@ class ProdukController extends Controller
     // 2. MENAMPILKAN DETAIL 1 PRODUK
     public function show($id)
     {
-        // Tambah with user biar detail penjual muncul
-        $produk = produk::with(['user', 'updater'])->find($id); 
+        // --- PERBAIKAN DISINI ---
+        // Saya menambahkan 'ulasan.user' agar data ulasan muncul di frontend
+        $produk = produk::with(['user', 'updater', 'ulasan.user'])->find($id); 
 
         if (!$produk) {
             return response()->json(['message' => 'Produk tidak ditemukan'], 404);
