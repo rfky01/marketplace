@@ -101,11 +101,13 @@ export default function AddProduct() {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
                         <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border p-2 rounded bg-white focus:ring-2 focus:ring-blue-500">
-                            <option value="Elektronik">Elektronik</option>
+                            <option value="Buku">Buku</option>
                             <option value="Pakaian">Pakaian</option>
                             <option value="Makanan">Makanan</option>
-                            <option value="Otomotif">Otomotif</option>
-                            <option value="Hobi">Hobi</option>
+                            <option value="Perlengkapan">Perlengkapam</option>
+                            <option value="Elektronik">Elektronik</option>
+                            <option value="Kecantikan">Kecantikan</option>
+                            <option value="Lainya...">Lainya...</option>
                         </select>
                     </div>
 

@@ -79,5 +79,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Review
     Route::post('/riview', [RiviewController::class, 'store']);
+    Route::post('/reviews', [RiviewController::class, 'store']);
+
+    Route::delete('/seller/orders/{id}', [SellerOrderController::class, 'destroy']);
 
 });

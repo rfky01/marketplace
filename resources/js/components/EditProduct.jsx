@@ -122,7 +122,7 @@ export default function EditProduct() {
                             <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full border p-2 rounded" required />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Stok (Bisa ditambah)</label>
+                            <label className="block text-sm font-medium text-gray-700">Stok</label>
                             <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full border p-2 rounded" required />
                         </div>
                     </div>
@@ -130,11 +130,13 @@ export default function EditProduct() {
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Kategori</label>
                         <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border p-2 rounded bg-white">
-                            <option value="Elektronik">Elektronik</option>
+                            <option value="Buku">Buku</option>
                             <option value="Pakaian">Pakaian</option>
                             <option value="Makanan">Makanan</option>
-                            <option value="Otomotif">Otomotif</option>
-                            <option value="Hobi">Hobi</option>
+                            <option value="Perlengkapan">Perlengkapam</option>
+                            <option value="Elektronik">Elektronik</option>
+                            <option value="Kecantikan">Kecantikan</option>
+                            <option value="Lainya...">Lainya...</option>
                         </select>
                     </div>
 
@@ -150,7 +152,6 @@ export default function EditProduct() {
                             <img src={previewImage} alt="Preview" className="w-32 h-32 object-cover rounded mb-2 border" />
                         )}
                         <input type="file" onChange={handleFileChange} className="w-full border p-2 rounded bg-gray-50" accept="image/*" />
-                        <p className="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ingin mengubah gambar.</p>
                     </div>
 
                     <button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded transition shadow-lg mt-4">

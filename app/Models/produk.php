@@ -33,4 +33,9 @@ class produk extends Model
     {
         return $this->belongsTo(User::class, 'updated_by');
     }
+
+    public function riview()
+{
+    return $this->hasMany(Riview::class);
+}
 }

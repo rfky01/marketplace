@@ -13,6 +13,16 @@ export default function Keranjang() {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
 
+    // --- KODE BARU: STATE UNTUK MODAL CHECKOUT ---
+    const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+    const [checkoutForm, setCheckoutForm] = useState({
+        telepon: '',
+        alamat: '',
+        waktu_kirim: '',
+        metode_pembayaran: 'COD'
+    });
+    // ---------------------------------------------
+
     useEffect(() => {
         const token = localStorage.getItem('token');
         const userData = localStorage.getItem('user');
@@ -138,9 +148,19 @@ export default function Keranjang() {
     const grandTotal = checkoutItems.reduce((total, item) => total + ((item.produk?.harga_barang || 0) * item.jumlah), 0);
     const totalItems = checkoutItems.reduce((total, item) => total + item.jumlah, 0);
 
-    // --- CHECKOUT ---
-    const handleCheckout = async () => {
+    // --- KODE BARU: BUKA MODAL ---
+    const handleOpenCheckoutModal = () => {
         if (selectedItems.length === 0) return alert("Pilih minimal satu barang untuk dibeli!");
+        setIsCheckoutModalOpen(true);
+    };
+
+    // --- KODE BARU: PROSES CHECKOUT DARI MODAL ---
+    const handleConfirmCheckout = async () => {
+        // Validasi Form
+        if (!checkoutForm.telepon || !checkoutForm.alamat || !checkoutForm.waktu_kirim) {
+            alert("Mohon lengkapi data pengiriman!");
+            return;
+        }
 
         const token = localStorage.getItem('token');
         try {
@@ -151,10 +171,11 @@ export default function Keranjang() {
                 })),
                 nama_penerima: user.name,
                 email_penerima: user.email || "email@example.com",
-                telepon_penerima: "08123456789",
-                alamat_pengiriman: "Alamat Utama User",
-                waktu_pengiriman: new Date().toISOString().split('T')[0],
-                metode_pembayaran: "Transfer Bank"
+                // Menggunakan data dari Form State
+                telepon_penerima: checkoutForm.telepon,
+                alamat_pengiriman: checkoutForm.alamat,
+                waktu_pengiriman: checkoutForm.waktu_kirim,
+                metode_pembayaran: checkoutForm.metode_pembayaran
             };
 
             const response = await fetch('http://127.0.0.1:8000/api/orders', {
@@ -170,11 +191,13 @@ export default function Keranjang() {
 
             if (response.ok) {
                 alert("Checkout Berhasil! ✅");
+                // Hapus item dari keranjang setelah sukses
                 for (const itemId of selectedItems) {
                     await fetch(`http://127.0.0.1:8000/api/keranjang/${itemId}`, {
                         method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
                     });
                 }
+                setIsCheckoutModalOpen(false); // Tutup modal
                 navigate('/orders');
             } else {
                 alert("Gagal Checkout: " + (data.message || "Terjadi kesalahan"));
@@ -211,12 +234,11 @@ export default function Keranjang() {
                     <div className="flex items-center gap-6">
                         
                         <div className="hidden md:flex items-center gap-2">
-                            <span className="text-xl text-gray-400">🛒</span>
                             <h1 className="text-lg font-bold text-gray-800 m-0">Keranjang Belanja</h1>
                         </div>
 
                         <Link to="/" className="hidden md:inline-flex items-center text-gray-500 hover:text-blue-600 font-medium transition no-underline text-sm border-l border-gray-300 pl-6">
-                            <span className="mr-1 text-lg">⬅</span> Kembali Belanja
+                            <span className="mr-1 text-lg"></span> Kembali Belanja
                         </Link>
 
                         {/* Profil User */}
@@ -229,9 +251,23 @@ export default function Keranjang() {
                                 </div>
                             </button>
                             {isDropdownOpen && (
-                                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 p-2 z-50">
-                                    <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-red-500 hover:bg-red-50 rounded-md text-sm font-bold">🚪 Keluar</button>
-                                </div>
+                                <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-lg shadow-2xl border border-gray-100 p-4 transform transition-all duration-200 origin-top-right">
+                                    <div className="flex items-center gap-3 mb-4 p-3 bg-blue-50 rounded-lg">
+                                        <div className="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center text-blue-900 font-bold text-lg">{user.name.charAt(0).toUpperCase()}</div>
+                                        <div><p className="font-bold text-gray-800">{user.name}</p><p className="text-xs text-blue-800 font-semibold"></p></div>
+                                    </div>
+                                        <hr className="border-gray-100 mb-2"/>
+                                        <div className="flex flex-col gap-1">
+                                            {user.role === 'penjual' && (
+                                            <Link to="/my-products" className="px-3 py-2 hover:bg-gray-50 rounded-md text-gray-700 text-sm font-medium flex justify-between items-center">
+                                                Toko Saya <span className="text-blue-900 text-xs bg-blue-100 px-2 py-0.5 rounded">Penjual</span>
+                                            </Link>
+                                        )}
+                                        <Link to="/orders" className="px-3 py-2 hover:bg-gray-50 rounded-md text-gray-700 text-sm font-medium">Daftar Pesanan</Link>
+                                    </div>
+                                    <hr className="border-gray-100 my-2"/>
+                                <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-red-500 hover:bg-red-50 rounded-md text-sm font-bold flex items-center gap-2">Keluar</button>
+                            </div>
                             )}
                         </div>
                     </div>
@@ -283,7 +319,7 @@ export default function Keranjang() {
                                         />
                                     </div>
 
-                                    {/* --- PERBAIKAN: GAMBAR BISA DIKLIK --- */}
+                                    {/* Gambar */}
                                     <div className="w-24 h-24 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden border border-gray-100 group">
                                         <Link to={`/product/${item.produk?.id}`}>
                                             <img 
@@ -295,7 +331,7 @@ export default function Keranjang() {
                                         </Link>
                                     </div>
 
-                                    {/* --- PERBAIKAN: JUDUL BISA DIKLIK --- */}
+                                    {/* Judul & Info */}
                                     <div className="flex-1 min-w-0 pr-2">
                                         <Link to={`/product/${item.produk?.id}`} className="block hover:text-blue-600 transition">
                                             <h3 
@@ -366,7 +402,7 @@ export default function Keranjang() {
                                 </div>
 
                                 <button 
-                                    onClick={handleCheckout} 
+                                    onClick={handleOpenCheckoutModal} 
                                     disabled={selectedItems.length === 0}
                                     className={`w-full font-bold py-4 rounded-xl transition shadow-lg transform active:scale-95 ${
                                         selectedItems.length > 0 
@@ -382,6 +418,106 @@ export default function Keranjang() {
                     </div>
                 )}
             </div>
+
+            {/* ================================================== */}
+            {/* === KODE BARU: MODAL POPUP CHECKOUT (Checkout) === */}
+            {/* ================================================== */}
+            {isCheckoutModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+                        
+                        {/* Modal Header */}
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-800">Checkout Barang</h3>
+                                <p className="text-xs text-gray-500">{checkoutItems[0]?.produk?.nama_barang}</p>
+                            </div>
+                            <button onClick={() => setIsCheckoutModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 hover:bg-gray-100 text-gray-600 transition">
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Modal Body (Scrollable) */}
+                        <div className="p-6 overflow-y-auto space-y-4">
+                            
+                            {/* Grid 2 Kolom */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">No. Telepon</label>
+                                    <input 
+                                        type="number" 
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition"
+                                        value={checkoutForm.telepon}
+                                        onChange={(e) => setCheckoutForm({...checkoutForm, telepon: e.target.value})}
+                                        placeholder="08xx..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Total Item</label>
+                                    <input 
+                                        type="text" 
+                                        className="w-full border border-gray-200 bg-gray-100 rounded-lg px-3 py-2 text-gray-500 cursor-not-allowed font-bold"
+                                        value={totalItems}
+                                        disabled
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Alamat Full Width */}
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Alamat Pengiriman</label>
+                                <textarea 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition h-24 resize-none"
+                                    placeholder="Masukkan alamat lengkap..."
+                                    value={checkoutForm.alamat}
+                                    onChange={(e) => setCheckoutForm({...checkoutForm, alamat: e.target.value})}
+                                ></textarea>
+                            </div>
+
+                            {/* Grid 2 Kolom Bawah */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Waktu Kirim</label>
+                                    <input 
+                                        type="datetime-local" 
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition text-sm"
+                                        value={checkoutForm.waktu_kirim}
+                                        onChange={(e) => setCheckoutForm({...checkoutForm, waktu_kirim: e.target.value})}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Pembayaran</label>
+                                    <select 
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition"
+                                        value={checkoutForm.metode_pembayaran}
+                                        onChange={(e) => setCheckoutForm({...checkoutForm, metode_pembayaran: e.target.value})}
+                                    >
+                                        <option value="COD">COD (Bayar di Tempat)</option>
+                                        <option value="Transfer">Transfer Bank</option>
+                                        <option value="E-Wallet">E-Wallet</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+                            <div>
+                                <p className="text-xs text-gray-500 font-bold mb-1">Total Tagihan:</p>
+                                <p className="text-xl font-extrabold text-blue-600">{formatRupiah(grandTotal)}</p>
+                            </div>
+                            <button 
+                                onClick={handleConfirmCheckout}
+                                className="px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg hover:shadow-xl transform active:scale-95"
+                            >
+                                Konfirmasi Pesanan
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }

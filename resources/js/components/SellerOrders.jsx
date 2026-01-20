@@ -10,6 +10,11 @@ export default function SellerOrders() {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
 
+    // --- STATE MODAL (POPUP) TERIMA PESANAN ---
+    const [isAcceptModalOpen, setIsAcceptModalOpen] = useState(false);
+    const [selectedOrder, setSelectedOrder] = useState(null);
+    const [deliveryTime, setDeliveryTime] = useState('');
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -53,9 +58,7 @@ export default function SellerOrders() {
         }
     };
 
-    // --- LOGIKA UPDATE STATUS (FITUR BARU) ---
     const handleUpdateStatus = async (item, newStatus) => {
-        // Konfirmasi khusus untuk pembatalan
         if (newStatus === 'dibatalkan' && !confirm("Yakin ingin menolak/membatalkan pesanan ini?")) return;
 
         const token = localStorage.getItem('token');
@@ -64,7 +67,7 @@ export default function SellerOrders() {
                 method: 'PUT',
                 headers: { 
                     'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}` 
+                    'Authorization': `Bearer ${token}` 
                 },
                 body: JSON.stringify({ status: newStatus })
             });
@@ -72,7 +75,7 @@ export default function SellerOrders() {
             const data = await response.json();
 
             if(response.ok) {
-                // Tidak perlu alert biar lebih cepat, langsung refresh data
+                // alert("Berhasil"); // Optional alert
                 fetchSellerOrders();
             } else {
                 alert("Gagal: " + data.message);
@@ -80,6 +83,76 @@ export default function SellerOrders() {
         } catch (error) {
             console.error(error);
             alert("Terjadi kesalahan koneksi");
+        }
+    };
+
+    // --- FUNGSI BUKA MODAL ---
+    const openAcceptModal = (item) => {
+        setSelectedOrder(item);
+        setDeliveryTime('');
+        setIsAcceptModalOpen(true);
+    };
+
+    // --- FUNGSI KONFIRMASI TERIMA DENGAN WAKTU ---
+    const handleConfirmAccept = async () => {
+        if (!deliveryTime) {
+            alert("Harap tentukan estimasi waktu kirim!");
+            return;
+        }
+
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/seller/orders/${selectedOrder.id}`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify({ 
+                    status: 'accepted',
+                    waktu_pengiriman: deliveryTime 
+                })
+            });
+            
+            const data = await response.json();
+
+            if(response.ok) {
+                alert("Pesanan diterima! Segera siapkan paket.");
+                setIsAcceptModalOpen(false);
+                fetchSellerOrders();
+            } else {
+                alert("Gagal: " + data.message);
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Terjadi kesalahan koneksi");
+        }
+    };
+
+    const handleDeleteOrder = async (id) => {
+        if (!confirm("Hapus riwayat pesanan ini selamanya?")) return;
+
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/seller/orders/${id}`, {
+                method: 'DELETE',
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json' 
+                }
+            });
+
+            const data = await response.json(); 
+
+            if (response.ok) {
+                setSellerOrders(prev => prev.filter(order => order.id !== id));
+                alert("Berhasil dihapus!");
+            } else {
+                alert("Gagal: " + (data.message || "Terjadi kesalahan sistem"));
+            }
+        } catch (error) {
+            console.error("Fetch Error:", error);
+            alert("Gagal koneksi ke server.");
         }
     };
 
@@ -109,7 +182,7 @@ export default function SellerOrders() {
             year: 'numeric', 
             hour: '2-digit', 
             minute: '2-digit',
-            hour12: false // Format 24 jam
+            hour12: false 
         };
         return new Date(dateString).toLocaleDateString('id-ID', options);
     };
@@ -126,20 +199,18 @@ export default function SellerOrders() {
             {/* --- NAVBAR --- */}
             <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
                 <div className="max-w-7xl mx-auto h-16 flex items-center justify-between px-4 lg:px-8">
-                    
                     <div className="flex items-center gap-8">
                         <Link to="/" className="text-2xl font-bold text-blue-600 tracking-tight decoration-none">
                             Marketplace<span className="text-gray-700">Plus</span>
                         </Link>
                     </div>
-
                     <div className="flex items-center gap-4">
                         <Link to="/my-products" className="text-gray-500 hover:text-blue-600 font-medium px-4 py-2 transition decoration-none border-r border-gray-300 pr-4">
                             Produk Saya
                         </Link>
-                        <div className="hidden md:flex items-center gap-2 px-2">
-                            <span className="font-bold text-gray-800">Pesanan Masuk</span>
-                        </div>
+                        <Link to="/" className="txt-gray-500 hover:text-blue-600 font-medium px-4 py-2 transition decoration-none">
+                            Dashboard
+                        </Link>
                         <div className="relative" ref={dropdownRef}>
                             <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition">
                                 <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold text-gray-600">{user.name?.charAt(0).toUpperCase()}</div>
@@ -164,7 +235,6 @@ export default function SellerOrders() {
                 <div className="flex justify-between items-center mb-8">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-800">Pesanan Masuk</h1>
-                        <p className="text-gray-500 mt-1">Kelola pesanan yang masuk ke toko Anda</p>
                     </div>
                     <div className="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg font-bold">
                         Total: {sellerOrders.length} Pesanan
@@ -182,8 +252,8 @@ export default function SellerOrders() {
                 ) : (
                     <div className="grid grid-cols-1 gap-6">
                         {sellerOrders.map((item) => {
-                            // Ambil status dari pesanan induk
                             const currentStatus = item.pesanan?.status || 'pending';
+                            const isCancelled = currentStatus.includes('dibatalkan');
 
                             return (
                                 <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition">
@@ -191,9 +261,7 @@ export default function SellerOrders() {
                                     {/* Header Card */}
                                     <div className="bg-gray-50 px-6 py-3 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
-                                                👤
-                                            </div>
+                                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">👤</div>
                                             <div>
                                                 <p className="text-sm font-bold text-gray-800">
                                                     {item.pesanan?.nama_penerima || "Pembeli"} 
@@ -202,101 +270,110 @@ export default function SellerOrders() {
                                                 <p className="text-xs text-gray-500">{item.pesanan?.invoice_code}</p>
                                             </div>
                                         </div>
-                                        
-                                        {/* Badge Status */}
                                         <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide 
                                             ${currentStatus === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
                                               currentStatus === 'accepted' ? 'bg-blue-100 text-blue-700' :
-                                              currentStatus === 'sent' ? 'bg-purple-100 text-purple-700' :
-                                              currentStatus === 'finished' ? 'bg-green-100 text-green-700' :
+                                              currentStatus === 'dikirim' ? 'bg-purple-100 text-purple-700' :
+                                              currentStatus === 'selesai' ? 'bg-green-100 text-green-700' :
                                               'bg-red-100 text-red-700'}`}>
                                             {currentStatus}
                                         </span>
                                     </div>
 
-                                    {/* Body Card */}
-                                    <div className="p-6 flex flex-col sm:flex-row gap-6">
-                                        <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
-                                            <img 
-                                                src={item.produk?.foto_barang} 
-                                                alt={item.produk?.nama_barang} 
-                                                className="w-full h-full object-cover"
-                                                onError={(e)=>{e.target.src="https://via.placeholder.com/150"}}
-                                            />
-                                        </div>
-                                        <div className="flex-1">
-                                            <h3 className="font-bold text-gray-800 text-lg">{item.produk?.nama_barang}</h3>
-                                            <p className="text-sm text-gray-500 mt-1">
-                                                Jumlah: <span className="font-bold text-gray-800">{item.jumlah} Unit</span>
-                                            </p>
-                                            <p className="text-blue-600 font-bold text-lg mt-2">
-                                                Total: {formatRupiah((item.jumlah * item.produk?.harga_barang))}
-                                            </p>
-                                        </div>
-                                        <div className="w-full sm:w-1/3 bg-gray-50 p-4 rounded-lg border border-dashed border-gray-300 flex flex-col justify-between">
-                                            <p className="text-xs font-bold text-gray-400 uppercase mb-1">Alamat Pengiriman</p>
-                                            <p className="text-sm text-gray-700 leading-snug">
-                                                {item.pesanan?.alamat_pengiriman || "Alamat tidak tersedia"}
-                                            </p>
-                                            <div className="mb-3">
-                                                <p className="text-xs font-bold text-gray-400 uppercase mb-1">Jadwal Kirim</p>
-                                                <div className="flex items-center gap-2 bg-white border border-blue-100 px-2 py-1 rounded text-blue-700 font-bold text-sm">
-                                                    <span>⏰</span>
-                                                    {formatDateTime(item.pesanan?.waktu_pengiriman)}
+                                    {/* --- BODY CARD BARU (LAYOUT 3 KOLOM) --- */}
+                                    <div className="p-6">
+                                        <div className="flex flex-col lg:flex-row gap-6">
+                                            
+                                            {/* 1. KOLOM KIRI: PRODUK */}
+                                            <div className="flex gap-4 flex-1">
+                                                <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+                                                    <img 
+                                                        src={item.produk?.foto_barang} 
+                                                        alt={item.produk?.nama_barang} 
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e)=>{e.target.src="https://via.placeholder.com/150"}}
+                                                    />
                                                 </div>
-                                                <span className="text-xs text-gray-500">📞 {item.pesanan?.telepon_penerima || "-"}</span>
+                                                <div>
+                                                    <h3 className="font-bold text-gray-800 text-lg line-clamp-2 leading-tight mb-1">{item.produk?.nama_barang}</h3>
+                                                    <p className="text-sm text-gray-500">
+                                                        Jumlah: <span className="font-bold text-gray-800">{item.jumlah} Unit</span>
+                                                    </p>
+                                                    <p className="text-blue-600 font-bold text-lg mt-1">
+                                                        Total: {formatRupiah((item.jumlah * item.produk?.harga_barang))}
+                                                    </p>
+                                                </div>
                                             </div>
+
+                                            {/* 2. KOLOM TENGAH: ALAMAT & WAKTU (PINDAHAN) */}
+                                            <div className="w-full lg:w-1/3 bg-gray-50 p-4 rounded-lg border border-dashed border-gray-300 flex flex-col justify-center text-sm">
+                                                <div className="mb-3">
+                                                    <p className="text-xs font-bold text-gray-400 uppercase mb-1">Alamat Pengiriman</p>
+                                                    <p className="text-gray-700 leading-snug">
+                                                        {item.pesanan?.alamat_pengiriman || "Alamat tidak tersedia"}
+                                                    </p>
+                                                </div>
+                                                <div className="mb-2">
+                                                    <p className="text-xs font-bold text-gray-400 uppercase mb-1">Jadwal Kirim</p>
+                                                    <div className="flex items-center gap-2 text-blue-700 font-bold">
+                                                        <span>⏰</span>
+                                                        {formatDateTime(item.pesanan?.waktu_pengiriman)}
+                                                    </div>
+                                                </div>
+                                                <div className="pt-2 border-t border-gray-200 text-gray-500 font-medium text-xs">
+                                                    📞 {item.pesanan?.telepon_penerima || "-"}
+                                                </div>
+                                            </div>
+
+                                            {/* 3. KOLOM KANAN: TOMBOL AKSI (PINDAHAN) */}
+                                            <div className="flex flex-col gap-3 w-full lg:w-auto min-w-[180px] justify-center">
+                                                
+                                                {/* Status PENDING */}
+                                                {currentStatus === 'pending' && (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => openAcceptModal(item)} 
+                                                            className="w-full py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition shadow-sm flex justify-center items-center gap-2"
+                                                        >
+                                                            Terima Pesanan
+                                                        </button>
+                                                        <button onClick={() => handleUpdateStatus(item, 'dibatalkan')} className="w-full py-2 bg-white text-red-600 border border-red-200 rounded-lg font-bold text-sm hover:bg-red-50 transition">
+                                                            Tolak Pesanan
+                                                        </button>
+                                                    </>
+                                                )}
+                                                
+                                                {/* Status ACCEPTED */}
+                                                {currentStatus === 'accepted' && (
+                                                    <button onClick={() => handleUpdateStatus(item, 'dikirim')} className="w-full py-2 bg-yellow-500 text-white rounded-lg font-bold text-sm hover:bg-yellow-600 transition shadow-sm flex justify-center items-center gap-2">
+                                                        Kirim Barang
+                                                    </button>
+                                                )}
+                                                
+                                                {/* Status dikirim */}
+                                                {currentStatus === 'dikirim' && (
+                                                    <button onClick={() => handleUpdateStatus(item, 'selesai')} className="w-full py-2 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700 transition shadow-sm flex justify-center items-center gap-2">
+                                                        🏁 Selesaikan
+                                                    </button>
+                                                )}
+                                                
+                                                {/* Status selesai / DIBATALKAN */}
+                                                {(currentStatus === 'selesai' || isCancelled) && (
+                                                    <div className="text-center">
+                                                        <div className="text-xs text-gray-400 font-medium italic mb-2">
+                                                            {isCancelled ? 'Pesanan Batal' : 'Pesanan Selesai'}
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => handleDeleteOrder(item.id)}
+                                                            className="w-full py-2 bg-gray-100 text-gray-500 rounded-lg font-bold text-sm hover:bg-red-100 hover:text-red-600 transition border border-gray-200 flex justify-center items-center gap-2"
+                                                        >
+                                                            🗑️ Hapus Riwayat
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+
                                         </div>
-                                    </div>
-
-                                    {/* --- FOOTER: TOMBOL AKSI BERDASARKAN STATUS --- */}
-                                    <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex flex-wrap justify-end gap-3">
-                                        
-                                        {/* Status PENDING: Bisa Terima atau Tolak */}
-                                        {currentStatus === 'pending' && (
-                                            <>
-                                                <button 
-                                                    onClick={() => handleUpdateStatus(item, 'dibatalkan')}
-                                                    className="px-4 py-2 bg-red-100 text-red-600 rounded-lg font-bold text-sm hover:bg-red-200 transition border border-red-200"
-                                                >
-                                                    Reject Order
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleUpdateStatus(item, 'accepted')}
-                                                    className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition shadow-sm"
-                                                >
-                                                    receive orders
-                                                </button>
-                                            </>
-                                        )}
-
-                                        {/* Status ACCEPTED: Harus Kirim Barang */}
-                                        {currentStatus === 'accepted' && (
-                                            <button 
-                                                onClick={() => handleUpdateStatus(item, 'sent')}
-                                                className="px-6 py-2 bg-yellow-500 text-white rounded-lg font-bold text-sm hover:bg-yellow-600 transition shadow-sm flex items-center gap-2"
-                                            >
-                                                order sent
-                                            </button>
-                                        )}
-
-                                        {/* Status SENT: Bisa Selesaikan (Jika pembeli lupa konfirmasi) */}
-                                        {currentStatus === 'sent' && (
-                                            <button 
-                                                onClick={() => handleUpdateStatus(item, 'finished')}
-                                                className="px-6 py-2 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700 transition shadow-sm flex items-center gap-2"
-                                            >
-                                                order completed
-                                            </button>
-                                        )}
-
-                                        {/* Status FINISHED / DIBATALKAN: Tidak ada aksi */}
-                                        {(currentStatus === 'finished' || currentStatus === 'dibatalkan') && (
-                                            <span className="text-xs text-gray-400 font-medium italic">
-                                                Pesanan {currentStatus}
-                                            </span>
-                                        )}
-
                                     </div>
                                     
                                 </div>
@@ -305,6 +382,47 @@ export default function SellerOrders() {
                     </div>
                 )}
             </div>
+
+            {/* --- POPUP MODAL ATUR JADWAL PENGIRIMAN --- */}
+            {isAcceptModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <h3 className="text-lg font-bold text-gray-800">Atur Jadwal Pengiriman</h3>
+                            <button onClick={() => setIsAcceptModalOpen(false)} className="text-gray-400 hover:text-gray-600 font-bold text-xl">✕</button>
+                        </div>
+                        <div className="p-6">
+                            <div className="mb-4">
+                                <label className="block text-sm font-bold text-gray-700 mb-2">Kapan barang akan dikirim?</label>
+                                <input 
+                                    type="datetime-local" 
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    value={deliveryTime}
+                                    onChange={(e) => setDeliveryTime(e.target.value)}
+                                />
+                                <p className="text-xs text-gray-500 mt-2">
+                                    Masukkan estimasi waktu Anda mengirim barang ke kurir/pembeli.
+                                </p>
+                            </div>
+                            <div className="flex gap-3 mt-6">
+                                <button 
+                                    onClick={() => setIsAcceptModalOpen(false)} 
+                                    className="flex-1 py-2 border border-gray-300 text-gray-600 font-bold rounded-lg hover:bg-gray-50"
+                                >
+                                    Batal
+                                </button>
+                                <button 
+                                    onClick={handleConfirmAccept} 
+                                    className="flex-1 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-lg"
+                                >
+                                    Konfirmasi
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }

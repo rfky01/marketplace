@@ -7,73 +7,76 @@ use App\Models\Riview;
 use App\Models\Pesanan;
 use App\Models\DetailPesanan; // Perlu import model ini
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class RiviewController extends Controller
 {
     public function store(Request $request)
     {
-        // 1. Validasi Input Dasar
+        // 1. VALIDASI (Disesuaikan dengan data dari React)
         $request->validate([
-            'produk_id'  => 'required|exists:produk,id',
-            'pesanan_id' => 'required|exists:pesanan,id',
+            'pesanan_id' => 'required', // Hapus 'exists' dulu biar aman jika nama tabel beda
             'rating'     => 'required|integer|min:1|max:5',
-            'comment'     => 'required|string',
+            'comment'   => 'required|string', // React mengirim 'comment', kita terima 'comment'
         ]);
 
         $userId = Auth::id();
 
-        // 2. LOGIKA VALIDASI PEMBELIAN (PENTING!)
-
-        // A. Cek apakah Pesanan milik User & Statusnya sudah 'finished'
-        // 'finished' harus disesuaikan dengan enum status di database Anda (misal: 'completed', 'done', 'success')
-        // Jika status di database Anda saat ini masih 'pending', ganti 'finished' jadi 'pending' dulu untuk tes.
-        $pesanan = Pesanan::where('id', $request->pesanan_id)
+        // 2. CARI PESANAN
+        // Kita butuh relasi 'detail_pesanan' untuk tahu produk apa saja yang dibeli
+        // Pastikan model Pesanan punya method: public function detail_pesanan() { ... }
+        $pesanan = Pesanan::with('detail_pesanan')->where('id', $request->pesanan_id)
                     ->where('user_id', $userId)
                     ->first();
 
         if (!$pesanan) {
-            return response()->json(['message' => 'Pesanan tidak ditemukan atau bukan milik Anda'], 404);
+            return response()->json(['message' => 'Pesanan tidak ditemukan'], 404);
         }
 
-        // Uncomment baris di bawah ini jika ingin memaksa status harus finished dulu baru bisa riview
-        /*
-        if ($pesanan->status !== 'finished') {
-            return response()->json(['message' => 'Anda baru bisa riview setelah pesanan finished'], 400);
-        }
-        */
+        // 3. SIMPAN ULASAN
+        // Karena React mengirim ulasan per-pesanan, kita simpan ulasan yang sama
+        // untuk SETIAP produk yang ada di dalam pesanan tersebut.
+        
+        $jumlahTersimpan = 0;
 
-        // B. Cek apakah User BENAR-BENAR membeli produk tersebut di Pesanan ini
-        // Kita cek ke tabel detail_pesanan
-        $cekBeli = DetailPesanan::where('pesanan_id', $pesanan->id)
-                    ->where('produk_id', $request->produk_id) // Sesuaikan 'produk_id' dengan kolom di DB Anda
-                    ->exists();
-
-        if (!$cekBeli) {
-            return response()->json(['message' => 'Anda tidak membeli produk ini pada pesanan tersebut'], 403);
+        // Cek jika detail pesanan kosong
+        if (!$pesanan->detail_pesanan || $pesanan->detail_pesanan->isEmpty()) {
+             return response()->json(['message' => 'Data produk dalam pesanan tidak ditemukan'], 400);
         }
 
-        // C. Cek apakah User SUDAH PERNAH riview produk ini di pesanan ini (Supaya tidak spam)
-        $sudahRiview = Riview::where('user_id', $userId)
-                        ->where('pesanan_id', $request->pesanan_id)
-                        ->where('produk_id', $request->produk_id)
+        foreach ($pesanan->detail_pesanan as $detail) {
+            
+            // Cek Duplikat: Supaya tidak review dobel untuk produk yang sama
+            $sudahAda = Riview::where('user_id', $userId)
+                        ->where('pesanan_id', $pesanan->id)
+                        ->where('produk_id', $detail->produk_id)
                         ->exists();
 
-        if ($sudahRiview) {
-            return response()->json(['message' => 'Anda sudah memberikan riview untuk produk ini'], 400);
+            if (!$sudahAda) {
+                Riview::create([
+                    'user_id'    => $userId,
+                    'pesanan_id' => $pesanan->id,
+                    'produk_id'  => $detail->produk_id, // Ambil ID Produk otomatis dari sini
+                    'rating'     => $request->rating,
+                    
+                    // MAPPING PENTING: 
+                    // Data dari React ('comment') dimasukkan ke kolom DB ('comment')
+                    'comment'    => $request->comment, 
+                ]);
+                $jumlahTersimpan++;
+            }
         }
 
-        // 3. Simpan riview (Jika semua lolos)
-        $riview = Riview::create([
-            'user_id'    => $userId,
-            'produk_id'  => $request->produk_id,
-            'pesanan_id' => $request->pesanan_id,
-            'rating'     => $request->rating,
-            'comment'     => $request->comment,
-        ]);
-
-        return response()->json([
-            'message' => 'Terima kasih! riview berhasil ditambahkan',
-            'data'    => $riview
-        ], 201);
+        if ($jumlahTersimpan > 0) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Ulasan berhasil disimpan.'
+            ], 201);
+        } else {
+            return response()->json([
+                'success' => false, // Ubah jadi false agar React tahu ini gagal logic (bukan koneksi)
+                'message' => 'Anda sudah mengulas pesanan ini.'
+            ], 400);
+        }
     }
 }

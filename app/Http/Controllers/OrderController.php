@@ -129,7 +129,7 @@ class OrderController extends Controller
         }
 
         $request->validate([
-            'status' => ['required', 'in:accepted,sent,finished']
+            'status' => ['required', 'in:accepted,dikirim,selesai']
         ]);
 
         $pesanan = Pesanan::find($id);

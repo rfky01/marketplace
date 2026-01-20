@@ -20,8 +20,8 @@ return new class extends Migration
             $table->enum('status', [
                 'pending', 
                 'accepted', 
-                'sent', 
-                'finished', 
+                'dikirim', 
+                'selesai', 
                 'canceled by seller',
                 'canceled by buyer'
                 ])->default('pending');

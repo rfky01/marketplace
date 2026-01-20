@@ -29,4 +29,19 @@ Route::middleware('auth')->group(function () {
     Route::view('/{any}', 'welcome')->where('any', '.*');
 });
 
+Route::get('/kirim-wa', function () {
+    $token = env('AL6yaCjsccosjGvVMPpA'); // Mengambil token dari .env
+    $target = '085609688462'; // GANTI dengan nomor HP Anda sendiri untuk tes
+
+    $response = Http::withHeaders([
+        'Authorization' => $token,
+    ])->post('https://api.fonnte.com/send', [
+        'target' => $target,
+        'message' => "Halo! \nToken Fonnte berhasil terhubung ke Laravel.",
+        'countryCode' => '62', 
+    ]);
+
+    return $response->json(); // Menampilkan balasan dari Fonnte di layar
+});
+
 require __DIR__.'/auth.php';

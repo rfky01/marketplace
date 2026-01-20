@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\DetailPesanan;
 
 class Pesanan extends Model
 {
@@ -36,6 +37,12 @@ class Pesanan extends Model
     // Relasi: Pesanan punya banyak Detail Barang
     public function detailPesanan()
     {
+        return $this->hasMany(DetailPesanan::class, 'pesanan_id');
+    }
+    
+    public function detail_pesanan()
+    {
+        // Fungsi ini memberitahu Laravel bahwa 1 Pesanan punya banyak DetailPesanan
         return $this->hasMany(DetailPesanan::class, 'pesanan_id');
     }
 
