@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import ChatDropdown from './ChatDropdown';
+import iconKeranjang from './asset/keranjang.png'
+import iconPesanan from './asset/pesan.png'
 
 export default function Dashboard() {
     const navigate = useNavigate();
@@ -166,16 +169,22 @@ export default function Dashboard() {
                     </div>
 
                     {/* 2. MENU KANAN */}
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
                         {user.role === 'pembeli' ? (
                             <button onClick={handleOpenShop} className="text-sm font-bold text-white bg-blue-900 hover:bg-blue-800 px-4 py-2 rounded-lg transition shadow-sm flex items-center gap-1 decoration-none">Buka Toko</button>
                         ) : user.role === 'penjual' ? (
                             <Link to="/add-product" className="text-sm font-bold text-white bg-blue-900 hover:bg-blue-800 px-4 py-2 rounded-lg transition shadow-sm flex items-center gap-1 decoration-none">+ Upload</Link>
                         ) : null}
 
-                        <Link to="/keranjang" className="relative group">
-                            <span className="text-2xl text-gray-500 group-hover:text-blue-900 transition">🛒</span>
+                        <Link to="/keranjang" className="relative group flex items-center">
+                            <img 
+                                src={iconKeranjang} 
+                                alt="keranjang" 
+                                className="w-10 h-10 object-contain opacity-60 group-hover:opacity-100 transition duration-200"
+                            />
                         </Link>
+
+                         <ChatDropdown />
 
                         {!user.name ? (
                             <div className="flex gap-2">

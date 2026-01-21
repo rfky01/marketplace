@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import ChatBox from '../components/ChatBox';
+import iconKeranjang from './asset/keranjang.png'
+import iconHome from './asset/home.png'
 
 export default function Orders() {
     const [orders, setOrders] = useState([]);
@@ -15,6 +18,17 @@ export default function Orders() {
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [rating, setRating] = useState(0);
     const [reviewText, setReviewText] = useState('');
+
+    // --- STATE CHAT (BARU) ---
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [chatTarget, setChatTarget] = useState({ id: null, name: '' });
+
+    // Fungsi Buka Chat dengan Penjual
+    const openChat = (sellerId, sellerName) => {
+        if (!sellerId) return alert("Data penjual tidak ditemukan");
+        setChatTarget({ id: sellerId, name: sellerName || "Penjual" });
+        setIsChatOpen(true);
+    };
     
     const navigate = useNavigate();
 
@@ -79,7 +93,6 @@ export default function Orders() {
                 alert("Pesanan berhasil dibatalkan");
                 fetchOrders();
             } else {
-                // Tampilkan pesan error asli dari Laravel
                 alert("Gagal: " + (data.message || "Terjadi kesalahan sistem"));
                 console.error("Detail Error:", data);
             }
@@ -198,7 +211,13 @@ export default function Orders() {
                         </Link>
                     </div>
                     <div className="flex items-center gap-6">
-                        <Link to="/keranjang" className="text-2xl text-gray-500 hover:text-blue-900">🛒</Link>
+                        <Link to="/keranjang" className="relative group flex items-center">
+                            <img 
+                            src={iconKeranjang} 
+                            alt="keranjang" 
+                            className="w-10 h-10 object-contain opacity-60 group-hover:opacity-100 transition duration-200"
+                            />
+                        </Link>
                         <Link to="/" className="hidden md:inline-flex items-center text-gray-500 hover:text-blue-600 font-medium transition no-underline text-sm border-r border-gray-300 pr-6">
                             <span className="mr-1 text-lg"></span>Dashboard
                         </Link>
@@ -290,7 +309,6 @@ export default function Orders() {
                                                     <div>
                                                         <div className="flex items-center gap-1 text-gray-500">
                                                             <span className="text-xs">📞</span>
-                                                            {/* PERBAIKAN: Menampilkan nomor telepon penjual */}
                                                             <span>
                                                                 {detail.produk?.user?.phone}
                                                             </span>
@@ -335,6 +353,19 @@ export default function Orders() {
                                     </div>
                                     
                                     <div className="flex gap-2">
+                                        {/* --- TOMBOL CHAT PENJUAL (SAYA SISIPKAN DISINI) --- */}
+                                        <button 
+                                            onClick={() => {
+                                                // Ambil penjual dari produk pertama
+                                                const seller = order.detail_pesanan?.[0]?.produk?.user;
+                                                openChat(seller?.id, seller?.name);
+                                            }}
+                                            className="px-3 py-1 bg-white text-blue-600 border border-blue-300 rounded text-[10px] font-bold hover:bg-blue-50 transition shadow-sm flex items-center gap-1"
+                                        >
+                                            💬 Chat Penjual
+                                        </button>
+                                        {/* ------------------------------------------------ */}
+
                                         {order.status.toLowerCase().includes('dibatalkan') || order.status.toLowerCase().includes('cancel') ? (
                                             <button 
                                                 onClick={() => handleDeleteHistory(order.id)}
@@ -412,6 +443,14 @@ export default function Orders() {
                     </div>
                 </div>
             )}
+
+            {/* --- KOMPONEN CHAT BOX (WAJIB ADA AGAR CHAT MUNCUL) --- */}
+            <ChatBox 
+                isOpen={isChatOpen} 
+                onClose={() => setIsChatOpen(false)} 
+                receiverId={chatTarget.id} 
+                receiverName={chatTarget.name} 
+            />
 
         </div>
     );

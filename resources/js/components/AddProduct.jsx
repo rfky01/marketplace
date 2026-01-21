@@ -81,7 +81,7 @@ export default function AddProduct() {
                     {/* Nama Barang */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Nama Barang</label>
-                        <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="Contoh: Laptop Gaming" required />
+                        <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="Ayam Goreng" required />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

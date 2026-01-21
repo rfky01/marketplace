@@ -10,6 +10,7 @@ use App\Http\Controllers\keranjangController;
 use App\Http\Controllers\RiviewController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\Api\SellerOrderController;
+use App\Http\Controllers\ChatController;
 
 /*
 |--------------------------------------------------------------------------
@@ -67,6 +68,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus']);  // Update status (Penjual)
     Route::put('/orders/{id}/cancel', [OrderController::class, 'cancelOrder']);   // Batal (Penjual)
     Route::put('/orders/{id}/cancel-buyer', [OrderController::class, 'cancelOrderByBuyer']); // Batal (Pembeli)
+    Route::put('/seller/orders/{id}', [OrderController::class, 'updateStatus']);
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']); 
@@ -84,5 +86,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/seller/orders/{id}', [SellerOrderController::class, 'destroy']);
     Route::delete('/seller/orders/{id}', [OrderController::class, 'destroy']);
     Route::delete('/orders/{id}', [App\Http\Controllers\OrderController::class, 'destroy']);
+
+    Route::get('/chat/conversations', [ChatController::class, 'getConversations']);
+    Route::get('/chat/{userId}', [ChatController::class, 'getMessages']); // Ambil pesan
+    Route::post('/chat', [ChatController::class, 'sendMessage']);   // Kirim pesan
+    Route::put('/chat/read/{senderId}', [App\Http\Controllers\ChatController::class, 'markAsRead']);
 
 });

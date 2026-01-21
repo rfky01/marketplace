@@ -139,6 +139,9 @@ class OrderController extends Controller
         }
         
         $pesanan->status = $request->status;
+        if ($request->has('waktu_pengiriman') && $request->waktu_pengiriman) {
+            $pesanan->waktu_pengiriman = $request->waktu_pengiriman;
+        }
         $pesanan->save();
 
         return response()->json([

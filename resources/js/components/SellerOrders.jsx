@@ -1,10 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import ChatBox from './ChatBox';
+import iconPesanan from './asset/pesan.png'
 
 export default function SellerOrders() {
     const [sellerOrders, setSellerOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState({});
+
+    // --- STATE CHAT ---
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [chatTarget, setChatTarget] = useState({ id: null, name: '' });
+
+    // Fungsi Buka Chat
+    const openChat = (buyerId, buyerName) => {
+        setChatTarget({ id: buyerId, name: buyerName });
+        setIsChatOpen(true);
+    };
 
     // --- STATE NAVBAR ---
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -283,19 +295,19 @@ export default function SellerOrders() {
                                         </div>
                                         <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide 
                                             ${currentStatus === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
-                                              currentStatus === 'accepted' ? 'bg-blue-100 text-blue-700' :
-                                              currentStatus === 'dikirim' ? 'bg-purple-100 text-purple-700' :
-                                              currentStatus === 'selesai' ? 'bg-green-100 text-green-700' :
-                                              'bg-red-100 text-red-700'}`}>
+                                                currentStatus === 'accepted' ? 'bg-blue-100 text-blue-700' :
+                                                currentStatus === 'dikirim' ? 'bg-purple-100 text-purple-700' :
+                                                currentStatus === 'selesai' ? 'bg-green-100 text-green-700' :
+                                                'bg-red-100 text-red-700'}`}>
                                             {currentStatus}
                                         </span>
                                     </div>
 
-                                    {/* --- BODY CARD BARU (LAYOUT 3 KOLOM) --- */}
+                                    {/* Body Card */}
                                     <div className="p-6">
                                         <div className="flex flex-col lg:flex-row gap-6">
                                             
-                                            {/* 1. KOLOM KIRI: PRODUK */}
+                                            {/* 1. PRODUK (KIRI) */}
                                             <div className="flex gap-4 flex-1">
                                                 <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
                                                     <img 
@@ -316,7 +328,7 @@ export default function SellerOrders() {
                                                 </div>
                                             </div>
 
-                                            {/* 2. KOLOM TENGAH: ALAMAT & WAKTU (PINDAHAN) */}
+                                            {/* 2. ALAMAT (TENGAH) */}
                                             <div className="w-full lg:w-1/3 bg-gray-50 p-4 rounded-lg border border-dashed border-gray-300 flex flex-col justify-center text-sm">
                                                 <div className="mb-3">
                                                     <p className="text-xs font-bold text-gray-400 uppercase mb-1">Alamat Pengiriman</p>
@@ -336,16 +348,12 @@ export default function SellerOrders() {
                                                 </div>
                                             </div>
 
-                                            {/* 3. KOLOM KANAN: TOMBOL AKSI (PINDAHAN) */}
+                                            {/* 3. TOMBOL AKSI (KANAN) */}
                                             <div className="flex flex-col gap-3 w-full lg:w-auto min-w-[180px] justify-center">
-                                                
-                                                {/* Status PENDING */}
+
                                                 {currentStatus === 'pending' && (
                                                     <>
-                                                        <button 
-                                                            onClick={() => openAcceptModal(item)} 
-                                                            className="w-full py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition shadow-sm flex justify-center items-center gap-2"
-                                                        >
+                                                        <button onClick={() => openAcceptModal(item)} className="w-full py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition shadow-sm">
                                                             Terima Pesanan
                                                         </button>
                                                         <button onClick={() => handleUpdateStatus(item, 'dibatalkan')} className="w-full py-2 bg-white text-red-600 border border-red-200 rounded-lg font-bold text-sm hover:bg-red-50 transition">
@@ -353,31 +361,33 @@ export default function SellerOrders() {
                                                         </button>
                                                     </>
                                                 )}
+
+                                                <Link to="/Pesanan" className="relative group flex items-center">
+                                                    <img 
+                                                    src={iconPesanan} 
+                                                    alt="Pesanan" 
+                                                    className="w-10 h-10 object-contain opacity-60 group-hover:opacity-100 transition duration-200"
+                                                    />
+                                                </Link>
                                                 
-                                                {/* Status ACCEPTED */}
                                                 {currentStatus === 'accepted' && (
-                                                    <button onClick={() => handleUpdateStatus(item, 'dikirim')} className="w-full py-2 bg-yellow-500 text-white rounded-lg font-bold text-sm hover:bg-yellow-600 transition shadow-sm flex justify-center items-center gap-2">
+                                                    <button onClick={() => handleUpdateStatus(item, 'dikirim')} className="w-full py-2 bg-yellow-500 text-white rounded-lg font-bold text-sm hover:bg-yellow-600 transition shadow-sm">
                                                         Kirim Barang
                                                     </button>
                                                 )}
                                                 
-                                                {/* Status dikirim */}
                                                 {currentStatus === 'dikirim' && (
-                                                    <button onClick={() => handleUpdateStatus(item, 'selesai')} className="w-full py-2 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700 transition shadow-sm flex justify-center items-center gap-2">
+                                                    <button onClick={() => handleUpdateStatus(item, 'selesai')} className="w-full py-2 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700 transition shadow-sm">
                                                         🏁 Selesaikan
                                                     </button>
                                                 )}
                                                 
-                                                {/* Status selesai / DIBATALKAN */}
                                                 {(currentStatus === 'selesai' || isCancelled) && (
                                                     <div className="text-center">
                                                         <div className="text-xs text-gray-400 font-medium italic mb-2">
                                                             {isCancelled ? 'Pesanan Batal' : 'Pesanan Selesai'}
                                                         </div>
-                                                        <button 
-                                                            onClick={() => handleDeleteOrder(item.id)}
-                                                            className="w-full py-2 bg-gray-100 text-gray-500 rounded-lg font-bold text-sm hover:bg-red-100 hover:text-red-600 transition border border-gray-200 flex justify-center items-center gap-2"
-                                                        >
+                                                        <button onClick={() => handleDeleteOrder(item.id)} className="w-full py-2 bg-gray-100 text-gray-500 rounded-lg font-bold text-sm hover:bg-red-100 hover:text-red-600 transition border border-gray-200">
                                                             🗑️ Hapus Riwayat
                                                         </button>
                                                     </div>
@@ -433,6 +443,13 @@ export default function SellerOrders() {
                     </div>
                 </div>
             )}
+
+            <ChatBox 
+                isOpen={isChatOpen} 
+                onClose={() => setIsChatOpen(false)} 
+                receiverId={chatTarget.id} 
+                receiverName={chatTarget.name} 
+            />
 
         </div>
     );
