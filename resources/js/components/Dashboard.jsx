@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import ChatDropdown from './ChatDropdown';
 import iconKeranjang from './asset/keranjang.png'
 import iconPesanan from './asset/pesan.png'
+import iconSearch from './asset/search.png'
+import iconToko from './asset/toko.png'
 
 export default function Dashboard() {
     const navigate = useNavigate();
@@ -18,6 +20,9 @@ export default function Dashboard() {
     
     // STATE SORTIR HARGA
     const [sortOrder, setSortOrder] = useState(''); 
+
+    const [showShopModal, setShowShopModal] = useState(false);
+    const [isShopLoading, setIsShopLoading] = useState(false);
     
     const dropdownRef = useRef(null);
 
@@ -81,22 +86,35 @@ export default function Dashboard() {
     const processedProducts = getProcessedProducts();
     const uniqueCategories = [...new Set(products.map(p => p.kategori))];
 
-    const handleOpenShop = async () => {
-        if(!confirm("Apakah Anda ingin mulai berjualan dan membuka toko?")) return;
+    const executeOpenShop = async () => {
+        setIsShopLoading(true); // Mulai Loading
         const token = localStorage.getItem('token');
+        
         try {
             const response = await fetch('http://127.0.0.1:8000/api/open-shop', {
                 method: 'POST',
                 headers: {'Authorization': `Bearer ${token}`, 'Accept': 'application/json'}
             });
             const data = await response.json();
+            
             if (response.ok) {
-                alert("Selamat! Toko Anda aktif.");
+                // Update data user di local storage dan state
                 const updatedUser = { ...user, role: 'penjual' };
                 localStorage.setItem('user', JSON.stringify(updatedUser));
                 setUser(updatedUser);
-            } else { alert("Gagal: " + data.message); }
-        } catch (error) { console.error(error); }
+                
+                setIsShopLoading(false);
+                setShowShopModal(false); // Tutup Modal
+                alert("Selamat! Toko Anda aktif. Silakan mulai upload produk.");
+            } else { 
+                setIsShopLoading(false);
+                alert("Gagal: " + data.message); 
+            }
+        } catch (error) { 
+            setIsShopLoading(false);
+            console.error(error);
+            alert("Terjadi kesalahan koneksi");
+        }
     };
 
     const handleLogout = () => {
@@ -128,7 +146,10 @@ export default function Dashboard() {
                         
                         {/* SEARCH BAR */}
                         <div className="hidden md:flex items-center bg-gray-100 rounded-lg px-3 py-2 w-[400px] border border-gray-200 focus-within:border-blue-900 transition">
-                            <span className="text-gray-400 mr-2">🔍</span>
+                            
+                            <img src={iconSearch} alt="Search" className="w-8 h-8 object-contain opacity-50 mr-2" />
+                            {/* -------------------------------------- */}
+                            
                             <input 
                                 type="text" 
                                 placeholder="Cari di Marketplace Plus" 
@@ -171,7 +192,12 @@ export default function Dashboard() {
                     {/* 2. MENU KANAN */}
                     <div className="flex items-center gap-2">
                         {user.role === 'pembeli' ? (
-                            <button onClick={handleOpenShop} className="text-sm font-bold text-white bg-blue-900 hover:bg-blue-800 px-4 py-2 rounded-lg transition shadow-sm flex items-center gap-1 decoration-none">Buka Toko</button>
+                            <button 
+                                onClick={() => setShowShopModal(true)} 
+                                className="text-sm font-bold text-white bg-blue-900 hover:bg-blue-800 px-4 py-2 rounded-lg transition shadow-sm flex items-center gap-1 decoration-none"
+                            >
+                                Buka Toko
+                            </button>
                         ) : user.role === 'penjual' ? (
                             <Link to="/add-product" className="text-sm font-bold text-white bg-blue-900 hover:bg-blue-800 px-4 py-2 rounded-lg transition shadow-sm flex items-center gap-1 decoration-none">+ Upload</Link>
                         ) : null}
@@ -203,10 +229,15 @@ export default function Dashboard() {
 
                                 {isDropdownOpen && (
                                     <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-lg shadow-2xl border border-gray-100 p-4 transform transition-all duration-200 origin-top-right">
-                                        <div className="flex items-center gap-3 mb-4 p-3 bg-blue-50 rounded-lg">
-                                            <div className="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center text-blue-900 font-bold text-lg">{user.name.charAt(0).toUpperCase()}</div>
-                                            <div><p className="font-bold text-gray-800">{user.name}</p><p className="text-xs text-blue-800 font-semibold"></p></div>
-                                        </div>
+                                        <Link to="/profile" className="flex items-center gap-3 mb-4 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition cursor-pointer decoration-none">
+                                            <div className="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center text-blue-900 font-bold text-lg">
+                                                {user.name.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-gray-800">{user.name}</p>
+                                                <p className="text-xs text-blue-600 font-medium">Lihat Profil</p>
+                                            </div>
+                                        </Link>
                                         <hr className="border-gray-100 mb-2"/>
                                         <div className="flex flex-col gap-1">
                                             {user.role === 'penjual' && (
@@ -301,6 +332,52 @@ export default function Dashboard() {
                     </div>
                 )}
             </div>
+
+            {showShopModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-sm w-full transform scale-100 transition-transform duration-300">
+                        
+                        {/* Ikon Toko/Pertanyaan */}
+                        <div className="w-21 h-21 flex items-center justify-center mx-auto mb-4 p-4">
+                             <img 
+                                src={iconToko} 
+                                alt="Buka Toko" 
+                                className="object-contain drop-shadow-md"
+                            />
+                        </div>
+
+                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Buka Toko?</h2>
+                        <p className="text-gray-600 mb-6 text-sm">
+                            Apakah Anda yakin ingin mulai berjualan? Akun Anda akan diaktifkan sebagai Penjual.
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setShowShopModal(false)}
+                                className="flex-1 py-2.5 border border-gray-300 text-gray-600 font-bold rounded-lg hover:bg-gray-50 transition"
+                            >
+                                Batal
+                            </button>
+                            <button 
+                                onClick={executeOpenShop}
+                                disabled={isShopLoading}
+                                className="flex-1 py-2.5 bg-blue-900 text-white font-bold rounded-lg hover:bg-blue-800 transition shadow-md disabled:opacity-50 flex justify-center items-center gap-2"
+                            >
+                                {isShopLoading ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        Memproses...
+                                    </>
+                                ) : (
+                                    "Ya, Buka Toko"
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
+        
     );
 }

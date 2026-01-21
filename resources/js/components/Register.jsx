@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-// --- IMPORT GAMBAR ASET (Sesuaikan path jika perlu) ---
-import suksesImg from '../components/asset/sukses.png'; 
+import suksesImg from './asset/sukses.png';
+import salahImg from './asset/salah.png'; // <--- Import gambar Salah
 
 export default function Register() {
     const navigate = useNavigate();
+    
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -12,17 +13,18 @@ export default function Register() {
         password_confirmation: '',
         phone: '',
         address: '',
-        // Role dihapus dari sini
     });
-
-    // --- STATE VISUAL (LOADING & POPUP) ---
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    // --------------------------------------
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
+
+    // --- STATE VISUAL (LOADING & POPUP) ---
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showErrorModal, setShowErrorModal] = useState(false); // State Popup Error
+    const [errorMessage, setErrorMessage] = useState('');        // Pesan Error
+    const [isLoading, setIsLoading] = useState(false);
+    // --------------------------------------
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -37,23 +39,34 @@ export default function Register() {
             const data = await response.json();
             
             if (response.ok) {
-                // alert('Registrasi Berhasil! Silakan Login.'); <-- ALERT LAMA DIGANTI
-                setIsLoading(false); // 2. Stop Loading
-                setShowSuccessModal(true); // 3. Munculkan Popup
+                // --- SUKSES ---
+                setIsLoading(false); 
+                setShowSuccessModal(true); 
 
                 setTimeout(() => {
                     navigate('/login'); 
-                }, 2000); // Redirect setelah 2 detik
+                }, 2000); 
 
             } else {
-                setIsLoading(false);
-                alert('Gagal: ' + (data.message || JSON.stringify(data.errors)));
+                // --- GAGAL ---
+                setIsLoading(false); // Matikan loading dulu
+                
+                // Menyiapkan pesan error
+                let msg = data.message || JSON.stringify(data.errors);
+                setErrorMessage(msg);
+                setShowErrorModal(true); // Tampilkan Popup Error
             }
         } catch (error) {
-            setIsLoading(false);
+            // --- ERROR KONEKSI ---
+            setIsLoading(false); // Matikan loading dulu
             console.error('Error:', error);
-            alert('Terjadi kesalahan koneksi');
+            setErrorMessage('Terjadi kesalahan koneksi ke server.');
+            setShowErrorModal(true);
         }
+    };
+
+    const closeErrorModal = () => {
+        setShowErrorModal(false);
     };
 
     return (
@@ -94,11 +107,9 @@ export default function Register() {
                         </div>
                     </div>
 
-                    {/* SELECT ROLE SUDAH DIHAPUS */}
-
                     <button 
                         type="submit" 
-                        disabled={isLoading} // Disable saat loading
+                        disabled={isLoading} 
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition duration-300 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isLoading ? "Memproses..." : "Daftar Sekarang"}
@@ -111,7 +122,8 @@ export default function Register() {
             </div>
 
             {/* --- LOADING SPINNER --- */}
-            {isLoading && (
+            {/* Hanya muncul jika isLoading TRUE dan TIDAK ADA ERROR MODAL */}
+            {isLoading && !showErrorModal && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm">
                     <div className="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center animate-bounce-in">
                         <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-3"></div>
@@ -125,7 +137,6 @@ export default function Register() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-sm w-full transform scale-100 transition-transform duration-300">
                         <div className="w-32 h-32 mx-auto mb-6 flex items-center justify-center relative">
-                            {/* Pastikan gambar ini ada atau ganti dengan placeholder jika belum ada */}
                             <img
                                 src={suksesImg} 
                                 alt="Register Berhasil"
@@ -142,7 +153,6 @@ export default function Register() {
                             Akun Anda telah dibuat. Silakan login untuk melanjutkan.
                         </p>
                         
-                        {/* Loading Bar Animasi */}
                         <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2 overflow-hidden">
                             <div 
                                 className="bg-green-500 h-1.5 rounded-full" 
@@ -150,6 +160,35 @@ export default function Register() {
                             ></div>
                         </div>
                         <p className="text-xs text-gray-400">Mengalihkan ke halaman login...</p>
+                    </div>
+                </div>
+            )}
+
+            {/* --- POPUP MODAL ERROR (BARU) --- */}
+            {showErrorModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-sm w-full animate-shake">
+                        
+                        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <img
+                                src={salahImg} 
+                                alt="Register Gagal"
+                                className="w-full h-full object-contain animate-bounce-in drop-shadow-lg"
+                                onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn-icons-png.flaticon.com/512/1828/1828843.png"; }}
+                            />
+                        </div>
+
+                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Registrasi Gagal</h2>
+                        <p className="text-gray-600 mb-6 text-sm">
+                            {errorMessage}
+                        </p>
+
+                        <button 
+                            onClick={closeErrorModal} 
+                            className="w-full bg-red-600 text-white font-bold py-2.5 rounded-lg hover:bg-red-700 transition shadow-lg active:scale-95"
+                        >
+                            Coba Lagi
+                        </button>
                     </div>
                 </div>
             )}

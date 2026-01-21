@@ -7,10 +7,67 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 // --- BARIS INI YANG TADI HILANG ---
 use Illuminate\Support\Facades\Auth; 
+use Illuminate\Support\Facades\Storage;
 // ----------------------------------
 
 class AuthController extends Controller
 {
+
+    public function getUserProfile(Request $request)
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $request->user()
+        ]);
+    }
+
+    public function updateUserProfile(Request $request)
+    {
+    $user = $request->user();
+
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'phone' => 'nullable|string|max:20',
+        'address' => 'nullable|string',
+        'npm' => 'nullable|string|max:20', 
+        'prodi' => 'nullable|string|max:100',  
+        'fakultas' => 'nullable|string|max:100',
+        'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Validasi foto
+    ]);
+
+    // Data yang akan diupdate
+    $dataToUpdate = [
+        'name' => $request->name,
+        'phone' => $request->phone,
+        'address' => $request->address,
+        'npm' => $request->npm, 
+        'prodi' => $request->prodi,   
+        'fakultas' => $request->fakultas,
+    ];
+
+    // Cek jika ada upload foto
+    if ($request->hasFile('profile_photo')) {
+        // 1. Hapus foto lama jika ada (opsional, biar hemat storage)
+        if ($user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
+            Storage::disk('public')->delete($user->profile_photo);
+        }
+
+        // 2. Simpan foto baru
+        $path = $request->file('profile_photo')->store('profile_photos', 'public');
+        $dataToUpdate['profile_photo'] = $path;
+    }
+
+    $user->update($dataToUpdate);
+    $user->refresh();
+    $user->load('updater');
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Profil berhasil diperbarui!',
+        'data' => $user
+    ]);
+    }
+
     public function register(Request $request)
     {
         $validatedData = $request->validate([

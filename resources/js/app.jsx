@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 // Import komponen halaman (Nanti kita buat)
 import Login from './components/Login';
 import Register from './components/Register';
+import Profile from './pages/Profile';
 import Dashboard from './components/Dashboard';
 import Orders from './components/Orders';
 import AddProduct from './components/AddProduct';
@@ -14,6 +15,7 @@ import EditProduct from './components/EditProduct';
 import ProductDetail from './components/ProductDetail';
 import Keranjang from './components/Keranjang';
 import SellerOrders from './components/SellerOrders';
+
 
 function App() {
     return (
@@ -25,6 +27,7 @@ function App() {
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
+                    <Route path="/profile" element={<Profile />} />
                     <Route path="/orders" element={<Orders />} />
                     <Route path="/add-product" element={<AddProduct />} />
                     <Route path="/my-products" element={<MyProducts />} />

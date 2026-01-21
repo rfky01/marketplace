@@ -92,4 +92,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/chat', [ChatController::class, 'sendMessage']);   // Kirim pesan
     Route::put('/chat/read/{senderId}', [App\Http\Controllers\ChatController::class, 'markAsRead']);
 
+    Route::get('/profile', [App\Http\Controllers\AuthController::class, 'getUserProfile']);
+    Route::put('/profile', [App\Http\Controllers\AuthController::class, 'updateUserProfile']);
+
 });

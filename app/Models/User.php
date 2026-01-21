@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\Auth;
 
 class User extends Authenticatable
 {
@@ -25,6 +26,11 @@ class User extends Authenticatable
         'phone',    // Jika tadi Anda menambahkan phone
         'address',  // Jika tadi Anda menambahkan address
         'role',     // Pastikan role juga ada di sini
+        'profile_photo',
+        'npm', 
+        'prodi',  
+        'fakultas',
+        'updated_by',
         ];
 
     /**
@@ -46,4 +52,21 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    protected static function booted(): void
+    {
+        // Event 'updating' berjalan TEPAT SEBELUM data disimpan ke database saat proses update.
+        static::updating(function ($user) {
+            // Cek apakah ada user yang sedang login
+            if (Auth::check()) {
+                // Isi kolom 'updated_by' dengan ID user yang sedang login saat ini
+                $user->updated_by = Auth::id();
+            }
+        });
+    }
+    
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by', 'id');
+    }
 }
