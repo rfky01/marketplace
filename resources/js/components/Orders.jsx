@@ -184,6 +184,22 @@ export default function Orders() {
         navigate('/login');
     };
 
+    // --- HELPER UNTUK MENGAMBIL FOTO (SISIPAN PERBAIKAN) ---
+    const getProductImage = (produk) => {
+        if (!produk) return "https://via.placeholder.com/150";
+        // 1. Cek Array (Banyak Foto)
+        if (Array.isArray(produk.foto_barang) && produk.foto_barang.length > 0) {
+            return `http://127.0.0.1:8000/storage/${produk.foto_barang[0]}`;
+        }
+        // 2. Cek String (Satu Foto)
+        if (typeof produk.foto_barang === 'string' && produk.foto_barang) {
+            return produk.foto_barang.startsWith('http') 
+                ? produk.foto_barang 
+                : `http://127.0.0.1:8000/storage/${produk.foto_barang}`;
+        }
+        return "https://via.placeholder.com/150?text=No+Image";
+    };
+
     const formatRupiah = (num) => {
         const n = Number(num);
         if (isNaN(n)) return 'Rp 0';
@@ -265,10 +281,10 @@ export default function Orders() {
                                         <p className="text-[10px] text-gray-500">{formatDate(order.created_at)}</p>
                                     </div>
                                     <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide 
-                                        ${order.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border border-yellow-100' : 
-                                          order.status === 'selesai' ? 'bg-green-50 text-green-700 border border-green-100' : 
-                                          order.status === 'dikirim' ? 'bg-purple-50 text-purple-700 border border-purple-100' :
-                                          'bg-red-50 text-red-700 border border-red-100'}`}>
+                                    ${order.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border border-yellow-100' : 
+                                      order.status === 'selesai' ? 'bg-green-50 text-green-700 border border-green-100' : 
+                                      order.status === 'dikirim' ? 'bg-purple-50 text-purple-700 border border-purple-100' :
+                                      'bg-red-50 text-red-700 border border-red-100'}`}>
                                         {order.status}
                                     </div>
                                 </div>
@@ -281,8 +297,9 @@ export default function Orders() {
                                             {/* 1. INFO PRODUK */}
                                             <div className="flex items-start gap-3">
                                                 <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0 border border-gray-200">
+                                                    {/* --- MENGGUNAKAN HELPER getProductImage DI SINI --- */}
                                                     <img 
-                                                        src={detail.produk?.foto_barang} 
+                                                        src={getProductImage(detail.produk)} 
                                                         alt={detail.produk?.nama_barang} 
                                                         className="w-full h-full object-cover"
                                                         onError={(e)=>{e.target.src="https://via.placeholder.com/150"}}
@@ -353,7 +370,7 @@ export default function Orders() {
                                     </div>
                                     
                                     <div className="flex gap-2">
-                                        {/* --- TOMBOL CHAT PENJUAL (SAYA SISIPKAN DISINI) --- */}
+                                        {/* --- TOMBOL CHAT PENJUAL --- */}
                                         <button 
                                             onClick={() => {
                                                 // Ambil penjual dari produk pertama
@@ -364,8 +381,7 @@ export default function Orders() {
                                         >
                                             💬 Chat Penjual
                                         </button>
-                                        {/* ------------------------------------------------ */}
-
+                                        
                                         {order.status.toLowerCase().includes('dibatalkan') || order.status.toLowerCase().includes('cancel') ? (
                                             <button 
                                                 onClick={() => handleDeleteHistory(order.id)}

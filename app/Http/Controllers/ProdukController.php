@@ -2,29 +2,27 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\produk;
+use App\Models\Produk; // Pastikan nama Model diawali Huruf Besar (Standar Laravel)
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 
 class ProdukController extends Controller
 {
     // 1. MENAMPILKAN SEMUA PRODUK (Public)
-    // 1. MENAMPILKAN SEMUA PRODUK (Public)
     public function index(Request $request)
     {
-        $query = \App\Models\produk::query(); 
+        $query = Produk::query(); 
 
         // Filter Kategori
-        if ($request->has('category')) {
+        if ($request->has('category') && $request->category != '') {
             $query->where('kategori', $request->category);
         }
         // Search Nama
-        if ($request->has('search')) {
+        if ($request->has('search') && $request->search != '') {
             $query->where('nama_barang', 'like', '%' . $request->search . '%');
         }
 
-        // PERBAIKAN DISINI: 
-        // Tambahkan 'ulasan' di dalam with() agar data rating ikut terkirim ke Dashboard
         $products = $query->with(['user', 'ulasan'])->latest()->get(); 
 
         return response()->json([
@@ -37,9 +35,7 @@ class ProdukController extends Controller
     // 2. MENAMPILKAN DETAIL 1 PRODUK
     public function show($id)
     {
-        // --- PERBAIKAN DISINI ---
-        // Saya menambahkan 'ulasan.user' agar data ulasan muncul di frontend
-        $produk = produk::with(['user', 'updater', 'ulasan.user'])->find($id); 
+        $produk = Produk::with(['user', 'updater', 'ulasan.user'])->find($id); 
 
         if (!$produk) {
             return response()->json(['message' => 'Produk tidak ditemukan'], 404);
@@ -54,30 +50,39 @@ class ProdukController extends Controller
     // 3. UPLOAD BARANG BARU (Khusus Penjual)
     public function store(Request $request)
     {
-        $request->validate([
+        // --- PERBAIKAN 1: Definisi Validator yang Benar ---
+        $validator = Validator::make($request->all(), [
             'nama_barang'  => 'required|string',
-            'harga_barang' => 'required|integer',
+            'harga_barang' => 'required|numeric', // numeric lebih aman dari integer
             'stok_barang'  => 'required|integer',
             'kategori'     => 'required|string',
             'deskripsi'    => 'required|string',
-            'foto_barang'  => 'required|image|mimes:jpeg,png,jpg|max:2048',
+            'foto_barang'  => 'required', 
+            'foto_barang.*'=> 'image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
-        // Upload Gambar
-        $imagePath = null;
-        if ($request->hasFile('foto_barang')) {
-            $imagePath = $request->file('foto_barang')->store('products', 'public');
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Simpan ke Database
-        $produk = produk::create([
+        // --- LOGIKA UPLOAD MULTIPLE ---
+        $fotoPaths = [];
+        if ($request->hasFile('foto_barang')) {
+            foreach($request->file('foto_barang') as $file) {
+                // Simpan path relatif (tanpa http://...)
+                $fotoPaths[] = $file->store('produk_images', 'public'); 
+            }
+        }
+
+        // Simpan ke Database (Laravel otomatis cast array ke JSON jika di model sudah di-cast)
+        $produk = Produk::create([
             'user_id'      => $request->user()->id,
             'nama_barang'  => $request->nama_barang,
             'harga_barang' => $request->harga_barang,
             'stok_barang'  => $request->stok_barang,
             'kategori'     => $request->kategori,
             'deskripsi'    => $request->deskripsi,
-            'foto_barang'  => $imagePath ? url('storage/' . $imagePath) : null
+            'foto_barang'  => $fotoPaths, 
         ]);
 
         return response()->json([
@@ -87,13 +92,13 @@ class ProdukController extends Controller
         ]);
     }
 
-    // 4. AMBIL PRODUK MILIK USER SENDIRI (Fitur My Products)
+    // 4. AMBIL PRODUK MILIK USER SENDIRI
     public function userIndex(Request $request)
     {
         $user = $request->user();
 
-        $products = \App\Models\produk::where('user_id', $user->id)
-                    ->with('updater') // <--- PENTING: Agar nama pengedit muncul di frontend
+        $products = Produk::where('user_id', $user->id)
+                    ->with('updater') 
                     ->latest()
                     ->get();
 
@@ -106,51 +111,65 @@ class ProdukController extends Controller
     // 5. UPDATE PRODUK (Edit)
     public function update(Request $request, $id)
     {
-        $produk = \App\Models\produk::find($id);
+        $produk = Produk::find($id);
 
         if (!$produk) {
             return response()->json(['message' => 'Produk tidak ditemukan'], 404);
         }
 
-        // Cek Kepemilikan
         if ($request->user()->id !== $produk->user_id) {
             return response()->json(['message' => 'Anda dilarang mengedit barang orang lain'], 403);
         }
 
-        // Validasi
-        $request->validate([
+        // --- PERBAIKAN 2: Validasi Update ---
+        $validator = Validator::make($request->all(), [
             'nama_barang'  => 'required|string',
-            'harga_barang' => 'required|integer',
+            'harga_barang' => 'required|numeric',
             'stok_barang'  => 'required|integer',
             'kategori'     => 'required|string',
             'deskripsi'    => 'required|string',
-            'foto_barang'  => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            // Foto di update bersifat opsional (nullable)
+            'foto_barang'  => 'nullable', 
+            'foto_barang.*'=> 'image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        // Cek apakah user upload foto baru?
-        if ($request->hasFile('foto_barang')) {
-            // Hapus foto lama
-            if ($produk->foto_barang) {
-                $oldPath = str_replace(url('storage/'), '', $produk->foto_barang);
-                Storage::disk('public')->delete($oldPath);
-            }
-            // Upload foto baru
-            $imagePath = $request->file('foto_barang')->store('products', 'public');
-            $produk->foto_barang = url('storage/' . $imagePath);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Update Data
-        $produk->update([
+        // Data yang akan diupdate
+        $dataToUpdate = [
             'nama_barang'  => $request->nama_barang,
             'harga_barang' => $request->harga_barang,
             'stok_barang'  => $request->stok_barang,
             'kategori'     => $request->kategori,
             'deskripsi'    => $request->deskripsi,
-            
-            // --- PENTING: Simpan siapa yang mengedit ---
             'updated_by'   => $request->user()->id 
-            // ------------------------------------------
-        ]);
+        ];
+
+        // --- PERBAIKAN 3: Logic Update Foto Multiple ---
+        if ($request->hasFile('foto_barang')) {
+            // 1. Hapus foto lama (Optional - jika ingin hemat storage)
+            // Hati-hati: $produk->foto_barang sekarang adalah Array/JSON
+            if ($produk->foto_barang && is_array($produk->foto_barang)) {
+                foreach($produk->foto_barang as $oldPhoto) {
+                    if(Storage::disk('public')->exists($oldPhoto)) {
+                        Storage::disk('public')->delete($oldPhoto);
+                    }
+                }
+            }
+
+            // 2. Upload foto baru
+            $newFotoPaths = [];
+            foreach($request->file('foto_barang') as $file) {
+                $newFotoPaths[] = $file->store('produk_images', 'public');
+            }
+            
+            // Masukkan ke array update
+            $dataToUpdate['foto_barang'] = $newFotoPaths;
+        }
+
+        $produk->update($dataToUpdate);
 
         return response()->json([
             'success' => true,
@@ -159,35 +178,33 @@ class ProdukController extends Controller
         ]);
     }
 
-    // 6. HAPUS BARANG (Soft Delete)
+    // 6. HAPUS BARANG
     public function destroy(Request $request, $id)
     {
-        $produk = \App\Models\produk::find($id);
+        $produk = Produk::find($id);
 
         if (!$produk) {
             return response()->json(['message' => 'Produk tidak ditemukan'], 404);
         }
 
-        // Cek Kepemilikan
         if ($request->user()->id !== $produk->user_id) {
             return response()->json(['message' => 'Anda dilarang menghapus barang orang lain'], 403);
         }
 
-        // Cek Status Pesanan Aktif
+        // Cek Pesanan Aktif
         $pesananAktif = \App\Models\DetailPesanan::where('produk_id', $produk->id)
             ->whereHas('pesanan', function($query) {
-                $query->whereIn('status', ['pending', 'accepted', 'dikirim', 'selesai']);
+                $query->whereIn('status', ['pending', 'accepted', 'dikirim']);
             })
             ->exists();
 
         if ($pesananAktif) {
             return response()->json([
-                'message' => 'Gagal: Produk sedang dalam proses transaksi (Pending/dikirim). Selesaikan dulu pesanan tersebut.'
+                'message' => 'Gagal: Produk sedang dalam proses transaksi.'
             ], 400);
         }
 
-        // Soft Delete
-        $produk->delete();
+        $produk->delete(); // Soft Delete
 
         return response()->json([
             'success' => true,

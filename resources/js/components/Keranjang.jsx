@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import iconHome from './asset/home.png'
-
+import iconHome from './asset/home.png';
 
 export default function Keranjang() { 
     const [keranjangItems, setKeranjangItems] = useState([]);
@@ -20,7 +19,7 @@ export default function Keranjang() {
     const [checkoutForm, setCheckoutForm] = useState({
         telepon: '',
         alamat: '',
-        waktu_kirim: '',
+        // waktu_kirim dihapus dari state form karena otomatis
         metode_pembayaran: 'COD'
     });
 
@@ -64,6 +63,26 @@ export default function Keranjang() {
         } finally {
             setLoading(false);
         }
+    };
+
+    // --- HELPER UNTUK MENGAMBIL FOTO (PERBAIKAN GAMBAR) ---
+    const getProductImage = (produk) => {
+        if (!produk) return "https://via.placeholder.com/150";
+        
+        // 1. Cek jika foto berupa Array (Format Baru - Banyak Foto)
+        if (Array.isArray(produk.foto_barang) && produk.foto_barang.length > 0) {
+            return `http://127.0.0.1:8000/storage/${produk.foto_barang[0]}`;
+        }
+        
+        // 2. Cek jika foto berupa String (Format Lama - Satu Foto)
+        if (typeof produk.foto_barang === 'string' && produk.foto_barang) {
+            return produk.foto_barang.startsWith('http') 
+                ? produk.foto_barang 
+                : `http://127.0.0.1:8000/storage/${produk.foto_barang}`;
+        }
+        
+        // 3. Default
+        return "https://via.placeholder.com/150?text=No+Image";
     };
 
     // --- LOGIKA CHECKBOX ---
@@ -157,7 +176,7 @@ export default function Keranjang() {
 
     // --- PROSES CHECKOUT ---
     const handleConfirmCheckout = async () => {
-        // Validasi Form (Waktu kirim dihapus dari validasi karena akan otomatis)
+        // Validasi Form
         if (!checkoutForm.telepon || !checkoutForm.alamat) {
             alert("Mohon lengkapi data pengiriman!");
             return;
@@ -174,7 +193,7 @@ export default function Keranjang() {
                 email_penerima: user.email || "email@example.com",
                 telepon_penerima: checkoutForm.telepon,
                 alamat_pengiriman: checkoutForm.alamat,
-                // KARENA INPUT DIHAPUS, KITA KIRIM WAKTU SEKARANG SECARA OTOMATIS
+                // Waktu kirim otomatis saat ini
                 waktu_pengiriman: new Date().toISOString(), 
                 metode_pembayaran: checkoutForm.metode_pembayaran
             };
@@ -192,6 +211,7 @@ export default function Keranjang() {
 
             if (response.ok) {
                 alert("Checkout Berhasil! ✅");
+                // Hapus item yang sudah dibeli dari keranjang
                 for (const itemId of selectedItems) {
                     await fetch(`http://127.0.0.1:8000/api/keranjang/${itemId}`, {
                         method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
@@ -258,8 +278,8 @@ export default function Keranjang() {
                                         <Link to="/orders" className="px-3 py-2 hover:bg-gray-50 rounded-md text-gray-700 text-sm font-medium">Daftar Pesanan</Link>
                                     </div>
                                     <hr className="border-gray-100 my-2"/>
-                                <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-red-500 hover:bg-red-50 rounded-md text-sm font-bold flex items-center gap-2">Keluar</button>
-                            </div>
+                                    <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-red-500 hover:bg-red-50 rounded-md text-sm font-bold flex items-center gap-2">Keluar</button>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -303,8 +323,9 @@ export default function Keranjang() {
                                     </div>
                                     <div className="w-24 h-24 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden border border-gray-100 group">
                                         <Link to={`/product/${item.produk?.id}`}>
+                                            {/* --- UPDATE: MENGGUNAKAN HELPER getProductImage --- */}
                                             <img 
-                                                src={item.produk?.foto_barang} 
+                                                src={getProductImage(item.produk)} 
                                                 alt={item.produk?.nama_barang} 
                                                 className="w-full h-full object-cover group-hover:scale-105 transition duration-300" 
                                                 onError={(e)=>{e.target.src="https://via.placeholder.com/150"}} 
@@ -444,7 +465,7 @@ export default function Keranjang() {
                                     value={checkoutForm.metode_pembayaran}
                                     onChange={(e) => setCheckoutForm({...checkoutForm, metode_pembayaran: e.target.value})}
                                 >
-                                    <option value="COD">COD (Bayar di Tempat)</option>
+                                    <option value="COD">COD </option>
                                     <option value="Transfer">Transfer Bank</option>
                                     <option value="E-Wallet">E-Wallet</option>
                                 </select>

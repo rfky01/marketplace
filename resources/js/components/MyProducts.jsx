@@ -79,6 +79,22 @@ export default function MyProducts() {
         navigate('/login');
     };
 
+    const getProductImage = (product) => {
+        // Cek jika foto berupa Array (Format Baru)
+        if (Array.isArray(product.foto_barang) && product.foto_barang.length > 0) {
+            return `http://127.0.0.1:8000/storage/${product.foto_barang[0]}`;
+        }
+        // Cek jika foto berupa String (Format Lama/Fallback)
+        if (typeof product.foto_barang === 'string' && product.foto_barang) {
+            // Cek apakah sudah ada http-nya atau belum
+            return product.foto_barang.startsWith('http') 
+                ? product.foto_barang 
+                : `http://127.0.0.1:8000/storage/${product.foto_barang}`;
+        }
+        // Gambar Default jika rusak/kosong
+        return "https://via.placeholder.com/300?text=No+Image";
+    };
+
     const formatRupiah = (num) => new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR', minimumFractionDigits:0}).format(num);
 
     const formatDate = (dateString, withTime = false) => {
@@ -88,6 +104,7 @@ export default function MyProducts() {
             year: 'numeric',
             ...(withTime && { hour: '2-digit', minute: '2-digit' }) 
         };
+        if (loading) return <div className="p-10 text-center">Memuat produk Anda...</div>;
         return new Date(dateString).toLocaleDateString('id-ID', options);
     };
 
@@ -182,12 +199,12 @@ export default function MyProducts() {
                         {products.map((product) => (
                             <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col sm:flex-row items-center gap-6 transition hover:shadow-md">
                                 
-                                <div className="w-full sm:w-32 h-32 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                                <div className="w-full sm:w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
                                     <img 
-                                        src={product.foto_barang} 
+                                        src={getProductImage(product)} 
                                         alt={product.nama_barang} 
                                         className="w-full h-full object-cover"
-                                        onError={(e)=>{e.target.src="https://via.placeholder.com/150"}}
+                                        onError={(e) => { e.target.src = "https://via.placeholder.com/150?text=Error"; }}
                                     />
                                 </div>
 

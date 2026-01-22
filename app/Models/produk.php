@@ -35,7 +35,11 @@ class produk extends Model
     }
 
     public function ulasan()
-{
-    return $this->hasMany(Riview::class);
-}
+    {
+        return $this->hasMany(Riview::class);
+    }
+
+    protected $casts = [
+    'foto_barang' => 'array', // Otomatis convert JSON <-> Array
+    ];
 }

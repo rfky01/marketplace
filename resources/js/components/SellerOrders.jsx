@@ -185,6 +185,22 @@ export default function SellerOrders() {
         navigate('/login');
     };
 
+    // --- HELPER GAMBAR (INI SAYA TAMBAHKAN AGAR GAMBAR MUNCUL) ---
+    const getProductImage = (product) => {
+        if (!product) return "https://via.placeholder.com/150";
+        // 1. Cek Array (Banyak Foto)
+        if (Array.isArray(product.foto_barang) && product.foto_barang.length > 0) {
+            return `http://127.0.0.1:8000/storage/${product.foto_barang[0]}`;
+        }
+        // 2. Cek String (Satu Foto)
+        if (typeof product.foto_barang === 'string' && product.foto_barang) {
+            return product.foto_barang.startsWith('http') 
+                ? product.foto_barang 
+                : `http://127.0.0.1:8000/storage/${product.foto_barang}`;
+        }
+        return "https://via.placeholder.com/150?text=No+Image";
+    };
+
     const formatRupiah = (num) => {
         const n = Number(num);
         if (isNaN(n)) return 'Rp 0';
@@ -310,8 +326,9 @@ export default function SellerOrders() {
                                             {/* 1. PRODUK (KIRI) */}
                                             <div className="flex gap-4 flex-1">
                                                 <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+                                                    {/* --- MENGGUNAKAN HELPER getProductImage DI SINI --- */}
                                                     <img 
-                                                        src={item.produk?.foto_barang} 
+                                                        src={getProductImage(item.produk)} 
                                                         alt={item.produk?.nama_barang} 
                                                         className="w-full h-full object-cover"
                                                         onError={(e)=>{e.target.src="https://via.placeholder.com/150"}}

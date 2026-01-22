@@ -16,6 +16,13 @@ export default function EditProduct() {
     const [previewImage, setPreviewImage] = useState(''); // URL gambar lama untuk preview
     const [errors, setErrors] = useState([]);
 
+    const [existingImages, setExistingImages] = useState([]); // Foto lama dari DB
+    const [newFiles, setNewFiles] = useState([]); // File baru yang akan diupload
+    const [newPreviews, setNewPreviews] = useState([]);
+
+    const [isLoading, setIsLoading] = useState(false);
+    const [isFetching, setIsFetching] = useState(true);
+
     // 1. Ambil Data Produk Lama saat halaman dibuka
     useEffect(() => {
         fetchProductData();
@@ -33,6 +40,16 @@ export default function EditProduct() {
                 setCategory(p.kategori);
                 setDescription(p.deskripsi);
                 setPreviewImage(p.foto_barang);
+
+                // --- LOGIKA MENANGANI FOTO (ARRAY vs STRING) ---
+                if (Array.isArray(p.foto_barang)) {
+                    setExistingImages(p.foto_barang);
+                } else if (typeof p.foto_barang === 'string' && p.foto_barang) {
+                    setExistingImages([p.foto_barang]); // Jadikan array meski cuma 1
+                } else {
+                    setExistingImages([]);
+                }
+
             } else {
                 alert("Produk tidak ditemukan");
                 navigate('/my-products');
@@ -45,14 +62,17 @@ export default function EditProduct() {
     };
 
     const handleFileChange = (e) => {
-        const file = e.target.files[0];
-        setImage(file);
-        // Buat preview gambar baru
-        if(file) setPreviewImage(URL.createObjectURL(file));
+        const files = Array.from(e.target.files);
+        setNewFiles(files);
+
+        // Buat preview untuk foto baru
+        const previews = files.map(file => URL.createObjectURL(file));
+        setNewPreviews(previews);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsLoading(true);
         const token = localStorage.getItem('token');
 
         // Gunakan FormData karena ada file upload
@@ -65,6 +85,12 @@ export default function EditProduct() {
         
         // PENTING: Trik agar Laravel membaca ini sebagai PUT request
         formData.append('_method', 'PUT'); 
+
+        if (newFiles.length > 0) {
+            newFiles.forEach(file => {
+                formData.append('foto_barang[]', file);
+            });
+        }
 
         if (image) {
             formData.append('foto_barang', image);
@@ -145,13 +171,53 @@ export default function EditProduct() {
                         <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows="4" className="w-full border p-2 rounded" required></textarea>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Foto Produk</label>
-                        {/* Preview Gambar Lama/Baru */}
-                        {previewImage && (
-                            <img src={previewImage} alt="Preview" className="w-32 h-32 object-cover rounded mb-2 border" />
+                    {/* --- AREA GAMBAR --- */}
+                    <div className="border-t border-gray-200 pt-4 mt-4">
+                        <label className="block font-bold mb-2 text-sm text-gray-700">Foto Produk</label>
+                        
+                        {/* 1. TAMPILAN FOTO LAMA (Hanya muncul jika user BELUM pilih file baru) */}
+                        {newFiles.length === 0 && existingImages.length > 0 && (
+                            <div className="mb-4">
+                                <p className="text-xs text-gray-500 mb-2">Foto Saat Ini:</p>
+                                <div className="flex gap-2 overflow-x-auto pb-2">
+                                    {existingImages.map((img, index) => (
+                                        <img 
+                                            key={index}
+                                            src={`http://127.0.0.1:8000/storage/${img}`} 
+                                            alt="Existing" 
+                                            className="w-20 h-20 object-cover rounded border border-gray-300"
+                                            onError={(e) => e.target.src = "https://via.placeholder.com/150"}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
                         )}
-                        <input type="file" onChange={handleFileChange} className="w-full border p-2 rounded bg-gray-50" accept="image/*" />
+
+                        {/* 2. INPUT FILE BARU */}
+                        <div className="bg-gray-50 p-4 rounded-lg border border-dashed border-gray-300">
+                            <input 
+                                type="file" 
+                                multiple 
+                                onChange={handleFileChange} 
+                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                accept="image/*"
+                            />
+                            <p className="text-xs text-orange-500 mt-2 italic">
+                                *Mengupload foto baru akan <b>menghapus/mengganti</b> semua foto lama.
+                            </p>
+                        </div>
+
+                        {/* 3. PREVIEW FOTO BARU (Jika user memilih file) */}
+                        {newPreviews.length > 0 && (
+                            <div className="mt-4">
+                                <p className="text-xs text-blue-600 font-bold mb-2">Preview Foto Baru:</p>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {newPreviews.map((src, index) => (
+                                        <img key={index} src={src} alt="New Preview" className="w-full h-20 object-cover rounded border border-blue-200" />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded transition shadow-lg mt-4">

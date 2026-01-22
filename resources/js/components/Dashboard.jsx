@@ -30,14 +30,12 @@ export default function Dashboard() {
         const token = localStorage.getItem('token');
         const userData = localStorage.getItem('user');
 
-        if (!token) {
-            // User belum login
-        } else {
-            if (userData) {
-                setUser(JSON.parse(userData));
-            }
-            fetchProducts();
+        if (token && userData) {
+            setUser(JSON.parse(userData));
         }
+
+        // 2. FETCH PRODUK (Jalankan SELALU, baik login maupun tidak)
+        fetchProducts();
 
         function handleClickOutside(event) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -131,6 +129,13 @@ export default function Dashboard() {
         }).format(number);
     };
 
+    const getProfilePhoto = () => {
+        if (user.profile_photo) {
+            return `http://127.0.0.1:8000/storage/${user.profile_photo}`;
+        }
+        return null;
+    };
+
     return (
         <div className="min-h-screen bg-gray-100 w-full font-sans">
             
@@ -220,7 +225,19 @@ export default function Dashboard() {
                         ) : (
                             <div className="relative" ref={dropdownRef}>
                                 <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition">
-                                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold text-gray-600">{user.name.charAt(0).toUpperCase()}</div>
+                                    <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-200">
+                                        {getProfilePhoto() ? (
+                                            <img 
+                                                src={getProfilePhoto()} 
+                                                alt="Profile" 
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-sm font-bold text-gray-600">
+                                                {user.name.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="text-left hidden sm:block">
                                         <p className="text-xs text-gray-500">Halo,</p>
                                         <p className="text-sm font-bold text-gray-800 max-w-[100px] truncate">{user.name}</p>
@@ -229,26 +246,37 @@ export default function Dashboard() {
 
                                 {isDropdownOpen && (
                                     <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-lg shadow-2xl border border-gray-100 p-4 transform transition-all duration-200 origin-top-right">
-                                        <Link to="/profile" className="flex items-center gap-3 mb-4 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition cursor-pointer decoration-none">
-                                            <div className="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center text-blue-900 font-bold text-lg">
-                                                {user.name.charAt(0).toUpperCase()}
+                                            <Link to="/profile" className="flex items-center gap-3 mb-4 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition cursor-pointer decoration-none">
+                                                <div className="w-10 h-10 rounded-full overflow-hidden border border-blue-100 bg-white shadow-sm flex-shrink-0">
+                                                    {getProfilePhoto() ? (
+                                                        <img 
+                                                            src={getProfilePhoto()} 
+                                                            alt="Profile" 
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-blue-200 flex items-center justify-center text-blue-900 font-bold text-lg">
+                                                            {user.name.charAt(0).toUpperCase()}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                
+                                                <div className="min-w-0">
+                                                    <p className="font-bold text-gray-800 truncate">{user.name}</p>
+                                                    <p className="text-xs text-blue-600 font-medium">Lihat Profil</p>
+                                                </div>
+                                            </Link>
+                                            <hr className="border-gray-100 mb-2"/>
+                                            <div className="flex flex-col gap-1">
+                                                {user.role === 'penjual' && (
+                                                    <Link to="/my-products" className="px-3 py-2 hover:bg-gray-50 rounded-md text-gray-700 text-sm font-medium flex justify-between items-center">
+                                                        Toko Saya <span className="text-blue-900 text-xs bg-blue-100 px-2 py-0.5 rounded">Penjual</span>
+                                                    </Link>
+                                                )}
+                                                <Link to="/orders" className="px-3 py-2 hover:bg-gray-50 rounded-md text-gray-700 text-sm font-medium">Daftar Pesanan</Link>
                                             </div>
-                                            <div>
-                                                <p className="font-bold text-gray-800">{user.name}</p>
-                                                <p className="text-xs text-blue-600 font-medium">Lihat Profil</p>
-                                            </div>
-                                        </Link>
-                                        <hr className="border-gray-100 mb-2"/>
-                                        <div className="flex flex-col gap-1">
-                                            {user.role === 'penjual' && (
-                                                <Link to="/my-products" className="px-3 py-2 hover:bg-gray-50 rounded-md text-gray-700 text-sm font-medium flex justify-between items-center">
-                                                    Toko Saya <span className="text-blue-900 text-xs bg-blue-100 px-2 py-0.5 rounded">Penjual</span>
-                                                </Link>
-                                            )}
-                                            <Link to="/orders" className="px-3 py-2 hover:bg-gray-50 rounded-md text-gray-700 text-sm font-medium">Daftar Pesanan</Link>
-                                        </div>
-                                        <hr className="border-gray-100 my-2"/>
-                                        <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-red-500 hover:bg-red-50 rounded-md text-sm font-bold flex items-center gap-2">Keluar</button>
+                                            <hr className="border-gray-100 my-2"/>
+                                            <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-red-500 hover:bg-red-50 rounded-md text-sm font-bold flex items-center gap-2">Keluar</button>
                                     </div>
                                 )}
                             </div>
@@ -257,7 +285,7 @@ export default function Dashboard() {
                 </div>
             </nav>
 
-            {/* CONTENT AREA */}
+            {/* --- CONTENT AREA (PRODUK) --- */}
             <div className="w-[90%] mx-auto pb-10 pt-12">
                 
                 {/* Header Pencarian */}
@@ -276,7 +304,7 @@ export default function Dashboard() {
                     </div>
                 )}
 
-                {/* Grid Produk - Menggunakan processedProducts */}
+                {/* Grid Produk */}
                 {processedProducts.length === 0 ? (
                     <div className="text-center py-20 bg-white rounded-xl shadow">
                         <p className="text-4xl mb-4">🔍</p>
@@ -285,20 +313,24 @@ export default function Dashboard() {
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                         {processedProducts.map((product) => {
-                            // --- HITUNG RATING DISINI ---
+                            // Hitung Rating
                             const ulasan = product.ulasan || [];
                             const ratingCount = ulasan.length;
                             const totalRating = ulasan.reduce((acc, curr) => acc + parseInt(curr.rating), 0);
                             const avgRating = ratingCount > 0 ? (totalRating / ratingCount).toFixed(1) : 0;
-                            // ----------------------------
 
                             return (
                                 <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition duration-300 transform hover:-translate-y-1 flex flex-col h-full group">
                                     <Link to={`/product/${product.id}`} className="block cursor-pointer relative">
+                                        {/* --- PERBAIKAN GAMBAR (ARRAY vs STRING) --- */}
                                         <img 
-                                            src={product.foto_barang} 
+                                            src={
+                                                Array.isArray(product.foto_barang) 
+                                                ? `http://127.0.0.1:8000/storage/${product.foto_barang[0]}`
+                                                : product.foto_barang
+                                            } 
                                             alt={product.nama_barang} 
-                                            className="w-full h-40 object-cover group-hover:opacity-90 transition" 
+                                            className="w-full h-40 object-cover group-hover:opacity-90 transition"
                                             onError={(e) => { e.target.src = "https://via.placeholder.com/300?text=No+Image"; }} 
                                         />
                                         {product.stok_barang <= 0 && (<div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"><span className="text-white font-bold text-xs bg-red-600 px-2 py-1 rounded">HABIS</span></div>)}
@@ -307,14 +339,11 @@ export default function Dashboard() {
                                         <Link to={`/product/${product.id}`} className="no-underline">
                                             <h3 className="text-sm font-semibold text-gray-800 mb-1 line-clamp-2 leading-snug hover:text-blue-900 transition min-h-[40px]" title={product.nama_barang}>{product.nama_barang}</h3>
                                         </Link>
-                                        
-                                        {/* Harga */}
                                         <div className="mb-1">
                                             <span className="text-gray-800 font-bold text-base">{formatRupiah(product.harga_barang)}</span>
                                         </div>
                                         <p className="text-[10px] text-gray-500 uppercase tracking-wide font-medium mb-3">{product.kategori}</p>
-
-                                        {/* --- rating --- */}
+                                        
                                         <div className="flex items-center gap-1 mb-2">
                                             <span className="text-yellow-400 text-xs">★</span>
                                             <span className="text-xs font-bold text-gray-600">{avgRating > 0 ? avgRating : '0.0'}</span>
@@ -337,7 +366,6 @@ export default function Dashboard() {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-sm w-full transform scale-100 transition-transform duration-300">
                         
-                        {/* Ikon Toko/Pertanyaan */}
                         <div className="w-21 h-21 flex items-center justify-center mx-auto mb-4 p-4">
                              <img 
                                 src={iconToko} 

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('nama_barang');
             $table->bigInteger('harga_barang');
             $table->integer('stok_barang');
-            $table->string('foto_barang')->nullable();
+            $table->json('foto_barang')->nullable();
             $table->string('kategori');
             $table->text('deskripsi');
             $table->timestamps();

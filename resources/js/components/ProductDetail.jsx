@@ -5,6 +5,7 @@ export default function ProductDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
     const [product, setProduct] = useState(null);
+    const [mainImage, setMainImage] = useState('');
     const [loading, setLoading] = useState(true);
     const [qty, setQty] = useState(1);
     const [user, setUser] = useState({});
@@ -35,6 +36,19 @@ export default function ProductDetail() {
     });
 
     useEffect(() => {
+
+        fetch(`http://127.0.0.1:8000/api/produk/${id}`)
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    setProduct(data.data);
+                    // Set foto pertama sebagai main image default
+                    if (Array.isArray(data.data.foto_barang) && data.data.foto_barang.length > 0) {
+                        setMainImage(data.data.foto_barang[0]);
+                    }
+                }
+            });
+            
         const token = localStorage.getItem('token');
         const userData = localStorage.getItem('user');
 
@@ -51,6 +65,7 @@ export default function ProductDetail() {
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
+        
     }, [id]);
 
     const fetchProduct = async () => {
@@ -60,6 +75,10 @@ export default function ProductDetail() {
             const data = await response.json();
             if (data.success) {
                 setProduct(data.data);
+                // Inisialisasi mainImage jika belum ada
+                if (Array.isArray(data.data.foto_barang) && data.data.foto_barang.length > 0) {
+                    setMainImage(data.data.foto_barang[0]);
+                }
             }
         } catch (error) {
             console.error("Error:", error);
@@ -212,6 +231,9 @@ export default function ProductDetail() {
         ? (ulasanList.reduce((acc, curr) => acc + parseInt(curr.rating), 0) / totalUlasan).toFixed(1) 
         : 0;
 
+    // --- ARRAY GAMBAR ---
+    const images = Array.isArray(product.foto_barang) ? product.foto_barang : [];
+
     return (
         <div className="min-h-screen bg-gray-50 w-full font-sans pb-20">
             
@@ -257,21 +279,41 @@ export default function ProductDetail() {
                     {/* CONTAINER UTAMA */}
                     <div className="flex flex-col md:flex-row items-start relative">
                         
-                        {/* 1. KOLOM KIRI (GAMBAR + TOMBOL BELI) */}
+                        {/* 1. KOLOM KIRI (GALERI GAMBAR + TOMBOL BELI) */}
                         <div className="w-full md:w-5/12 lg:w-4/12 bg-gray-50 p-4 sticky top-28 self-start z-10 rounded-l-2xl flex flex-col items-center">
                             
-                            {/* GAMBAR */}
-                            <div className="relative w-full max-w-xs aspect-square bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 mb-6">
+                            {/* GAMBAR UTAMA (BESAR) */}
+                            <div className="relative w-full max-w-xs aspect-square bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 mb-4">
                                 <img 
-                                    src={product.foto_barang} 
+                                    src={`http://127.0.0.1:8000/storage/${mainImage}`} 
                                     alt={product.nama_barang} 
-                                    className="w-full h-full object-cover hover:scale-105 transition duration-500"
+                                    className="w-full h-full object-cover transition duration-500"
                                     onError={(e)=>{e.target.src="https://via.placeholder.com/400"}}
                                 />
                             </div>
 
+                            {/* THUMBNAIL (LIST KECIL DI BAWAH) */}
+                            {images.length > 1 && (
+                                <div className="flex gap-2 overflow-x-auto pb-4 w-full max-w-xs justify-center">
+                                    {images.map((img, index) => (
+                                        <div 
+                                            key={index}
+                                            onClick={() => setMainImage(img)}
+                                            className={`w-14 h-14 rounded-lg overflow-hidden border-2 cursor-pointer transition flex-shrink-0 
+                                                ${mainImage === img ? 'border-blue-600 opacity-100' : 'border-gray-200 opacity-60 hover:opacity-100'}`}
+                                        >
+                                            <img 
+                                                src={`http://127.0.0.1:8000/storage/${img}`} 
+                                                alt={`Thumb ${index}`} 
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
                             {/* TOMBOL AKSI */}
-                            <div className="w-full max-w-xs flex gap-3">
+                            <div className="w-full max-w-xs flex gap-3 mt-2">
                                 <button 
                                     onClick={handleOpenCartModal}
                                     className="flex-1 py-3 border-2 border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition"
@@ -406,7 +448,7 @@ export default function ProductDetail() {
                         <div className="p-6">
                             <div className="flex gap-4 mb-4">
                                 <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
-                                    <img src={product.foto_barang} className="w-full h-full object-cover" onError={(e)=>{e.target.src="https://via.placeholder.com/150"}}/>
+                                    <img src={`http://127.0.0.1:8000/storage/${mainImage}`} className="w-full h-full object-cover" onError={(e)=>{e.target.src="https://via.placeholder.com/150"}}/>
                                 </div>
                                 <div>
                                     <h4 className="font-bold text-gray-800 line-clamp-2 leading-snug">{product.nama_barang}</h4>
@@ -447,6 +489,7 @@ export default function ProductDetail() {
                                         type="tel" 
                                         inputMode="numeric"
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition" 
+                                        placeholder="08xx..."
                                         value={checkoutForm.telepon} 
                                         onChange={(e) => setCheckoutForm({...checkoutForm, telepon: e.target.value})} 
                                     />
@@ -460,9 +503,16 @@ export default function ProductDetail() {
                                     </div>
                                 </div>
                             </div>
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Alamat Pengiriman</label><textarea className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition h-24 resize-none" value={checkoutForm.alamat} onChange={(e) => setCheckoutForm({...checkoutForm, alamat: e.target.value})}></textarea></div>
+                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Alamat Pengiriman</label><textarea className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition h-24 resize-none" 
+                            placeholder="Masukkan alamat lengkap..."
+                            value={checkoutForm.alamat} 
+                            onChange={(e) => setCheckoutForm({...checkoutForm, alamat: e.target.value})}></textarea></div>
                             <div className="grid grid-cols-2 gap-4">
-                                <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Pembayaran</label><select className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition" value={checkoutForm.metode_pembayaran} onChange={(e) => setCheckoutForm({...checkoutForm, metode_pembayaran: e.target.value})}><option value="COD">COD</option><option value="Transfer">Transfer</option></select></div>
+                                <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Pembayaran</label><select className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition" value={checkoutForm.metode_pembayaran} onChange={(e) => setCheckoutForm({...checkoutForm, metode_pembayaran: e.target.value})}>
+                                    <option value="COD">COD</option>
+                                    <option value="Transfer">Transfer Bank</option>
+                                    <option value="E-Wallet">E-Wallet</option>
+                                    </select></div>
                             </div>
                         </div>
                         <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
