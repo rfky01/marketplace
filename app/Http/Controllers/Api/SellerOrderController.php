@@ -15,7 +15,7 @@ class SellerOrderController extends Controller
         $userId = Auth::id();
 
         // 1. Cari Detail Pesanan dimana Produknya adalah milik User yang sedang login (Penjual)
-        $sellerItems = DetailPesanan::with(['produk', 'pesanan'])
+        $sellerItems = DetailPesanan::with(['produk', 'pesanan.user'])
             ->whereHas('produk', function($query) use ($userId) {
                 $query->where('user_id', $userId);
             })
@@ -60,11 +60,45 @@ class SellerOrderController extends Controller
         $pesanan = $detail->pesanan;
         $pesanan->status = $request->status;
         $pesanan->save();
+
+        if ($request->has('waktu_pengiriman')) {
+            $order->waktu_pengiriman = $request->waktu_pengiriman;
+        }
         
-        return response()->json([
-            'success' => true, 
-            'message' => 'Status pesanan berhasil diubah menjadi ' . $request->status
-        ]);
+        $order->save();
+
+        // --- TAMBAHAN: KIRIM WA VIA FONNTE (HANYA JIKA STATUS 'ACCEPTED') ---
+        if ($request->status == 'accepted') {
+            $targetPhone = $order->telepon_penerima; // Pastikan kolom ini ada di tabel orders
+            $customerName = $order->nama_penerima;
+            $invoice = $order->invoice_code;
+            
+            $message = "Halo Kak {$customerName},\n\nPesanan Anda dengan invoice *{$invoice}* telah kami *TERIMA* dan sedang dalam proses pengemasan.\nEstimasi dikirim: {$order->waktu_pengiriman}\n\nTerima kasih telah berbelanja di MarketplacePlus!";
+
+            $curl = curl_init();
+
+            curl_setopt_array($curl, array(
+            CURLOPT_URL => 'https://api.fonnte.com/send',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => array(
+                'target' => $targetPhone,
+                'message' => $message,
+                'countryCode' => '62', // Optional
+            ),
+            CURLOPT_HTTPHEADER => array(
+                'Authorization: GANTI_DENGAN_TOKEN_FONNTE_ASLI_ANDA' // <--- GANTI INI
+            ),
+            ));
+
+            $response = curl_exec($curl);
+            curl_close($curl);
+        }
     }
 
     public function destroy($id)

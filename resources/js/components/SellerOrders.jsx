@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ChatBox from './ChatBox';
 import iconPesanan from './asset/pesan.png'
+import iconPesananKosong from './asset/belumadapesanan.png'
 
 export default function SellerOrders() {
     const [sellerOrders, setSellerOrders] = useState([]);
@@ -67,6 +68,54 @@ export default function SellerOrders() {
             console.error("Error fetching seller orders:", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // --- FUNGSI FORMAT TANGGAL ---
+    const formatDateTimeIndo = (dateString) => {
+        if (!dateString) return '-';
+        const options = { 
+            weekday: 'long', 
+            day: 'numeric', 
+            month: 'long', 
+            year: 'numeric', 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: false
+        };
+        return new Date(dateString).toLocaleDateString('id-ID', options);
+    };
+
+    // --- FUNGSI KIRIM WA (SUDAH DIPERBAIKI) ---
+    const sendWhatsappFonnte = async (targetPhone, customerName, invoice, estimasiKirim, alamatPenerima) => {
+        const token = "AL6yaCjsccosjGvVMPpA"; // <--- PASTIKAN TOKEN INI BENAR
+
+        if (!targetPhone) {
+            console.log("Nomor telepon tidak tersedia untuk Fonnte.");
+            return;
+        }
+
+        // Format waktu agar lebih cantik di WA
+        const waktuCantik = formatDateTimeIndo(estimasiKirim);
+
+        const message = `Halo Kak ${customerName},\n\nPesanan Anda dengan invoice *${invoice}* telah kami *TERIMA* dan sedang dalam proses pengemasan.\n\n⏰ *Rencana Pengiriman:*\n👉 ${waktuCantik}\n\n📍 *Alamat Tujuan:*\n${alamatPenerima}\n\nTerima kasih telah berbelanja di MarketplacePlus!`;
+
+        const formData = new FormData();
+        formData.append("target", targetPhone);
+        formData.append("message", message);
+        formData.append("countryCode", "62"); 
+
+        try {
+            await fetch("https://api.fonnte.com/send", {
+                method: "POST",
+                headers: {
+                    Authorization: token,
+                },
+                body: formData,
+            });
+            console.log("Notifikasi WhatsApp terkirim via Fonnte");
+        } catch (error) {
+            console.error("Gagal kirim WA Fonnte (CORS/Network Error):", error);
         }
     };
 
@@ -142,6 +191,19 @@ export default function SellerOrders() {
             if(response.ok) {
                 alert("Pesanan diterima! Segera siapkan paket.");
                 setIsAcceptModalOpen(false);
+
+                const buyerProfile = selectedOrder.pesanan?.user;
+                const phone = buyerProfile?.telepon || buyerProfile?.phone || buyerProfile?.no_hp || selectedOrder.pesanan?.telepon_penerima;
+                
+                // --- PANGGIL FUNGSI FONNTE SETELAH SUKSES ---
+                const name = selectedOrder.pesanan?.nama_penerima || "Pembeli";
+                const inv = selectedOrder.pesanan?.invoice_code || "-";
+                const address = selectedOrder.pesanan?.alamat_pengiriman || "Alamat tidak tersedia";
+                
+                // Panggil fungsi kirim WA
+                sendWhatsappFonnte(phone, name, inv, deliveryTime, address); 
+                // -------------------------------------------------------------
+
                 fetchSellerOrders();
             } else {
                 alert("Gagal: " + (data.message || "Terjadi kesalahan"));
@@ -247,7 +309,7 @@ export default function SellerOrders() {
                         <Link to="/my-products" className="text-gray-500 hover:text-blue-600 font-medium px-4 py-2 transition decoration-none border-r border-gray-300 pr-4">
                             Produk Saya
                         </Link>
-                        <Link to="/" className="txt-gray-500 hover:text-blue-600 font-medium px-4 py-2 transition decoration-none">
+                        <Link to="/" className="text-gray-500 hover:text-blue-600 font-medium px-4 py-2 transition decoration-none">
                             Dashboard
                         </Link>
                         <div className="relative" ref={dropdownRef}>
@@ -281,8 +343,12 @@ export default function SellerOrders() {
                 </div>
 
                 {sellerOrders.length === 0 ? (
-                    <div className="bg-white p-12 rounded-2xl shadow-sm text-center border border-gray-100">
-                        <div className="text-6xl mb-4">📭</div>
+                    <div className="bg-white p-12 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                        <img 
+                        src={iconPesananKosong} 
+                        alt="belumadapesanan" 
+                        className="w-25 h-20 object-contain opacity-60 group-hover:opacity-100 transition duration-200"
+                        />
                         <h2 className="text-xl font-bold text-gray-800 mb-2">Belum ada pesanan masuk</h2>
                         <Link to="/my-products" className="inline-block bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-700 transition shadow-lg decoration-none">
                             Kelola Produk
@@ -393,10 +459,11 @@ export default function SellerOrders() {
                                                     </button>
                                                 )}
                                                 
+                                                {/* --- LOGIKA BARU: PENJUAL TIDAK BISA KLIK SELESAI, HANYA MENUNGGU --- */}
                                                 {currentStatus === 'dikirim' && (
-                                                    <button onClick={() => handleUpdateStatus(item, 'selesai')} className="w-full py-2 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700 transition shadow-sm">
-                                                        🏁 Selesaikan
-                                                    </button>
+                                                    <div className="w-full py-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg font-bold text-xs text-center cursor-default">
+                                                        ⏳ Menunggu Konfirmasi Pembeli
+                                                    </div>
                                                 )}
                                                 
                                                 {(currentStatus === 'selesai' || isCancelled) && (

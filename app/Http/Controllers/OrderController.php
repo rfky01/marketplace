@@ -121,6 +121,36 @@ class OrderController extends Controller
         ]);
     }
 
+    public function markAsReceived(Request $request, $id)
+    {
+        $order = \App\Models\Pesanan::find($id);
+
+        if (!$order) {
+            return response()->json(['message' => 'Pesanan tidak ditemukan'], 404);
+        }
+
+        // Pastikan yang akses adalah pemilik pesanan
+        if ($order->user_id !== auth()->id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Pastikan statusnya 'dikirim' baru boleh diselesaikan
+        if ($order->status !== 'dikirim') {
+            return response()->json([
+                'message' => 'Gagal: Hanya pesanan yang sedang dikirim yang bisa diterima.'
+            ], 400);
+        }
+
+        // Ubah status jadi selesai
+        $order->status = 'selesai';
+        $order->save();
+
+        return response()->json([
+            'success' => true, 
+            'message' => 'Pesanan berhasil diselesaikan.'
+        ]);
+    }
+
     // FITUR: Update Status (Penjual)
     public function updateStatus(Request $request, $id)
     {

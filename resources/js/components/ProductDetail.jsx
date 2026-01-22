@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import iconPesan from './asset/pesan.png'
+import iconKeranjang from './asset/keranjang.png'
 
 export default function ProductDetail() {
     const { id } = useParams();
@@ -17,6 +19,8 @@ export default function ProductDetail() {
     // STATE MODAL
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
     const [isCartModalOpen, setIsCartModalOpen] = useState(false);
+
+    const [isDescExpanded, setIsDescExpanded] = useState(false);
 
     // STATE POPUP NOTIFIKASI
     const [customAlert, setCustomAlert] = useState({
@@ -246,12 +250,31 @@ export default function ProductDetail() {
                         </Link>
                     </div>
                     <div className="flex items-center gap-6">
-                        <Link to="/keranjang" className="text-2xl text-gray-500 hover:text-blue-900">🛒</Link>
+                        <Link to="/keranjang" 
+                        className="text-2xl text-gray-500 hover:text-blue-900">
+                            <img 
+                            src={iconKeranjang} 
+                            alt="keranjang" 
+                            className="w-11 h-15 object-contain opacity-60 group-hover:opacity-100 transition duration-200"
+                            />
+                        </Link>
                         <Link to="/" className="text-gray-500 hover:text-blue-900 font-medium decoration-none">Dashboard</Link>
                         <div className="relative" ref={dropdownRef}>
                             {user.name ? (
                                 <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition">
-                                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold text-gray-600">{user.name.charAt(0).toUpperCase()}</div>
+                                    <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-200">
+                                        {user.profile_photo ? (
+                                            <img 
+                                                src={`http://127.0.0.1:8000/storage/${user.profile_photo}`} 
+                                                alt="Profile" 
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-sm font-bold text-gray-600">
+                                                {user.name?.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="text-left hidden sm:block">
                                         <p className="text-xs text-gray-500">Halo,</p>
                                         <p className="text-sm font-bold text-gray-800 max-w-[100px] truncate">{user.name}</p>
@@ -356,20 +379,55 @@ export default function ProductDetail() {
                             </div>
 
                             {/* Deskripsi */}
-                            <div className="prose prose-sm max-w-none text-gray-600 mb-8 break-words leading-relaxed text-justify lg:ml-14">
-                                <p className="whitespace-pre-line">
-                                    {product.deskripsi || product.deskripsi_barang || "Tidak ada deskripsi untuk produk ini."}
-                                </p>
+                            <div className="mt-26 ml-10"> 
+                                <h3 className="text-sm font-medium text-gray-900 mb-2">Deskripsi Produk</h3>
+                                
+                                <div className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">
+                                    {product.deskripsi ? (
+                                        <>
+                                            {/* Logika Pemotongan Teks */}
+                                            <span>
+                                                {isDescExpanded 
+                                                    ? product.deskripsi 
+                                                    : product.deskripsi.substring(0, 150)}
+                                            </span>
+                                            
+                                            {/* Jika teks panjang tapi belum dibuka, tambah titik-titik */}
+                                            {!isDescExpanded && product.deskripsi.length > 150 && "..."}
+
+                                            {/* Tombol Toggle (Hanya muncul jika teks > 150 karakter) */}
+                                            {product.deskripsi.length > 150 && (
+                                                <button 
+                                                    onClick={() => setIsDescExpanded(!isDescExpanded)} 
+                                                    className="text-blue-600 font-bold ml-1 hover:underline focus:outline-none text-xs"
+                                                >
+                                                    {isDescExpanded ? "Lihat Lebih Sedikit" : "Lihat Selengkapnya"}
+                                                </button>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <span className="italic text-gray-400">Tidak ada deskripsi.</span>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Penjual */}
-                            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100 lg:ml-14">
-                                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center font-bold text-gray-500 text-lg">
-                                    {product.user?.name?.charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Penjual</p>
-                                    <p className="text-sm font-bold text-gray-800">{product.user?.name || "Unknown Seller"}</p>
+                            <div className="border-t border-gray-100 pt-6 mt-auto">
+                                <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                    {/* Foto Profil Penjual */}
+                                    <div className="w-12 h-12 bg-white rounded-full overflow-hidden border border-gray-200 flex-shrink-0 shadow-sm">
+                                        {product.user?.profile_photo ? (
+                                            <img src={`http://127.0.0.1:8000/storage/${product.user.profile_photo}`} alt={product.user?.name} className="w-full h-full object-cover"/>
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-gray-500 font-bold text-lg">{product.user?.name?.charAt(0).toUpperCase() || "P"}</div>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Nama Penjual */}
+                                    <div>
+                                        <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">Penjual</p>
+                                        <p className="text-base font-bold text-gray-800">{product.user?.name || "Official Store"}</p>
+                                    </div>
                                 </div>
                             </div>
 
@@ -425,8 +483,12 @@ export default function ProductDetail() {
                                 </div>
                             ))
                         ) : (
-                            <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                <div className="text-4xl mb-3">💬</div>
+                            <div className="bg-white p-12 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                                <img 
+                                src={iconPesan} 
+                                alt="pesan" 
+                                className="w-20 h-20 object-contain opacity-60 group-hover:opacity-100 transition duration-200"
+                                />
                                 <p className="text-gray-500 font-medium">Belum ada ulasan untuk produk ini.</p>
                                 <p className="text-xs text-gray-400 mt-1">Jadilah yang pertama memberikan ulasan!</p>
                             </div>

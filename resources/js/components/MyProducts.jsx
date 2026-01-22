@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import iconKosong from './asset/kosong.png'
 
 export default function MyProducts() {
     const [products, setProducts] = useState([]);
@@ -186,8 +187,12 @@ export default function MyProducts() {
                 </div>
 
                 {products.length === 0 ? (
-                    <div className="bg-white p-12 rounded-2xl shadow-sm text-center border border-gray-100">
-                        <div className="text-6xl mb-4">📦</div>
+                    <div className="bg-white p-12 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                        <img 
+                        src={iconKosong} 
+                        alt="kosong" 
+                        className="w-25 h-20 object-contain opacity-60 group-hover:opacity-100 transition duration-200"
+                        />
                         <h2 className="text-xl font-bold text-gray-800 mb-2">Belum ada produk</h2>
                         <p className="text-gray-500 mb-6">Mulai jualan dengan menambahkan produk pertamamu!</p>
                         <Link to="/add-product" className="inline-block bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-700 transition shadow-lg decoration-none">

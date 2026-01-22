@@ -69,6 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/orders/{id}/cancel', [OrderController::class, 'cancelOrder']);   // Batal (Penjual)
     Route::put('/orders/{id}/cancel-buyer', [OrderController::class, 'cancelOrderByBuyer']); // Batal (Pembeli)
     Route::put('/seller/orders/{id}', [OrderController::class, 'updateStatus']);
+    Route::put('/orders/{id}/receive', [OrderController::class, 'markAsReceived']);
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']); 

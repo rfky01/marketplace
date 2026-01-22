@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import iconHome from './asset/home.png';
+import keranjangKosongImg from './asset/keranjangkosong.png';
 
 export default function Keranjang() { 
     const [keranjangItems, setKeranjangItems] = useState([]);
@@ -291,7 +292,11 @@ export default function Keranjang() {
                 {keranjangItems.length === 0 ? (
                     <div className="bg-white p-12 rounded-2xl shadow-sm text-center">
                         <div className="flex justify-center mb-4">
-                            <span className="text-6xl">🛍️</span>
+                            <img 
+                                src={keranjangKosongImg} 
+                                alt="Keranjang Kosong" 
+                                className="w-40 h-40 object-contain opacity-50" 
+                            />
                         </div>
                         <h2 className="text-xl font-bold text-gray-800 mb-2">Keranjang Anda Kosong</h2>
                         <Link to="/" className="inline-block bg-blue-600 text-white px-8 py-3 mt-4 rounded-full font-bold hover:bg-blue-700 transition shadow-lg no-underline">

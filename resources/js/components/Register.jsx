@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import suksesImg from './asset/sukses.png';
-import salahImg from './asset/salah.png'; // <--- Import gambar Salah
+import salahImg from './asset/salah.png'; 
+
+// Import icon mata (Opsional: Jika pakai heroicons/react-icons, bisa import dari situ.
+// Di sini saya pakai SVG inline agar tidak perlu install library tambahan)
 
 export default function Register() {
     const navigate = useNavigate();
@@ -15,20 +18,23 @@ export default function Register() {
         address: '',
     });
 
+    // --- STATE BARU: SHOW PASSWORD ---
+    const [showPassword, setShowPassword] = useState(false);
+
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
     // --- STATE VISUAL (LOADING & POPUP) ---
     const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [showErrorModal, setShowErrorModal] = useState(false); // State Popup Error
-    const [errorMessage, setErrorMessage] = useState('');        // Pesan Error
+    const [showErrorModal, setShowErrorModal] = useState(false); 
+    const [errorMessage, setErrorMessage] = useState('');        
     const [isLoading, setIsLoading] = useState(false);
     // --------------------------------------
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsLoading(true); // 1. Mulai Loading
+        setIsLoading(true); 
 
         try {
             const response = await fetch('http://127.0.0.1:8000/api/register', {
@@ -39,7 +45,6 @@ export default function Register() {
             const data = await response.json();
             
             if (response.ok) {
-                // --- SUKSES ---
                 setIsLoading(false); 
                 setShowSuccessModal(true); 
 
@@ -48,17 +53,13 @@ export default function Register() {
                 }, 2000); 
 
             } else {
-                // --- GAGAL ---
-                setIsLoading(false); // Matikan loading dulu
-                
-                // Menyiapkan pesan error
+                setIsLoading(false); 
                 let msg = data.message || JSON.stringify(data.errors);
                 setErrorMessage(msg);
-                setShowErrorModal(true); // Tampilkan Popup Error
+                setShowErrorModal(true); 
             }
         } catch (error) {
-            // --- ERROR KONEKSI ---
-            setIsLoading(false); // Matikan loading dulu
+            setIsLoading(false); 
             console.error('Error:', error);
             setErrorMessage('Terjadi kesalahan koneksi ke server.');
             setShowErrorModal(true);
@@ -78,33 +79,60 @@ export default function Register() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
-                            <input type="text" name="name" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg" required />
+                            <input type="text" name="name" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Nomor HP</label>
-                            <input type="text" name="phone" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg" required />
+                            <input type="text" name="phone" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required />
                         </div>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Alamat Email</label>
-                        <input type="email" name="email" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg" required />
+                        <input type="email" name="email" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required />
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Alamat Lengkap</label>
-                        <textarea name="address" rows="2" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg" required></textarea>
+                        <textarea name="address" rows="2" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required></textarea>
                     </div>
 
+                    {/* --- AREA PASSWORD (DIPERBAIKI) --- */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
+                        <div className="relative">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                            <input type="password" name="password" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg" required />
+                            <input 
+                                type={showPassword ? "text" : "password"} // Logic type
+                                name="password" 
+                                onChange={handleChange} 
+                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+                                required 
+                            />
                         </div>
-                        <div>
+                        <div className="relative">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Konfirmasi Password</label>
-                            <input type="password" name="password_confirmation" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg" required />
+                            <input 
+                                type={showPassword ? "text" : "password"} // Logic type
+                                name="password_confirmation" 
+                                onChange={handleChange} 
+                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
+                                required 
+                            />
                         </div>
+                    </div>
+
+                    {/* --- CHECKBOX SHOW PASSWORD --- */}
+                    <div className="flex items-center">
+                        <input 
+                            id="show-pass" 
+                            type="checkbox" 
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                            checked={showPassword}
+                            onChange={() => setShowPassword(!showPassword)}
+                        />
+                        <label htmlFor="show-pass" className="ml-2 text-sm text-gray-600 cursor-pointer select-none">
+                            Tampilkan Password
+                        </label>
                     </div>
 
                     <button 
@@ -122,7 +150,6 @@ export default function Register() {
             </div>
 
             {/* --- LOADING SPINNER --- */}
-            {/* Hanya muncul jika isLoading TRUE dan TIDAK ADA ERROR MODAL */}
             {isLoading && !showErrorModal && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm">
                     <div className="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center animate-bounce-in">
@@ -141,10 +168,7 @@ export default function Register() {
                                 src={suksesImg} 
                                 alt="Register Berhasil"
                                 className="w-full h-full object-contain animate-bounce-in drop-shadow-lg"
-                                onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.src = "https://cdn-icons-png.flaticon.com/512/148/148767.png";
-                                }}
+                                onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn-icons-png.flaticon.com/512/148/148767.png"; }}
                             />
                         </div>
                         
@@ -164,7 +188,7 @@ export default function Register() {
                 </div>
             )}
 
-            {/* --- POPUP MODAL ERROR (BARU) --- */}
+            {/* --- POPUP MODAL ERROR --- */}
             {showErrorModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-sm w-full animate-shake">

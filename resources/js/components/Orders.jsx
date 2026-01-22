@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import ChatBox from '../components/ChatBox';
 import iconKeranjang from './asset/keranjang.png'
 import iconHome from './asset/home.png'
+import iconBelumada from './asset/belumada.png'
+
 
 export default function Orders() {
     const [orders, setOrders] = useState([]);
@@ -73,6 +75,37 @@ export default function Orders() {
         }
     };
 
+    // --- FUNGSI UPDATE: TERIMA PESANAN (Memanggil endpoint /receive) ---
+    const handleReceiveOrder = async (id) => {
+        if(!confirm("Apakah Anda yakin barang sudah diterima dengan baik?")) return;
+
+        const token = localStorage.getItem('token');
+        try {
+            // PENTING: Pastikan route ini ada di api.php Laravel Anda
+            const response = await fetch(`http://127.0.0.1:8000/api/orders/${id}/receive`, {
+                method: 'PUT',
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                alert("Terima kasih! Pesanan selesai.");
+                fetchOrders(); // Refresh data
+            } else {
+                // Tampilkan pesan error dari backend
+                alert("Gagal: " + (data.message || "Terjadi kesalahan"));
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Gagal koneksi ke server.");
+        }
+    };
+
     const handleCancelOrder = async (id) => {
         if(!confirm("Yakin ingin membatalkan pesanan ini?")) return;
 
@@ -94,7 +127,6 @@ export default function Orders() {
                 fetchOrders();
             } else {
                 alert("Gagal: " + (data.message || "Terjadi kesalahan sistem"));
-                console.error("Detail Error:", data);
             }
         } catch (error) {
             console.error(error);
@@ -124,7 +156,6 @@ export default function Orders() {
         }
     };
 
-    // --- HANDLER RATING ---
     const openRatingModal = (order) => {
         setSelectedOrder(order);
         setRating(0);
@@ -184,14 +215,11 @@ export default function Orders() {
         navigate('/login');
     };
 
-    // --- HELPER UNTUK MENGAMBIL FOTO (SISIPAN PERBAIKAN) ---
     const getProductImage = (produk) => {
         if (!produk) return "https://via.placeholder.com/150";
-        // 1. Cek Array (Banyak Foto)
         if (Array.isArray(produk.foto_barang) && produk.foto_barang.length > 0) {
             return `http://127.0.0.1:8000/storage/${produk.foto_barang[0]}`;
         }
-        // 2. Cek String (Satu Foto)
         if (typeof produk.foto_barang === 'string' && produk.foto_barang) {
             return produk.foto_barang.startsWith('http') 
                 ? produk.foto_barang 
@@ -247,7 +275,7 @@ export default function Orders() {
                             </button>
                             {isDropdownOpen && (
                                 <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 p-2 z-50">
-                                    <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-red-500 hover:bg-red-50 rounded-md text-sm font-bold">🚪 Keluar</button>
+                                    <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-red-500 hover:bg-red-50 rounded-md text-sm font-bold">Keluar</button>
                                 </div>
                             )}
                         </div>
@@ -261,8 +289,12 @@ export default function Orders() {
                 </div>
 
                 {orders.length === 0 ? (
-                    <div className="bg-white p-12 rounded-2xl shadow-sm text-center border border-gray-100">
-                        <div className="text-6xl mb-4">📭</div>
+                    <div className="bg-white p-12 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                        <img 
+                        src={iconBelumada} 
+                        alt="belumada" 
+                        className="w-25 h-20 object-contain opacity-60 group-hover:opacity-100 transition duration-200"
+                        />
                         <h2 className="text-xl font-bold text-gray-800 mb-2">Belum ada pesanan</h2>
                         <Link to="/" className="inline-block bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-700 transition shadow-lg no-underline">
                             Mulai Belanja
@@ -273,7 +305,6 @@ export default function Orders() {
                         {orders.map((order) => (
                             <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
                                 
-                                {/* Header Pesanan */}
                                 <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                                     <div className="flex items-center gap-2">
                                         <p className="text-xs font-bold text-gray-700 font-mono">{order.invoice_code || `INV-${order.id}`}</p>
@@ -289,15 +320,12 @@ export default function Orders() {
                                     </div>
                                 </div>
 
-                                {/* LIST PRODUK (GRID 4 KOLOM) */}
                                 <div className="p-3 space-y-3">
                                     {order.detail_pesanan?.map((detail, index) => (
                                         <div key={index} className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_auto] gap-4 items-start border-b border-dashed border-gray-100 pb-3 last:border-0 last:pb-0">
                                             
-                                            {/* 1. INFO PRODUK */}
                                             <div className="flex items-start gap-3">
                                                 <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0 border border-gray-200">
-                                                    {/* --- MENGGUNAKAN HELPER getProductImage DI SINI --- */}
                                                     <img 
                                                         src={getProductImage(detail.produk)} 
                                                         alt={detail.produk?.nama_barang} 
@@ -311,7 +339,6 @@ export default function Orders() {
                                                 </div>
                                             </div>
 
-                                            {/* 2. INFO PENJUAL */}
                                             <div className="hidden md:block">
                                                 <div className="p-2 rounded border border-gray-100 bg-gray-50 text-[10px]">
                                                     <div className="mb-1">
@@ -334,7 +361,6 @@ export default function Orders() {
                                                 </div>
                                             </div>
 
-                                            {/* 3. INFO PENGIRIMAN */}
                                             <div className="hidden md:block">
                                                 {index === 0 && (
                                                     <div className="p-2 bg-blue-50 bg-opacity-40 rounded border border-blue-100 text-[10px]">
@@ -353,7 +379,6 @@ export default function Orders() {
                                                 )}
                                             </div>
 
-                                            {/* 4. HARGA */}
                                             <div className="text-right">
                                                 <p className="font-bold text-gray-800 text-sm">{formatRupiah((detail.produk?.harga_barang || 0) * detail.jumlah)}</p>
                                             </div>
@@ -362,7 +387,6 @@ export default function Orders() {
                                     ))}
                                 </div>
 
-                                {/* Footer */}
                                 <div className="px-3 py-2 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
                                     <div className="flex items-center gap-2">
                                         <p className="text-[11px] text-gray-500 font-bold">Total:</p>
@@ -370,10 +394,8 @@ export default function Orders() {
                                     </div>
                                     
                                     <div className="flex gap-2">
-                                        {/* --- TOMBOL CHAT PENJUAL --- */}
                                         <button 
                                             onClick={() => {
-                                                // Ambil penjual dari produk pertama
                                                 const seller = order.detail_pesanan?.[0]?.produk?.user;
                                                 openChat(seller?.id, seller?.name);
                                             }}
@@ -382,23 +404,33 @@ export default function Orders() {
                                             💬 Chat Penjual
                                         </button>
                                         
-                                        {order.status.toLowerCase().includes('dibatalkan') || order.status.toLowerCase().includes('cancel') ? (
+                                        {(order.status.toLowerCase().includes('dibatalkan') || order.status.toLowerCase().includes('cancel')) && (
                                             <button 
                                                 onClick={() => handleDeleteHistory(order.id)}
                                                 className="px-3 py-1 bg-white text-gray-500 border border-gray-300 rounded text-[10px] font-bold hover:bg-gray-100 transition shadow-sm"
                                             >
                                                 Hapus
                                             </button>
-                                        ) : null}
+                                        )}
 
-                                        {order.status === 'pending' ? (
+                                        {order.status === 'pending' && (
                                             <button 
                                                 onClick={() => handleCancelOrder(order.id)}
                                                 className="px-3 py-1 bg-white text-red-600 border border-red-200 rounded text-[10px] font-bold hover:bg-red-50 transition shadow-sm"
                                             >
                                                 Batalkan
                                             </button>
-                                        ) : null}
+                                        )}
+
+                                        {/* --- LOGIKA BARU: TOMBOL TERIMA PESANAN (HANYA MUNCUL SAAT DIKIRIM) --- */}
+                                        {order.status === 'dikirim' && (
+                                            <button 
+                                                onClick={() => handleReceiveOrder(order.id)}
+                                                className="px-3 py-1 bg-green-600 text-white rounded text-[10px] font-bold hover:bg-green-700 transition shadow-sm"
+                                            >
+                                                📦 Pesanan Diterima
+                                            </button>
+                                        )}
 
                                         {order.status === 'selesai' && (
                                             <button 
@@ -460,7 +492,6 @@ export default function Orders() {
                 </div>
             )}
 
-            {/* --- KOMPONEN CHAT BOX (WAJIB ADA AGAR CHAT MUNCUL) --- */}
             <ChatBox 
                 isOpen={isChatOpen} 
                 onClose={() => setIsChatOpen(false)} 

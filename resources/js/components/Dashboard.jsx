@@ -163,7 +163,9 @@ export default function Dashboard() {
                                 onChange={(e) => setSearchTerm(e.target.value)} 
                             />
                             {searchTerm && (
-                                <button onClick={() => setSearchTerm('')} className="text-gray-400 hover:text-gray-600 text-xs font-bold px-2">✕</button>
+                                <button onClick={() => setSearchTerm('')} className="text-gray-400 hover:text-gray-600 text-xs font-bold px-2">✕
+                                <img src={searchIconImg} alt="Search" className="w-5 h-5" />
+                                </button>
                             )}
                             <div className="h-5 w-px bg-gray-300 mx-2"></div>
                             <select 
@@ -307,7 +309,11 @@ export default function Dashboard() {
                 {/* Grid Produk */}
                 {processedProducts.length === 0 ? (
                     <div className="text-center py-20 bg-white rounded-xl shadow">
-                        <p className="text-4xl mb-4">🔍</p>
+                        <img 
+                            src={iconSearch} 
+                            alt="Not Found" 
+                            className="w-16 h-16 mx-auto mb-4 opacity-50 object-contain"
+                        />
                         <p className="text-gray-500 text-lg">Produk tidak ditemukan.</p>
                     </div>
                 ) : (
