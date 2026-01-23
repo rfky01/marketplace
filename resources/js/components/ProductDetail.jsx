@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import iconPesan from './asset/pesan.png'
 import iconKeranjang from './asset/keranjang.png'
-import ChatBox from './ChatBox';
+import ChatBox from './ChatBox'; 
 
 export default function ProductDetail() {
     const { id } = useParams();
@@ -21,6 +21,7 @@ export default function ProductDetail() {
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
     const [isCartModalOpen, setIsCartModalOpen] = useState(false);
 
+    // --- STATE CHAT ---
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [chatTarget, setChatTarget] = useState({ id: null, name: '' });
 
@@ -30,7 +31,7 @@ export default function ProductDetail() {
     const [customAlert, setCustomAlert] = useState({
         isOpen: false,
         message: '',
-        type: 'success', // 'success' atau 'error'
+        type: 'success', 
         onConfirm: null,
         showCancel: false, 
         confirmText: 'OK',
@@ -43,38 +44,44 @@ export default function ProductDetail() {
         metode_pembayaran: 'COD'
     });
 
+    // --- EFFECT: AUTO-CLOSE TOAST ---
     useEffect(() => {
+        let timer;
+        // Hanya auto-close jika BUKAN konfirmasi (tidak ada tombol cancel)
+        if (customAlert.isOpen && !customAlert.showCancel) {
+            timer = setTimeout(() => {
+                setCustomAlert(prev => ({ ...prev, isOpen: false }));
+            }, 3000); // 3 Detik
+        }
+        return () => clearTimeout(timer);
+    }, [customAlert]);
 
+    useEffect(() => {
         fetch(`http://127.0.0.1:8000/api/produk/${id}`)
             .then(res => res.json())
             .then(data => {
                 if(data.success) {
                     setProduct(data.data);
-                    // Set foto pertama sebagai mainImage default
                     if (Array.isArray(data.data.foto_barang) && data.data.foto_barang.length > 0) {
                         setMainImage(data.data.foto_barang[0]);
                     }
                 }
-            });
+            })
+            .catch(err => console.error("Gagal fetch produk:", err));
             
         const token = localStorage.getItem('token');
         const userData = localStorage.getItem('user');
 
-        // 1. AMBIL DATA DARI LOCAL STORAGE & ISI FORM OTOMATIS
         if (userData) {
             const parsedUser = JSON.parse(userData);
             setUser(parsedUser);
-            
-            // --- LOGIKA AUTOFILL (DARI LOCAL STORAGE) ---
             setCheckoutForm(prev => ({
                 ...prev,
-                // Prioritas: data phone di user -> data lama di form
                 telepon: parsedUser.phone || parsedUser.telepon || parsedUser.no_hp || '',
-                alamat:''
+                alamat: parsedUser.address || parsedUser.alamat || ''
             }));
         }
 
-        // 2. FETCH DATA USER TERBARU DARI API (UNTUK UPDATE JIKA ADA PERUBAHAN)
         const fetchLatestUser = async () => {
             if(!token) return;
             try {
@@ -86,12 +93,10 @@ export default function ProductDetail() {
                 if (response.ok) {
                     setUser(data);
                     localStorage.setItem('user', JSON.stringify(data));
-                    
-                    // --- LOGIKA AUTOFILL (DARI API TERBARU) ---
                     setCheckoutForm(prev => ({
                         ...prev,
                         telepon: data.phone || data.telepon || data.no_hp || '',
-                        alamat:''
+                        alamat: data.address || data.alamat || ''
                     }));
                 }
             } catch (error) {
@@ -99,7 +104,6 @@ export default function ProductDetail() {
             }
         };
         fetchLatestUser();
-
         fetchProduct();
 
         function handleClickOutside(event) {
@@ -116,12 +120,10 @@ export default function ProductDetail() {
 
     const fetchProduct = async () => {
         try {
-            // Pastikan Controller Laravel menggunakan: with(['ulasan.user'])
             const response = await fetch(`http://127.0.0.1:8000/api/produk/${id}`);
             const data = await response.json();
             if (data.success) {
                 setProduct(data.data);
-                // Inisialisasi mainImage jika belum ada
                 if (Array.isArray(data.data.foto_barang) && data.data.foto_barang.length > 0) {
                     setMainImage(data.data.foto_barang[0]);
                 }
@@ -133,13 +135,27 @@ export default function ProductDetail() {
         }
     };
 
-    // --- FUNGSI BUKA CHAT ---
     const openChat = (sellerId, sellerName) => {
         const token = localStorage.getItem('token');
-        if (!token) return navigate('/login');
+        if (!token) {
+            setCustomAlert({
+                isOpen: true,
+                message: "Silakan login terlebih dahulu.",
+                type: 'error',
+                showCancel: false,
+                confirmText: 'OK'
+            });
+            return;
+        }
         
-        if (user.id === sellerId) {
-            alert("Ini produk Anda sendiri.");
+        if (String(user.id) === String(sellerId)) {
+            setCustomAlert({
+                isOpen: true,
+                message: "Ini produk Anda sendiri.",
+                type: 'error',
+                showCancel: false,
+                confirmText: 'OK'
+            });
             return;
         }
 
@@ -171,7 +187,7 @@ export default function ProductDetail() {
                     isOpen: true, 
                     message: "Berhasil masuk keranjang! 🛒", 
                     type: 'success',
-                    showCancel: false,
+                    showCancel: false, // Tidak butuh tombol cancel -> Jadi Toast
                     confirmText: 'OK'
                 });
                 setIsCartModalOpen(false);
@@ -209,8 +225,15 @@ export default function ProductDetail() {
         }
 
         const token = localStorage.getItem('token');
+        // Waktu Lokal
         const now = new Date();
-        const defaultTime = now.toISOString().slice(0, 19).replace('T', ' '); 
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        const formattedTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 
         const payload = {
             items: [{
@@ -224,7 +247,7 @@ export default function ProductDetail() {
             telepon_penerima: checkoutForm.telepon,
             alamat_pengiriman: checkoutForm.alamat,
             metode_pembayaran: checkoutForm.metode_pembayaran,
-            waktu_pengiriman: defaultTime 
+            waktu_pengiriman: formattedTime 
         };
 
         try {
@@ -246,7 +269,7 @@ export default function ProductDetail() {
                     isOpen: true, 
                     message: "Pesanan Berhasil! Ingin lihat riwayat pesanan sekarang?", 
                     type: 'success',
-                    showCancel: true,
+                    showCancel: true, // Ada Cancel -> Jadi Modal Tengah
                     confirmText: 'Lihat Pesanan',
                     cancelText: 'Nanti Saja',
                     onConfirm: () => navigate('/orders')
@@ -284,14 +307,12 @@ export default function ProductDetail() {
     if (loading) return <div className="flex justify-center items-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
     if (!product) return <div className="text-center py-20 text-gray-500">Produk tidak ditemukan.</div>;
 
-    // --- LOGIKA PERHITUNGAN RATING ---
-    const ulasanList = product.ulasan || []; // Mengambil data ulasan dari relasi
+    const ulasanList = product.ulasan || []; 
     const totalUlasan = ulasanList.length;
     const rataRataRating = totalUlasan > 0 
         ? (ulasanList.reduce((acc, curr) => acc + parseInt(curr.rating), 0) / totalUlasan).toFixed(1) 
         : 0;
 
-    // --- ARRAY GAMBAR ---
     const images = Array.isArray(product.foto_barang) ? product.foto_barang : [];
 
     return (
@@ -308,11 +329,7 @@ export default function ProductDetail() {
                     <div className="flex items-center gap-6">
                         <Link to="/keranjang" 
                         className="text-2xl text-gray-500 hover:text-blue-900">
-                            <img 
-                            src={iconKeranjang} 
-                            alt="keranjang" 
-                            className="w-11 h-15 object-contain opacity-60 group-hover:opacity-100 transition duration-200"
-                            />
+                            <img src={iconKeranjang} alt="keranjang" className="w-11 h-15 object-contain opacity-60 group-hover:opacity-100 transition duration-200"/>
                         </Link>
                         <Link to="/" className="text-gray-500 hover:text-blue-900 font-medium decoration-none">Dashboard</Link>
                         <div className="relative" ref={dropdownRef}>
@@ -320,15 +337,9 @@ export default function ProductDetail() {
                                 <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition">
                                     <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-200">
                                         {user.profile_photo ? (
-                                            <img 
-                                                src={`http://127.0.0.1:8000/storage/${user.profile_photo}`} 
-                                                alt="Profile" 
-                                                className="w-full h-full object-cover"
-                                            />
+                                            <img src={`http://127.0.0.1:8000/storage/${user.profile_photo}`} alt="Profile" className="w-full h-full object-cover"/>
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-sm font-bold text-gray-600">
-                                                {user.name?.charAt(0).toUpperCase()}
-                                            </div>
+                                            <div className="w-full h-full flex items-center justify-center text-sm font-bold text-gray-600">{user.name?.charAt(0).toUpperCase()}</div>
                                         )}
                                     </div>
                                     <div className="text-left hidden sm:block">
@@ -349,116 +360,45 @@ export default function ProductDetail() {
                 </div>
             </nav>
 
-            {/* --- KONTEN UTAMA PRODUK --- */}
             <div className="max-w-6xl mx-auto px-4">
                 
-                {/* KARTU DETAIL PRODUK */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-8">
-                    
-                    {/* CONTAINER UTAMA */}
                     <div className="flex flex-col md:flex-row items-start relative">
-                        
-                        {/* 1. KOLOM KIRI (GALERI GAMBAR + TOMBOL BELI) */}
                         <div className="w-full md:w-5/12 lg:w-4/12 bg-gray-50 p-4 sticky top-28 self-start z-10 rounded-l-2xl flex flex-col items-center">
-                            
-                            {/* GAMBAR UTAMA (BESAR) */}
                             <div className="relative w-full max-w-xs aspect-square bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 mb-4">
-                                <img 
-                                    src={`http://127.0.0.1:8000/storage/${mainImage}`} 
-                                    alt={product.nama_barang} 
-                                    className="w-full h-full object-cover transition duration-500"
-                                    onError={(e)=>{e.target.src="https://via.placeholder.com/400"}}
-                                />
+                                <img src={`http://127.0.0.1:8000/storage/${mainImage}`} alt={product.nama_barang} className="w-full h-full object-cover transition duration-500" onError={(e)=>{e.target.src="https://via.placeholder.com/400"}}/>
                             </div>
-
-                            {/* THUMBNAIL (LIST KECIL DI BAWAH) */}
                             {images.length > 1 && (
                                 <div className="flex gap-2 overflow-x-auto pb-4 w-full max-w-xs justify-center">
                                     {images.map((img, index) => (
-                                        <div 
-                                            key={index}
-                                            onClick={() => setMainImage(img)}
-                                            className={`w-14 h-14 rounded-lg overflow-hidden border-2 cursor-pointer transition flex-shrink-0 
-                                                ${mainImage === img ? 'border-blue-600 opacity-100' : 'border-gray-200 opacity-60 hover:opacity-100'}`}
-                                        >
-                                            <img 
-                                                src={`http://127.0.0.1:8000/storage/${img}`} 
-                                                alt={`Thumb ${index}`} 
-                                                className="w-full h-full object-cover"
-                                            />
+                                        <div key={index} onClick={() => setMainImage(img)} className={`w-14 h-14 rounded-lg overflow-hidden border-2 cursor-pointer transition flex-shrink-0 ${mainImage === img ? 'border-blue-600 opacity-100' : 'border-gray-200 opacity-60 hover:opacity-100'}`}>
+                                            <img src={`http://127.0.0.1:8000/storage/${img}`} alt={`Thumb ${index}`} className="w-full h-full object-cover"/>
                                         </div>
                                     ))}
                                 </div>
                             )}
-
-                            {/* TOMBOL AKSI */}
                             <div className="w-full max-w-xs flex gap-3 mt-2">
-                                <button 
-                                    onClick={handleOpenCartModal}
-                                    className="flex-1 py-3 border-2 border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition"
-                                >
-                                    + Keranjang
-                                </button>
-                                
-                                <button 
-                                    onClick={handleBuyNow}
-                                    disabled={product.stok_barang <= 0}
-                                    className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed"
-                                >
-                                    Beli Sekarang
-                                </button>
+                                <button onClick={handleOpenCartModal} className="flex-1 py-3 border-2 border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition">+ Keranjang</button>
+                                <button onClick={handleBuyNow} disabled={product.stok_barang <= 0} className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed">Beli Sekarang</button>
                             </div>
-
                         </div>
 
-                        {/* 2. KOLOM KANAN (INFO PRODUK) */}
                         <div className="w-full md:w-7/12 lg:w-8/12 p-8 flex flex-col border-l border-gray-100">
-                            
-                            {/* Kategori & Stok */}
                             <div className="flex items-center gap-3 mb-4">
-                                <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wide">
-                                    {product.kategori}
-                                </span>
-                                <span className={`text-xs font-bold px-3 py-1 rounded-full border ${product.stok_barang > 0 ? 'border-green-200 text-green-700 bg-green-50' : 'border-red-200 text-red-700 bg-red-50'}`}>
-                                    {product.stok_barang > 0 ? `Stok: ${product.stok_barang} Unit` : 'Stok Habis'}
-                                </span>
+                                <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wide">{product.kategori}</span>
+                                <span className={`text-xs font-bold px-3 py-1 rounded-full border ${product.stok_barang > 0 ? 'border-green-200 text-green-700 bg-green-50' : 'border-red-200 text-red-700 bg-red-50'}`}>{product.stok_barang > 0 ? `Stok: ${product.stok_barang} Unit` : 'Stok Habis'}</span>
                             </div>
-
-                            {/* Judul */}
-                            <h1 className="text-3xl font-extrabold text-gray-900 mb-4 leading-tight break-words">
-                                {product.nama_barang}
-                            </h1>
-
-                            {/* Harga */}
-                            <div className="text-4xl font-bold text-blue-600 mb-6 lg:ml-14">
-                                {formatRupiah(product.harga_barang)}
-                            </div>
-
-                            {/* Deskripsi */}
+                            <h1 className="text-3xl font-extrabold text-gray-900 mb-4 leading-tight break-words">{product.nama_barang}</h1>
+                            <div className="text-4xl font-bold text-blue-600 mb-6 lg:ml-14">{formatRupiah(product.harga_barang)}</div>
                             <div className="mt-26 ml-10"> 
                                 <h3 className="text-sm font-medium text-gray-900 mb-2">Deskripsi Produk</h3>
-                                
                                 <div className="text-sm text-gray-600 whitespace-pre-line leading-relaxed">
                                     {product.deskripsi ? (
                                         <>
-                                            {/* Logika Pemotongan Teks */}
-                                            <span>
-                                                {isDescExpanded 
-                                                    ? product.deskripsi 
-                                                    : product.deskripsi.substring(0, 150)}
-                                            </span>
-                                            
-                                            {/* Jika teks panjang tapi belum dibuka, tambah titik-titik */}
+                                            <span>{isDescExpanded ? product.deskripsi : product.deskripsi.substring(0, 150)}</span>
                                             {!isDescExpanded && product.deskripsi.length > 150 && "..."}
-
-                                            {/* Tombol Toggle (Hanya muncul jika teks > 150 karakter) */}
                                             {product.deskripsi.length > 150 && (
-                                                <button 
-                                                    onClick={() => setIsDescExpanded(!isDescExpanded)} 
-                                                    className="text-blue-600 font-bold ml-1 hover:underline focus:outline-none text-xs"
-                                                >
-                                                    {isDescExpanded ? "Lihat Lebih Sedikit" : "Lihat Selengkapnya"}
-                                                </button>
+                                                <button onClick={() => setIsDescExpanded(!isDescExpanded)} className="text-blue-600 font-bold ml-1 hover:underline focus:outline-none text-xs">{isDescExpanded ? "Lihat Lebih Sedikit" : "Lihat Selengkapnya"}</button>
                                             )}
                                         </>
                                     ) : (
@@ -466,45 +406,34 @@ export default function ProductDetail() {
                                     )}
                                 </div>
                             </div>
-
-                            {/* Penjual */}
                             <div className="border-t border-gray-100 pt-6 mt-auto">
-                                <Link 
-                                    to={`/profile/${product.user?.id}`} 
-                                    className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100 hover:bg-blue-50 transition cursor-pointer decoration-none"
-                                >
-                                    <div className="w-12 h-12 bg-white rounded-full overflow-hidden border border-gray-200 flex-shrink-0 shadow-sm">
-                                        {product.user?.profile_photo ? (
-                                            <img src={`http://127.0.0.1:8000/storage/${product.user.profile_photo}`} alt={product.user?.name} className="w-full h-full object-cover"/>
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-gray-500 font-bold text-lg">{product.user?.name?.charAt(0).toUpperCase() || "P"}</div>
-                                        )}
-                                    </div>
-                                    
-                                    <div>
-                                        <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">Penjual</p>
-                                        <p className="text-base font-bold text-gray-800">{product.user?.name || "Official Store"}</p>
-                                    </div>
-                                </Link>
-                                {/* KANAN: Tombol Chat (Hanya muncul jika bukan barang sendiri) */}
-                                    {user.id !== product.user?.id && (
-                                        <button 
-                                            onClick={() => openChat(product.user?.id, product.user?.name)}
-                                            className="flex items-center gap-2 px-4 py-2 bg-white border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition shadow-sm font-bold text-sm"
-                                        >
+                                <div className="flex flex-row items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                    <Link to={`/profile/${product.user?.id}`} className="flex flex-row items-center gap-4 hover:opacity-80 transition cursor-pointer decoration-none group">
+                                        <div className="w-12 h-12 bg-white rounded-full overflow-hidden border border-gray-200 flex-shrink-0 shadow-sm group-hover:ring-2 ring-blue-300 transition">
+                                            {product.user?.profile_photo ? (
+                                                <img src={`http://127.0.0.1:8000/storage/${product.user.profile_photo}`} alt={product.user?.name} className="w-full h-full object-cover"/>
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-gray-500 font-bold text-lg">{product.user?.name?.charAt(0).toUpperCase() || "P"}</div>
+                                            )}
+                                        </div>
+                                        <div className="text-left">
+                                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">Penjual</p>
+                                            <p className="text-base font-bold text-gray-800">{product.user?.name || "Official Store"}</p>
+                                        </div>
+                                    </Link>
+                                    {String(user.id) !== String(product.user?.id) && (
+                                        <button type="button" onClick={() => openChat(product.user?.id, product.user?.name)} className="flex items-center gap-2 px-4 py-2 bg-white border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition shadow-sm font-bold text-sm ml-auto cursor-pointer">
                                             <img src={iconPesan} alt="Chat" className="w-5 h-5 object-contain" />
                                             Chat Penjual
                                         </button>
                                     )}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* --- BAGIAN BARU: ULASAN PEMBELI (Sesuai Permintaan) --- */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-                    
-                    {/* Header Ulasan */}
                     <div className="flex items-center gap-4 mb-8 border-b border-gray-100 pb-4">
                         <h2 className="text-xl font-bold text-gray-800">Ulasan Pembeli</h2>
                         <div className="flex items-center gap-2 bg-yellow-50 px-3 py-1 rounded-full border border-yellow-100">
@@ -515,57 +444,39 @@ export default function ProductDetail() {
                             <span className="text-gray-500 text-sm font-medium">{totalUlasan} Ulasan</span>
                         </div>
                     </div>
-
-                    {/* Daftar Ulasan */}
                     <div className="space-y-8">
                         {ulasanList.length > 0 ? (
                             ulasanList.map((review, index) => (
                                 <div key={index} className="flex gap-4">
-                                    {/* Avatar User */}
                                     <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold flex-shrink-0 text-lg border border-gray-200">
                                         {review.user?.name?.charAt(0).toUpperCase() || 'U'}
                                     </div>
-                                    
-                                    {/* Isi Ulasan */}
                                     <div className="flex-1">
                                         <div className="flex items-center gap-2 mb-1">
                                             <p className="font-bold text-gray-800 text-sm">{review.user?.name || "Pembeli"}</p>
                                             <span className="text-gray-300 text-xs">•</span>
                                             <p className="text-xs text-gray-400">{formatDate(review.created_at)}</p>
                                         </div>
-                                        
-                                        {/* Bintang */}
                                         <div className="flex text-yellow-400 text-sm mb-2">
                                             {[...Array(5)].map((_, i) => (
                                                 <span key={i} className={i < review.rating ? "text-yellow-400" : "text-gray-200"}>★</span>
                                             ))}
                                         </div>
-
-                                        {/* comment */}
-                                        <p className="text-gray-600 text-sm leading-relaxed">
-                                            {review.comment || review.comment || "Tidak ada comment."}
-                                        </p>
+                                        <p className="text-gray-600 text-sm leading-relaxed">{review.comment || "Tidak ada comment."}</p>
                                     </div>
                                 </div>
                             ))
                         ) : (
                             <div className="bg-white p-12 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
-                                <img 
-                                src={iconPesan} 
-                                alt="pesan" 
-                                className="w-20 h-20 object-contain opacity-60 group-hover:opacity-100 transition duration-200"
-                                />
+                                <img src={iconPesan} alt="pesan" className="w-20 h-20 object-contain opacity-60 group-hover:opacity-100 transition duration-200"/>
                                 <p className="text-gray-500 font-medium">Belum ada ulasan untuk produk ini.</p>
                                 <p className="text-xs text-gray-400 mt-1">Jadilah yang pertama memberikan ulasan!</p>
                             </div>
                         )}
                     </div>
                 </div>
-                {/* --------------------------------------------------- */}
-
             </div>
 
-            {/* POPUP TAMBAH KERANJANG */}
             {isCartModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 animate-fade-in">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
@@ -601,30 +512,24 @@ export default function ProductDetail() {
                 </div>
             )}
 
-            {/* POPUP CHECKOUT */}
             {isCheckoutModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 animate-fade-in">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                            <div><h3 className="text-lg font-bold text-gray-800">Checkout Barang</h3><p className="text-xs text-gray-500 break-all line-clamp-1">{product.nama_barang}</p></div>
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white">
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-800">Checkout Barang</h3>
+                                <p className="text-xs text-gray-500">Membeli {qty} Pcs</p>
+                            </div>
                             <button onClick={() => setIsCheckoutModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 hover:bg-gray-100 text-gray-600 transition">✕</button>
                         </div>
                         <div className="p-6 overflow-y-auto space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">No. Telepon</label>
-                                    <input 
-                                        type="tel" 
-                                        inputMode="numeric"
-                                        readOnly
-                                        className="w-full border border-gray-200 bg-gray-100 text-gray-500 rounded-lg px-3 py-2 cursor-not-allowed outline-none" 
-                                        placeholder="08xx..."
-                                        value={checkoutForm.telepon} 
-                                        onChange={(e) => setCheckoutForm({...checkoutForm, telepon: e.target.value})} 
-                                    />
+                                    <input type="tel" inputMode="numeric" readOnly className="w-full border border-gray-200 bg-gray-100 text-gray-500 rounded-lg px-3 py-2 cursor-not-allowed outline-none" placeholder="Nomor diambil dari profil..." value={checkoutForm.telepon} onChange={(e) => setCheckoutForm({...checkoutForm, telepon: e.target.value})}/>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Jumlah (Stok: {product.stok_barang})</label>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Jumlah</label>
                                     <div className="flex items-center border border-gray-300 rounded-lg bg-gray-50">
                                         <button onClick={() => setQty(Math.max(1, qty - 1))} className="px-3 py-2 text-gray-600 hover:bg-gray-200 font-bold rounded-l-lg disabled:opacity-30" disabled={qty <= 1}>-</button>
                                         <input type="number" value={qty} readOnly className="w-full text-center bg-transparent text-gray-800 font-bold border-x border-gray-300 py-2 outline-none" />
@@ -632,79 +537,101 @@ export default function ProductDetail() {
                                     </div>
                                 </div>
                             </div>
-                            <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Alamat Pengiriman</label><textarea className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition h-24 resize-none" 
-                            placeholder="Masukkan Spesifik Tempat: Ruang A, Ruang B, ..."
-                            value={checkoutForm.alamat} 
-                            onChange={(e) => setCheckoutForm({...checkoutForm, alamat: e.target.value})}></textarea></div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Pembayaran</label><select className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition" value={checkoutForm.metode_pembayaran} onChange={(e) => setCheckoutForm({...checkoutForm, metode_pembayaran: e.target.value})}>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Alamat Pengiriman</label>
+                                <textarea className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition h-24 resize-none" placeholder="Masukkan alamat lengkap..." value={checkoutForm.alamat} onChange={(e) => setCheckoutForm({...checkoutForm, alamat: e.target.value})}></textarea>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Pembayaran</label>
+                                <select className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition" value={checkoutForm.metode_pembayaran} onChange={(e) => setCheckoutForm({...checkoutForm, metode_pembayaran: e.target.value})}>
                                     <option value="COD">COD</option>
                                     <option value="Transfer">Transfer Bank</option>
                                     <option value="E-Wallet">E-Wallet</option>
-                                    </select></div>
+                                </select>
                             </div>
                         </div>
-                        <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
-                            <div><p className="text-xs text-gray-500 font-bold mb-1">Total Tagihan:</p><p className="text-xl font-extrabold text-blue-600">{formatRupiah(product.harga_barang * qty)}</p></div>
+                        <div className="p-6 bg-white border-t border-gray-100 flex justify-between items-center">
+                            <div>
+                                <p className="text-xs text-gray-500 font-bold mb-1">Total Tagihan:</p>
+                                <p className="text-xl font-extrabold text-blue-600">{formatRupiah(product.harga_barang * qty)}</p>
+                            </div>
                             <button onClick={handleConfirmOrder} className="px-8 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg">Konfirmasi Pesanan</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* --- POPUP NOTIFIKASI KUSTOM (DENGAN 2 PILIHAN) --- */}
+            {/* --- HYBRID NOTIFICATION (TOAST / MODAL) --- */}
             {customAlert.isOpen && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 text-center transform scale-100 transition-all">
-                        
-                        {/* ICON */}
-                        <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${customAlert.type === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                            <span className="text-3xl font-bold">{customAlert.type === 'success' ? '✓' : '!'}</span>
-                        </div>
-
-                        {/* TITLE & MESSAGE */}
-                        <h3 className="text-lg font-bold text-gray-800 mb-2">
-                            {customAlert.type === 'success' ? 'Berhasil!' : 'Perhatian!'}
-                        </h3>
-                        <p className="text-gray-600 text-sm mb-6 leading-relaxed">
-                            {customAlert.message}
-                        </p>
-
-                        {/* BUTTONS */}
-                        <div className="flex gap-3">
-                            {/* Tombol Cancel (Optional) */}
-                            {customAlert.showCancel && (
+                <>
+                    {/* 1. TAMPILKAN TOAST (JIKA INFO / SUKSES) */}
+                    {!customAlert.showCancel ? (
+                        <div className="fixed top-24 right-4 z-[200] animate-slide-in">
+                            <div className={`shadow-xl rounded-lg border-l-4 p-4 flex items-center gap-3 min-w-[300px] bg-white
+                                ${customAlert.type === 'error' ? 'border-red-500' : 'border-green-500'}`}>
+                                
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                                    ${customAlert.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                    <span className="font-bold text-lg">
+                                        {customAlert.type === 'error' ? '!' : '✓'}
+                                    </span>
+                                </div>
+                                <div className="flex-1">
+                                    <h4 className="font-bold text-gray-800 text-sm">
+                                        {customAlert.type === 'error' ? 'Gagal!' : 'Berhasil!'}
+                                    </h4>
+                                    <p className="text-gray-600 text-xs">{customAlert.message}</p>
+                                </div>
                                 <button 
-                                    onClick={() => setCustomAlert({...customAlert, isOpen: false})}
-                                    className="flex-1 py-2.5 rounded-xl font-bold text-gray-600 border border-gray-300 hover:bg-gray-100 transition shadow-sm"
+                                    onClick={() => setCustomAlert({ ...customAlert, isOpen: false })} 
+                                    className="text-gray-400 hover:text-gray-600 font-bold"
                                 >
-                                    {customAlert.cancelText}
+                                    ✕
                                 </button>
-                            )}
-                            
-                            {/* Tombol Confirm */}
-                            <button 
-                                onClick={() => {
-                                    setCustomAlert({...customAlert, isOpen: false});
-                                    if(customAlert.onConfirm) customAlert.onConfirm();
-                                }}
-                                className={`flex-1 py-2.5 rounded-xl font-bold text-white transition shadow-lg ${customAlert.type === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-500 hover:bg-red-600'}`}
-                            >
-                                {customAlert.confirmText}
-                            </button>
+                            </div>
                         </div>
-
-                    </div>
-                </div>
+                    ) : (
+                        /* 2. TAMPILKAN MODAL TENGAH (JIKA BUTUH KONFIRMASI) */
+                        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4 animate-fade-in">
+                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 text-center transform scale-100 transition-all">
+                                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-green-100 text-green-600">
+                                    <span className="text-3xl font-bold">✓</span>
+                                </div>
+                                <h3 className="text-lg font-bold text-gray-800 mb-2">Berhasil!</h3>
+                                <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+                                    {customAlert.message}
+                                </p>
+                                <div className="flex gap-3">
+                                    <button 
+                                        onClick={() => setCustomAlert({...customAlert, isOpen: false})}
+                                        className="flex-1 py-2.5 rounded-xl font-bold text-gray-600 border border-gray-300 hover:bg-gray-100 transition shadow-sm"
+                                    >
+                                        {customAlert.cancelText}
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            setCustomAlert({...customAlert, isOpen: false});
+                                            if(customAlert.onConfirm) customAlert.onConfirm();
+                                        }}
+                                        className="flex-1 py-2.5 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 transition shadow-lg"
+                                    >
+                                        {customAlert.confirmText}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </>
             )}
 
-            {/* --- KOMPONEN CHAT --- */}
-            <ChatBox 
-                isOpen={isChatOpen} 
-                onClose={() => setIsChatOpen(false)} 
-                receiverId={chatTarget.id} 
-                receiverName={chatTarget.name} 
-            />
+            <div className="relative z-[9999]"> 
+                <ChatBox 
+                    isOpen={isChatOpen} 
+                    onClose={() => setIsChatOpen(false)} 
+                    receiverId={chatTarget.id} 
+                    receiverName={chatTarget.name} 
+                />
+            </div>
 
         </div>
     );

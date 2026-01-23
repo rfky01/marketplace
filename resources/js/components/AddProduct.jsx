@@ -17,6 +17,9 @@ export default function AddProduct() {
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState([]);
 
+    // --- STATE POPUP SUKSES (BARU) ---
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+
     // Handle File Change (Multiple)
     const handleFileChange = (e) => {
         const selectedFiles = Array.from(e.target.files);
@@ -39,9 +42,7 @@ export default function AddProduct() {
         formData.append('kategori', category);
         formData.append('deskripsi', description);
 
-        // --- PERBAIKAN DI SINI ---
         // Loop file dan masukkan ke formData dengan nama array 'foto_barang[]'
-        // Gunakan variabel 'formData', BUKAN 'data'
         files.forEach((file) => {
             formData.append('foto_barang[]', file);
         });
@@ -54,7 +55,6 @@ export default function AddProduct() {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json' 
-                    // Jangan set Content-Type manual untuk FormData
                 },
                 body: formData
             });
@@ -62,8 +62,9 @@ export default function AddProduct() {
             const result = await response.json();
 
             if (response.ok) {
-                alert('Produk berhasil diupload!');
-                navigate('/'); 
+                // --- GANTI ALERT DENGAN MODAL SUKSES ---
+                setShowSuccessModal(true);
+                // navigate akan dipanggil saat tombol OK di modal diklik
             } else {
                 setErrors(result.errors || { message: [result.message] });
             }
@@ -77,7 +78,7 @@ export default function AddProduct() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6 relative">
             <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold text-gray-800">Upload Produk Baru</h2>
@@ -166,6 +167,32 @@ export default function AddProduct() {
                     </button>
                 </form>
             </div>
+
+            {/* --- MODAL POPUP SUKSES (TENGAH) --- */}
+            {showSuccessModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center transform scale-100 transition-all">
+                        
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-green-100 text-green-600">
+                            <span className="text-3xl font-bold">✓</span>
+                        </div>
+
+                        <h3 className="text-lg font-bold text-gray-800 mb-2">Upload Berhasil!</h3>
+                        <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+                            Produk Anda berhasil ditambahkan dan siap dijual.
+                        </p>
+
+                        <button 
+                            onClick={() => navigate('/')} 
+                            className="w-full py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition shadow-lg"
+                        >
+                            OK, Kembali ke Dashboard
+                        </button>
+
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }

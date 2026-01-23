@@ -24,7 +24,18 @@ export default function Dashboard() {
     const [showShopModal, setShowShopModal] = useState(false);
     const [isShopLoading, setIsShopLoading] = useState(false);
     
+    // --- STATE TOAST NOTIFICATION ---
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
     const dropdownRef = useRef(null);
+
+    // --- EFFECT: AUTO-CLOSE TOAST ---
+    useEffect(() => {
+        if (toast.show) {
+            const timer = setTimeout(() => setToast({ ...toast, show: false }), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [toast.show]);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -34,7 +45,6 @@ export default function Dashboard() {
             setUser(JSON.parse(userData));
         }
 
-        // 2. FETCH PRODUK (Jalankan SELALU, baik login maupun tidak)
         fetchProducts();
 
         function handleClickOutside(event) {
@@ -53,26 +63,20 @@ export default function Dashboard() {
             const response = await fetch('http://127.0.0.1:8000/api/produk');
             const data = await response.json();
             if (data.success) {
-                // Pastikan data adalah array sebelum diset
                 setProducts(Array.isArray(data.data) ? data.data : []);
             }
         } catch (error) {
             console.error("Error fetching products:", error);
-            setProducts([]); // Set array kosong jika error agar tidak crash
+            setProducts([]);
         }
     };
 
-    // --- LOGIKA FILTER + SORTIR PRODUK (DIPERBAIKI) ---
     const getProcessedProducts = () => {
-        // Cek jika products belum siap atau bukan array
         if (!products || !Array.isArray(products)) return [];
 
-        // 1. Filter (Search & Kategori)
         let result = products.filter((product) => {
-            // PENGAMAN EKSTRA: Pastikan product tidak null
             if (!product) return false;
 
-            // Ambil nilai string aman (jika null, jadi string kosong)
             const pName = (product.nama_barang || "").toLowerCase();
             const pCat = (product.kategori || "").toLowerCase();
             const sTerm = (searchTerm || "").toLowerCase();
@@ -84,7 +88,6 @@ export default function Dashboard() {
             return matchSearch && matchCategory;
         });
 
-        // 2. Sortir (Harga)
         if (sortOrder === 'lowest') {
             result.sort((a, b) => (a.harga_barang || 0) - (b.harga_barang || 0));
         } else if (sortOrder === 'highest') {
@@ -96,9 +99,8 @@ export default function Dashboard() {
 
     const processedProducts = getProcessedProducts();
     
-    // Ambil kategori unik dengan aman
     const uniqueCategories = products && Array.isArray(products) 
-        ? [...new Set(products.map(p => p.kategori).filter(k => k))] // filter(k => k) membuang kategori null/undefined
+        ? [...new Set(products.map(p => p.kategori).filter(k => k))] 
         : [];
 
     const executeOpenShop = async () => {
@@ -119,15 +121,31 @@ export default function Dashboard() {
                 
                 setIsShopLoading(false);
                 setShowShopModal(false); 
-                alert("Selamat! Toko Anda aktif. Silakan mulai upload produk.");
+                
+                // --- GANTI ALERT DENGAN TOAST ---
+                setToast({ 
+                    show: true, 
+                    message: "Selamat! Toko Anda aktif. Silakan mulai upload produk.", 
+                    type: 'success' 
+                });
+
             } else { 
                 setIsShopLoading(false);
-                alert("Gagal: " + data.message); 
+                // --- GANTI ALERT DENGAN TOAST ERROR ---
+                setToast({ 
+                    show: true, 
+                    message: "Gagal: " + (data.message || "Terjadi kesalahan"), 
+                    type: 'error' 
+                });
             }
         } catch (error) { 
             setIsShopLoading(false);
             console.error(error);
-            alert("Terjadi kesalahan koneksi");
+            setToast({ 
+                show: true, 
+                message: "Terjadi kesalahan koneksi", 
+                type: 'error' 
+            });
         }
     };
 
@@ -138,7 +156,6 @@ export default function Dashboard() {
     };
 
     const formatRupiah = (number) => {
-        // Pengaman jika number null/undefined
         if (number === null || number === undefined) return "Rp 0";
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
@@ -157,21 +174,16 @@ export default function Dashboard() {
     return (
         <div className="min-h-screen bg-gray-100 w-full font-sans">
             
-            {/* --- NAVBAR --- */}
             <nav className="bg-white shadow-md sticky top-0 z-50 w-full">
                 <div className="w-[90%] mx-auto h-16 flex items-center justify-between px-4">
                     
-                    {/* 1. LOGO KIRI & SEARCH */}
                     <div className="flex items-center gap-6">
                         <Link to="/" className="text-2xl font-bold text-blue-900 tracking-tight">
                             Marketplace<span className="text-gray-700">Plus</span>
                         </Link>
                         
-                        {/* SEARCH BAR */}
                         <div className="hidden md:flex items-center bg-gray-100 rounded-lg px-3 py-2 w-[400px] border border-gray-200 focus-within:border-blue-900 transition">
-                            
                             <img src={iconSearch} alt="Search" className="w-8 h-8 object-contain opacity-50 mr-2" />
-                            
                             <input 
                                 type="text" 
                                 placeholder="Cari di Marketplace Plus" 
@@ -195,7 +207,6 @@ export default function Dashboard() {
                             </select>
                         </div>
 
-                        {/* --- DROPDOWN SORTIR HARGA --- */}
                         <div className="hidden md:block">
                             <select 
                                 className="bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg py-2 px-2 w-28 outline-none focus:border-blue-900 transition cursor-pointer hover:bg-gray-50"
@@ -207,10 +218,8 @@ export default function Dashboard() {
                                 <option value="highest">Termahal</option>
                             </select>
                         </div>
-
                     </div>
 
-                    {/* 2. MENU KANAN */}
                     <div className="flex items-center gap-2">
                         {user.role === 'pembeli' ? (
                             <button 
@@ -301,10 +310,8 @@ export default function Dashboard() {
                 </div>
             </nav>
 
-            {/* --- CONTENT AREA (PRODUK) --- */}
             <div className="w-[90%] mx-auto pb-10 pt-12">
                 
-                {/* Header Pencarian */}
                 {(searchTerm || selectedCategory || sortOrder) && (
                     <div className="mb-6 flex justify-between items-center">
                         <div>
@@ -320,7 +327,6 @@ export default function Dashboard() {
                     </div>
                 )}
 
-                {/* Grid Produk */}
                 {processedProducts.length === 0 ? (
                     <div className="text-center py-20 bg-white rounded-xl shadow">
                         <img 
@@ -333,7 +339,6 @@ export default function Dashboard() {
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                         {processedProducts.map((product) => {
-                            // Hitung Rating
                             const ulasan = product.ulasan || [];
                             const ratingCount = ulasan.length;
                             const totalRating = ulasan.reduce((acc, curr) => acc + parseInt(curr.rating), 0);
@@ -342,7 +347,6 @@ export default function Dashboard() {
                             return (
                                 <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition duration-300 transform hover:-translate-y-1 flex flex-col h-full group">
                                     <Link to={`/product/${product.id}`} className="block cursor-pointer relative">
-                                        {/* --- PERBAIKAN GAMBAR (ARRAY vs STRING) --- */}
                                         <img 
                                             src={
                                                 Array.isArray(product.foto_barang) 
@@ -382,16 +386,13 @@ export default function Dashboard() {
                 )}
             </div>
 
+            {/* MODAL KONFIRMASI BUKA TOKO */}
             {showShopModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm animate-fade-in">
                     <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-sm w-full transform scale-100 transition-transform duration-300">
                         
                         <div className="w-21 h-21 flex items-center justify-center mx-auto mb-4 p-4">
-                             <img 
-                                src={iconToko} 
-                                alt="Buka Toko" 
-                                className="object-contain drop-shadow-md"
-                            />
+                             <img src={iconToko} alt="Buka Toko" className="object-contain drop-shadow-md"/>
                         </div>
 
                         <h2 className="text-2xl font-bold text-gray-800 mb-2">Buka Toko?</h2>
@@ -400,10 +401,7 @@ export default function Dashboard() {
                         </p>
 
                         <div className="flex gap-3">
-                            <button 
-                                onClick={() => setShowShopModal(false)}
-                                className="flex-1 py-2.5 border border-gray-300 text-gray-600 font-bold rounded-lg hover:bg-gray-50 transition"
-                            >
+                            <button onClick={() => setShowShopModal(false)} className="flex-1 py-2.5 border border-gray-300 text-gray-600 font-bold rounded-lg hover:bg-gray-50 transition">
                                 Batal
                             </button>
                             <button 
@@ -416,16 +414,41 @@ export default function Dashboard() {
                                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                                         Memproses...
                                     </>
-                                ) : (
-                                    "Ya, Buka Toko"
-                                )}
+                                ) : ( "Ya, Buka Toko" )}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
+            {/* --- TOAST NOTIFICATION (POJOK KANAN ATAS) --- */}
+            {toast.show && (
+                <div className="fixed top-24 right-4 z-[200] animate-slide-in">
+                    <div className={`shadow-xl rounded-lg border-l-4 p-4 flex items-center gap-3 min-w-[300px] bg-white
+                        ${toast.type === 'error' ? 'border-red-500' : 'border-green-500'}`}>
+                        
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                            ${toast.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                            <span className="font-bold text-lg">
+                                {toast.type === 'error' ? '!' : '✓'}
+                            </span>
+                        </div>
+                        <div className="flex-1">
+                            <h4 className="font-bold text-gray-800 text-sm">
+                                {toast.type === 'error' ? 'Gagal!' : 'Berhasil!'}
+                            </h4>
+                            <p className="text-gray-600 text-xs">{toast.message}</p>
+                        </div>
+                        <button 
+                            onClick={() => setToast({ ...toast, show: false })} 
+                            className="text-gray-400 hover:text-gray-600 font-bold"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            )}
+
         </div>
-        
     );
 }

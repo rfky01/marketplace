@@ -23,6 +23,17 @@ export default function EditProduct() {
     const [isLoading, setIsLoading] = useState(false);
     const [isFetching, setIsFetching] = useState(true);
 
+    // --- STATE TOAST NOTIFICATION (BARU) ---
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+    // --- EFFECT: AUTO-CLOSE TOAST ---
+    useEffect(() => {
+        if (toast.show) {
+            const timer = setTimeout(() => setToast({ ...toast, show: false }), 3000); // Hilang dalam 3 detik
+            return () => clearTimeout(timer);
+        }
+    }, [toast.show]);
+
     // 1. Ambil Data Produk Lama saat halaman dibuka
     useEffect(() => {
         fetchProductData();
@@ -51,6 +62,7 @@ export default function EditProduct() {
                 }
 
             } else {
+                // Ganti alert dengan Toast Error jika mau, tapi karena ini redirect, alert lebih aman
                 alert("Produk tidak ditemukan");
                 navigate('/my-products');
             }
@@ -110,20 +122,30 @@ export default function EditProduct() {
             const data = await response.json();
 
             if (response.ok) {
-                alert('Produk berhasil diupdate!');
-                navigate('/my-products');
+                // --- GANTI ALERT DENGAN TOAST ---
+                setToast({ show: true, message: "Produk berhasil diupdate!", type: 'success' });
+                
+                // Beri jeda sedikit sebelum pindah halaman agar toast terlihat (opsional)
+                setTimeout(() => {
+                    navigate('/my-products');
+                }, 1500); 
+                
             } else {
                 setErrors(data.errors || { message: [data.message] });
+                setToast({ show: true, message: "Gagal update produk", type: 'error' });
             }
         } catch (error) {
             console.error("Error updating:", error);
+            setToast({ show: true, message: "Terjadi kesalahan sistem", type: 'error' });
+        } finally {
+            setIsLoading(false); // Pastikan loading berhenti
         }
     };
 
     if (loading) return <div className="text-center mt-20">Memuat data...</div>;
 
     return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6 relative">
             <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold text-gray-800">Edit Produk</h2>
@@ -220,11 +242,42 @@ export default function EditProduct() {
                         )}
                     </div>
 
-                    <button type="submit" className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded transition shadow-lg mt-4">
-                        Simpan Perubahan
+                    <button type="submit" disabled={isLoading} className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded transition shadow-lg mt-4 disabled:opacity-50">
+                        {isLoading ? "Menyimpan..." : "Simpan Perubahan"}
                     </button>
                 </form>
             </div>
+
+            {/* --- TOAST NOTIFICATION (POJOK KANAN ATAS) --- */}
+            {toast.show && (
+                <div className="fixed top-24 right-4 z-50 animate-fade-in-down">
+                    <div className={`shadow-lg rounded-lg border-l-4 p-4 flex items-center gap-3 min-w-[300px] bg-white
+                        ${toast.type === 'success' ? 'border-green-500' : 'border-red-500'}`}>
+                        
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                            ${toast.type === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                            <span className="font-bold text-lg">
+                                {toast.type === 'success' ? '✓' : '!'}
+                            </span>
+                        </div>
+                        
+                        <div className="flex-1">
+                            <h4 className="font-bold text-gray-800 text-sm">
+                                {toast.type === 'success' ? 'Berhasil!' : 'Gagal!'}
+                            </h4>
+                            <p className="text-gray-600 text-xs">{toast.message}</p>
+                        </div>
+                        
+                        <button 
+                            onClick={() => setToast({ ...toast, show: false })} 
+                            className="text-gray-400 hover:text-gray-600 font-bold"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }

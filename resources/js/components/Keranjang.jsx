@@ -24,6 +24,13 @@ export default function Keranjang() {
         metode_pembayaran: 'COD'
     });
 
+    const [customAlert, setCustomAlert] = useState({
+        isOpen: false,
+        message: '',
+        type: 'success', // 'success' atau 'error'
+        onConfirm: null // Fungsi yang dijalankan saat tombol OK diklik
+    });
+
     useEffect(() => {
         const token = localStorage.getItem('token');
         const userData = localStorage.getItem('user');
@@ -213,13 +220,25 @@ export default function Keranjang() {
 
     // --- PROSES CHECKOUT ---
     const handleConfirmCheckout = async () => {
-        // Validasi Form
         if (!checkoutForm.telepon || !checkoutForm.alamat) {
             alert("Mohon lengkapi data pengiriman!");
             return;
         }
 
         const token = localStorage.getItem('token');
+        
+        // --- PERBAIKAN WAKTU (MENGGUNAKAN WAKTU LOKAL) ---
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        
+        const formattedTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        // --------------------------------------------------
+
         try {
             const checkoutPayload = {
                 items: checkoutItems.map(item => ({
@@ -230,8 +249,10 @@ export default function Keranjang() {
                 email_penerima: user.email || "email@example.com",
                 telepon_penerima: checkoutForm.telepon,
                 alamat_pengiriman: checkoutForm.alamat,
-                // Waktu kirim otomatis saat ini
-                waktu_pengiriman: new Date().toISOString(), 
+                
+                // Gunakan waktu lokal yang sudah diformat
+                waktu_pengiriman: formattedTime, 
+                
                 metode_pembayaran: checkoutForm.metode_pembayaran
             };
 
@@ -247,17 +268,30 @@ export default function Keranjang() {
             const data = await response.json();
 
             if (response.ok) {
-                alert("Checkout Berhasil! ✅");
-                // Hapus item yang sudah dibeli dari keranjang
+                // --- UPDATE: MUNCULKAN POPUP SUKSES ---
+                setIsCheckoutModalOpen(false); 
+                
+                // Hapus item di background
                 for (const itemId of selectedItems) {
                     await fetch(`http://127.0.0.1:8000/api/keranjang/${itemId}`, {
                         method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
                     });
                 }
-                setIsCheckoutModalOpen(false); 
-                navigate('/orders');
+
+                // Tampilkan Popup
+                setCustomAlert({
+                    isOpen: true,
+                    message: "Checkout Berhasil! ✅",
+                    type: 'success',
+                    onConfirm: () => navigate('/orders') // Pindah halaman HANYA setelah klik OK
+                });
+
             } else {
-                alert("Gagal Checkout: " + (data.message || "Terjadi kesalahan"));
+                setCustomAlert({
+                    isOpen: true,
+                    message: "Gagal Checkout: " + (data.message || "Terjadi kesalahan"),
+                    type: 'error'
+                });
             }
         } catch (error) {
             console.error(error);
@@ -527,6 +561,39 @@ export default function Keranjang() {
                                 Konfirmasi Pesanan
                             </button>
                         </div>
+
+                    </div>
+                </div>
+            )}
+
+            {/* --- CUSTOM POPUP ALERT --- */}
+            {customAlert.isOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 text-center transform scale-100 transition-all">
+                        
+                        {/* ICON */}
+                        <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${customAlert.type === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                            <span className="text-3xl font-bold">{customAlert.type === 'success' ? '✓' : '!'}</span>
+                        </div>
+
+                        {/* TITLE & MESSAGE */}
+                        <h3 className="text-lg font-bold text-gray-800 mb-2">
+                            {customAlert.type === 'success' ? 'Berhasil!' : 'Perhatian!'}
+                        </h3>
+                        <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+                            {customAlert.message}
+                        </p>
+
+                        {/* BUTTON */}
+                        <button 
+                            onClick={() => {
+                                setCustomAlert({...customAlert, isOpen: false});
+                                if(customAlert.onConfirm) customAlert.onConfirm();
+                            }}
+                            className={`w-full py-2.5 rounded-xl font-bold text-white transition shadow-lg ${customAlert.type === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-500 hover:bg-red-600'}`}
+                        >
+                            OK
+                        </button>
 
                     </div>
                 </div>

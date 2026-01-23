@@ -11,7 +11,21 @@ export default function MyProducts() {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
 
+    // --- STATE TOAST (NOTIFIKASI ATAS) ---
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+    // --- STATE MODAL DELETE (POPUP TENGAH) ---
+    const [deleteModal, setDeleteModal] = useState({ isOpen: false, productId: null });
+
     const navigate = useNavigate();
+
+    // --- EFFECT: AUTO-CLOSE TOAST ---
+    useEffect(() => {
+        if (toast.show) {
+            const timer = setTimeout(() => setToast({ ...toast, show: false }), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [toast.show]);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -50,14 +64,10 @@ export default function MyProducts() {
 
         const fetchMyProducts = async () => {
             try {
-                // Asumsi: Endpoint ini mengembalikan semua produk, kita filter di frontend
-                // Atau jika Anda punya endpoint khusus: /api/my-products
                 const response = await fetch('http://127.0.0.1:8000/api/produk');
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Filter hanya produk milik user yang sedang login
-                    // Pastikan ID user sudah tersedia (ambil dari userData localStorage dulu biar cepat)
                     const currentUserId = userData ? JSON.parse(userData).id : null;
                     if(currentUserId) {
                         const myItems = data.data.filter(product => product.user_id === currentUserId);
@@ -102,23 +112,36 @@ export default function MyProducts() {
         }
     };
 
-    const deleteProduct = async (id) => {
-        if(!confirm('Yakin ingin menghapus produk ini?')) return;
+    // --- 1. FUNGSI MEMBUKA POPUP DELETE ---
+    const openDeleteModal = (id) => {
+        setDeleteModal({ isOpen: true, productId: id });
+    };
 
+    // --- 2. FUNGSI EKSEKUSI DELETE (DIJALANKAN SAAT KLIK "YA") ---
+    const confirmDeleteProduct = async () => {
+        const id = deleteModal.productId;
         const token = localStorage.getItem('token');
+        
         try {
             const response = await fetch(`http://127.0.0.1:8000/api/produk/${id}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` }
             });
             if(response.ok){
-                alert("Produk berhasil dihapus");
+                // Tutup Modal
+                setDeleteModal({ isOpen: false, productId: null });
+                // Tampilkan Toast Sukses
+                setToast({ show: true, message: "Produk berhasil dihapus", type: 'success' });
+                // Refresh Data
                 fetchMyProducts();
             } else {
-                alert("Gagal menghapus produk");
+                setDeleteModal({ isOpen: false, productId: null });
+                setToast({ show: true, message: "Gagal menghapus produk", type: 'error' });
             }
         } catch (error) {
             console.error(error);
+            setDeleteModal({ isOpen: false, productId: null });
+            setToast({ show: true, message: "Terjadi kesalahan sistem", type: 'error' });
         }
     };
 
@@ -139,18 +162,14 @@ export default function MyProducts() {
     };
 
     const getProductImage = (product) => {
-        // Cek jika foto berupa Array (Format Baru)
         if (Array.isArray(product.foto_barang) && product.foto_barang.length > 0) {
             return `http://127.0.0.1:8000/storage/${product.foto_barang[0]}`;
         }
-        // Cek jika foto berupa String (Format Lama/Fallback)
         if (typeof product.foto_barang === 'string' && product.foto_barang) {
-            // Cek apakah sudah ada http-nya atau belum
             return product.foto_barang.startsWith('http') 
                 ? product.foto_barang 
                 : `http://127.0.0.1:8000/storage/${product.foto_barang}`;
         }
-        // Gambar Default jika rusak/kosong
         return "https://via.placeholder.com/300?text=No+Image";
     };
 
@@ -176,20 +195,15 @@ export default function MyProducts() {
     return (
         <div className="min-h-screen bg-gray-50 w-full font-sans pb-20">
             
-            {/* --- NAVBAR --- */}
             <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
                 <div className="max-w-7xl mx-auto h-16 flex items-center justify-between px-4 lg:px-8">
-                    
-                    {/* Logo Kiri */}
                     <div className="flex items-center gap-8">
                         <Link to="/" className="text-2xl font-bold text-blue-600 tracking-tight decoration-none">
                             Marketplace<span className="text-gray-700">Plus</span>
                         </Link>
                     </div>
 
-                    {/* Area Kanan Navbar */}
                     <div className="flex items-center gap-4">
-                        
                         <Link to="/seller-orders" className="text-gray-600 hover:text-blue-600 font-medium px-2 py-2 transition decoration-none">
                            Pesanan Masuk
                         </Link>
@@ -265,7 +279,6 @@ export default function MyProducts() {
                 </div>
             </nav>
 
-            {/* --- KONTEN UTAMA --- */}
             <div className="max-w-6xl mx-auto px-4">
                 
                 <div className="flex justify-between items-center mb-8">
@@ -300,7 +313,6 @@ export default function MyProducts() {
                                     />
                                 </div>
 
-                                {/* INFO PRODUK (TENGAH) */}
                                 <div className="flex-1 w-full text-center sm:text-left min-w-0 pr-4">
                                     <h3 
                                         className="text-xl font-bold text-gray-800 mb-1 line-clamp-2 break-all leading-tight"
@@ -317,10 +329,8 @@ export default function MyProducts() {
                                     </div>
                                 </div>
 
-                                {/* BAGIAN KANAN: TOMBOL + INFO WAKTU + PEMBUAT */}
                                 <div className="flex flex-col items-center sm:items-end gap-3 flex-shrink-0">
                                     
-                                    {/* Tombol Aksi */}
                                     <div className="flex gap-3">
                                         <Link 
                                             to={`/edit-product/${product.id}`} 
@@ -329,25 +339,20 @@ export default function MyProducts() {
                                             Edit
                                         </Link>
                                         <button 
-                                            onClick={() => deleteProduct(product.id)}
+                                            onClick={() => openDeleteModal(product.id)}
                                             className="px-5 py-2 bg-red-100 text-red-600 rounded-lg font-bold hover:bg-red-200 transition flex items-center gap-2"
                                         >
                                             Hapus
                                         </button>
                                     </div>
 
-                                    {/* --- INFO PEMBUAT & WAKTU (UPDATE DI SINI) --- */}
                                     <div className="text-xs text-gray-400 text-center sm:text-right">
-                                        
-                                        {/* Nama Pembuat */}
                                         <div className="mb-1">
                                             Dibuat: {formatDate(product.created_at)}
                                         </div>
                                         <div className="font-bold text-gray-600 mb-1">
                                             {product.user?.name || user.name || "Penjual"}
                                         </div>
-                                        
-                                        {/* Tanggal Edit (Hanya jika beda) */}
                                         {product.created_at !== product.updated_at && (
                                             <div className="text-orange-500 font-medium">
                                                 Diedit: {formatDate(product.updated_at, true)}
@@ -362,6 +367,68 @@ export default function MyProducts() {
                     </div>
                 )}
             </div>
+
+            {/* --- TOAST NOTIFICATION (POJOK KANAN ATAS) --- */}
+            {toast.show && (
+                <div className="fixed top-24 right-4 z-[200] animate-slide-in">
+                    <div className={`shadow-xl rounded-lg border-l-4 p-4 flex items-center gap-3 min-w-[300px] bg-white
+                        ${toast.type === 'error' ? 'border-red-500' : 'border-green-500'}`}>
+                        
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                            ${toast.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                            <span className="font-bold text-lg">
+                                {toast.type === 'error' ? '!' : '✓'}
+                            </span>
+                        </div>
+                        <div className="flex-1">
+                            <h4 className="font-bold text-gray-800 text-sm">
+                                {toast.type === 'error' ? 'Gagal!' : 'Berhasil!'}
+                            </h4>
+                            <p className="text-gray-600 text-xs">{toast.message}</p>
+                        </div>
+                        <button 
+                            onClick={() => setToast({ ...toast, show: false })} 
+                            className="text-gray-400 hover:text-gray-600 font-bold"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* --- MODAL DELETE (POPUP TENGAH) --- */}
+            {deleteModal.isOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center transform scale-100 transition-all">
+                        
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-100 text-red-600">
+                            <span className="text-3xl font-bold">!</span>
+                        </div>
+
+                        <h3 className="text-lg font-bold text-gray-800 mb-2">Konfirmasi Hapus</h3>
+                        <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+                            Yakin ingin menghapus produk ini? <br/> Produk akan dihapus selamanya!!
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setDeleteModal({ isOpen: false, productId: null })}
+                                className="flex-1 py-2.5 rounded-xl font-bold text-gray-600 border border-gray-300 hover:bg-gray-100 transition shadow-sm"
+                            >
+                                Batal
+                            </button>
+                            <button 
+                                onClick={confirmDeleteProduct}
+                                className="flex-1 py-2.5 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 transition shadow-lg"
+                            >
+                                Ya, Hapus
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }

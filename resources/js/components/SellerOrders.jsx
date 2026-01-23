@@ -28,6 +28,13 @@ export default function SellerOrders() {
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [deliveryTime, setDeliveryTime] = useState('');
 
+    const [customAlert, setCustomAlert] = useState({
+        isOpen: false,
+        message: '',
+        type: 'success', 
+        onConfirm: null
+    });
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -124,7 +131,7 @@ export default function SellerOrders() {
             `Pesanan Anda dengan invoice *${invoice}* telah kami *TERIMA* dan sedang dalam proses pengemasan.\n\n` +
             `💰 *Total Pesanan:* ${hargaCantik}\n` +  // <--- TOTAL HARGA DITAMBAHKAN
             `💳 *Metode Pembayaran:* ${metodeBayar}\n` +
-            `⏰ *Estimasi Tiba:*\n  ${waktuCantik}\n\n` +
+            `⏰ *Estimasi Tiba:*\n ${waktuCantik}\n\n` +
             `📍 *Alamat Tujuan:*\n${alamatPenerima}\n\n` + 
             `Terima kasih telah berbelanja di MarketplacePlus!`;
 
@@ -171,7 +178,24 @@ export default function SellerOrders() {
             const data = await response.json();
 
             if(response.ok) {
-                // alert("Berhasil"); 
+                if (newStatus === 'dikirim') {
+                    setCustomAlert({
+                        isOpen: true,
+                        message: "Barang siap! Segera kirimkan paket.",
+                        type: 'success',
+                        onConfirm: null 
+                    });
+                    // Tidak ada pemanggilan sendWhatsappFonnte di sini
+                } 
+                else if (newStatus === 'dibatalkan') {
+                    setCustomAlert({
+                        isOpen: true,
+                        message: "Pesanan berhasil ditolak/dibatalkan.",
+                        type: 'success',
+                        onConfirm: null
+                    });
+                }
+
                 fetchSellerOrders();
             } else {
                 alert("Gagal: " + (data.message || "Terjadi kesalahan"));
@@ -214,8 +238,14 @@ export default function SellerOrders() {
             const data = await response.json();
 
             if(response.ok) {
-                alert("Pesanan diterima! Segera siapkan paket.");
-                setIsAcceptModalOpen(false);
+                setIsAcceptModalOpen(false); // Tutup modal jadwal (Merah)
+                
+                setCustomAlert({ // Buka modal sukses (Kuning)
+                    isOpen: true,
+                    message: "Pesanan diterima! Segera siapkan paket.",
+                    type: 'success',
+                    onConfirm: null 
+                });
 
                 const buyerProfile = selectedOrder.pesanan?.user;
                 const phone = buyerProfile?.telepon || buyerProfile?.phone || buyerProfile?.no_hp || selectedOrder.pesanan?.telepon_penerima;
@@ -645,6 +675,31 @@ export default function SellerOrders() {
                     </div>
                 </div>
             </div>
+
+            {/* --- MODAL POPUP SUKSES (TENGAH) --- */}
+            {customAlert.isOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center transform scale-100 transition-all">
+                        
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-green-100 text-green-600">
+                            <span className="text-3xl font-bold">✓</span>
+                        </div>
+
+                        <h3 className="text-lg font-bold text-gray-800 mb-2">Berhasil!</h3>
+                        <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+                            {customAlert.message}
+                        </p>
+
+                        <button 
+                            onClick={() => setCustomAlert({...customAlert, isOpen: false})} 
+                            className="w-full py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition shadow-lg"
+                        >
+                            OK
+                        </button>
+
+                    </div>
+                </div>
+            )}
 
             <ChatBox 
                 isOpen={isChatOpen} 

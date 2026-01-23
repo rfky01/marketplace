@@ -111,13 +111,23 @@ export default function Login() {
                         </div>
                     </div>
 
-                    <button 
-                        type="submit" 
-                        disabled={isLoading} 
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition duration-300 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isLoading ? "Memuat..." : "Masuk"}
-                    </button>
+                    {/* --- AREA TOMBOL (GAP DIKURANGI) --- */}
+                    <div className="flex flex-col gap-3 pt-2">
+                        <button 
+                            type="submit" 
+                            disabled={isLoading} 
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition duration-300 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isLoading ? "Memuat..." : "Masuk"}
+                        </button>
+
+                        <Link 
+                            to="/" 
+                            className="block w-full text-center py-3 border border-gray-300 rounded-lg text-gray-600 font-bold hover:bg-gray-50 transition duration-200 decoration-none"
+                        >
+                            Masuk Sebagai Tamu
+                        </Link>
+                    </div>
                 </form>
 
                 <p className="text-center text-gray-600 mt-6 text-sm">

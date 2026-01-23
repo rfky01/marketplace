@@ -21,7 +21,7 @@ export default function Orders() {
     const [rating, setRating] = useState(0);
     const [reviewText, setReviewText] = useState('');
 
-    // --- STATE CHAT (BARU) ---
+    // --- STATE CHAT ---
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [chatTarget, setChatTarget] = useState({ id: null, name: '' });
 
@@ -33,6 +33,27 @@ export default function Orders() {
     };
     
     const navigate = useNavigate();
+
+    const [customAlert, setCustomAlert] = useState({
+        isOpen: false,
+        message: '',
+        type: 'success', // 'success', 'error', atau 'warning'
+        showCancel: false,
+        confirmText: 'OK',
+        cancelText: 'Batal',
+        onConfirm: null
+    });
+
+    // --- EFFECT: AUTO-CLOSE UNTUK TOAST SUCCESS ---
+    useEffect(() => {
+        let timer;
+        if (customAlert.isOpen && customAlert.type === 'success') {
+            timer = setTimeout(() => {
+                setCustomAlert(prev => ({ ...prev, isOpen: false }));
+            }, 3000); // Hilang otomatis dalam 3 detik
+        }
+        return () => clearTimeout(timer);
+    }, [customAlert]);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -111,13 +132,22 @@ export default function Orders() {
         }
     };
 
-    // --- FUNGSI UPDATE: TERIMA PESANAN (Memanggil endpoint /receive) ---
-    const handleReceiveOrder = async (id) => {
-        if(!confirm("Apakah Anda yakin barang sudah diterima dengan baik?")) return;
+    // --- LOGIKA TERIMA PESANAN ---
+    const handleReceiveOrder = (id) => {
+        setCustomAlert({
+            isOpen: true,
+            message: "Apakah Anda yakin barang sudah diterima dengan baik?",
+            type: 'warning', // Warning = Modal Tengah
+            showCancel: true,
+            confirmText: "Ya, Diterima",
+            cancelText: "Batal",
+            onConfirm: () => executeReceiveOrder(id)
+        });
+    };
 
+    const executeReceiveOrder = async (id) => {
         const token = localStorage.getItem('token');
         try {
-            // PENTING: Pastikan route ini ada di api.php Laravel Anda
             const response = await fetch(`http://127.0.0.1:8000/api/orders/${id}/receive`, {
                 method: 'PUT',
                 headers: { 
@@ -130,49 +160,107 @@ export default function Orders() {
             const data = await response.json();
             
             if (response.ok) {
-                alert("Terima kasih! Pesanan selesai.");
-                fetchOrders(); // Refresh data
-            } else {
-                // Tampilkan pesan error dari backend
-                alert("Gagal: " + (data.message || "Terjadi kesalahan"));
-            }
-        } catch (error) {
-            console.error(error);
-            alert("Gagal koneksi ke server.");
-        }
-    };
-
-    const handleCancelOrder = async (id) => {
-        if(!confirm("Yakin ingin membatalkan pesanan ini?")) return;
-
-        const token = localStorage.getItem('token');
-        try {
-            const response = await fetch(`http://127.0.0.1:8000/api/orders/${id}/cancel`, {
-                method: 'PUT',
-                headers: { 
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                }
-            });
-            
-            const data = await response.json(); 
-
-            if (response.ok) {
-                alert("Pesanan berhasil dibatalkan");
+                setCustomAlert({
+                    isOpen: true,
+                    message: "Terima kasih! Pesanan selesai.",
+                    type: 'success', // Success = Toast Atas
+                    showCancel: false,
+                    confirmText: "OK"
+                });
                 fetchOrders();
             } else {
-                alert("Gagal: " + (data.message || "Terjadi kesalahan sistem"));
+                setCustomAlert({
+                    isOpen: true,
+                    message: "Gagal: " + (data.message || "Terjadi kesalahan"),
+                    type: 'error',
+                    showCancel: false,
+                    confirmText: "OK"
+                });
             }
         } catch (error) {
-            console.error(error);
-            alert("Gagal: Kesalahan koneksi ke server.");
+            setCustomAlert({
+                isOpen: true,
+                message: "Gagal koneksi ke server.",
+                type: 'error',
+                showCancel: false,
+                confirmText: "OK"
+            });
         }
     };
 
-    const handleDeleteHistory = async (id) => {
-        if(!confirm("Hapus riwayat pesanan ini? Data akan hilang permanen.")) return;
+    // --- LOGIKA BATALKAN PESANAN ---
+    const handleCancelClick = (orderId) => {
+        setCustomAlert({
+            isOpen: true,
+            message: "Yakin ingin membatalkan pesanan ini?",
+            type: 'warning',
+            showCancel: true,
+            confirmText: "Ya, Batalkan",
+            cancelText: "Kembali",
+            onConfirm: () => executeCancelOrder(orderId)
+        });
+    };
 
+    const executeCancelOrder = async (orderId) => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/orders/${orderId}/cancel`, {
+                method: 'PUT',
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setOrders(prev => prev.map(order => 
+                    order.id === orderId ? { ...order, status: 'dibatalkan' } : order
+                ));
+
+                setCustomAlert({
+                    isOpen: true,
+                    message: "Pesanan berhasil dibatalkan",
+                    type: 'success', // Success = Toast Atas
+                    showCancel: false,
+                    confirmText: "OK",
+                    onConfirm: null
+                });
+            } else {
+                setCustomAlert({
+                    isOpen: true,
+                    message: "Gagal: " + (data.message || "Terjadi kesalahan"),
+                    type: 'error',
+                    showCancel: false,
+                    confirmText: "OK"
+                });
+            }
+        } catch (error) {
+            setCustomAlert({
+                isOpen: true,
+                message: "Terjadi kesalahan koneksi.",
+                type: 'error',
+                showCancel: false,
+                confirmText: "OK"
+            });
+        }
+    };
+
+    // --- LOGIKA HAPUS RIWAYAT ---
+    const handleDeleteHistory = (id) => {
+        setCustomAlert({
+            isOpen: true,
+            message: "Hapus riwayat pesanan ini? Data akan hilang permanen.",
+            type: 'warning',
+            showCancel: true,
+            confirmText: "Ya, Hapus",
+            cancelText: "Batal",
+            onConfirm: () => executeDeleteHistory(id)
+        });
+    };
+
+    const executeDeleteHistory = async (id) => {
         const token = localStorage.getItem('token');
         try {
             const response = await fetch(`http://127.0.0.1:8000/api/orders/${id}`, { 
@@ -181,14 +269,31 @@ export default function Orders() {
             });
 
             if (response.ok) {
-                alert("Riwayat pesanan dihapus.");
                 setOrders(prevOrders => prevOrders.filter(order => order.id !== id));
+                setCustomAlert({
+                    isOpen: true,
+                    message: "Riwayat pesanan dihapus.",
+                    type: 'success', // Success = Toast Atas
+                    showCancel: false,
+                    confirmText: "OK"
+                });
             } else {
-                alert("Gagal menghapus riwayat.");
+                setCustomAlert({
+                    isOpen: true,
+                    message: "Gagal menghapus riwayat.",
+                    type: 'error',
+                    showCancel: false,
+                    confirmText: "OK"
+                });
             }
         } catch (error) {
-            console.error(error);
-            alert("Terjadi kesalahan sistem.");
+            setCustomAlert({
+                isOpen: true,
+                message: "Terjadi kesalahan sistem.",
+                type: 'error',
+                showCancel: false,
+                confirmText: "OK"
+            });
         }
     };
 
@@ -234,7 +339,13 @@ export default function Orders() {
             const data = await response.json();
 
             if (response.ok) {
-                alert("Ulasan berhasil dikirim! Terima kasih.");
+                setCustomAlert({
+                    isOpen: true,
+                    message: "Ulasan berhasil dikirim! Terima kasih.",
+                    type: 'success', // Success = Toast Atas
+                    showCancel: false,
+                    confirmText: "OK"
+                });
                 setIsRatingModalOpen(false);
             } else {
                 alert("Gagal: " + (data.message || "Terjadi kesalahan"));
@@ -301,7 +412,7 @@ export default function Orders() {
                         </Link>
                     </div>
                     <div className="flex items-center gap-6">
-                        <Link to="/keranjang" className="relative group flex items-center">
+                        <Link to="/keranjang" className="text-2xl text-gray-500 hover:text-blue-900">
                             <img 
                             src={iconKeranjang} 
                             alt="keranjang" 
@@ -512,14 +623,13 @@ export default function Orders() {
 
                                         {order.status === 'pending' && (
                                             <button 
-                                                onClick={() => handleCancelOrder(order.id)}
+                                                onClick={() => handleCancelClick(order.id)}
                                                 className="px-3 py-1 bg-white text-red-600 border border-red-200 rounded text-[10px] font-bold hover:bg-red-50 transition shadow-sm"
                                             >
                                                 Batalkan
                                             </button>
                                         )}
 
-                                        {/* --- LOGIKA BARU: TOMBOL TERIMA PESANAN (HANYA MUNCUL SAAT DIKIRIM) --- */}
                                         {order.status === 'dikirim' && (
                                             <button 
                                                 onClick={() => handleReceiveOrder(order.id)}
@@ -587,6 +697,73 @@ export default function Orders() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* --- CUSTOM POPUP & TOAST RENDERER --- */}
+            {customAlert.isOpen && (
+                <>
+                    {/* TAMPILAN 1: TOAST SUCCESS (Pojok Kanan Atas) */}
+                    {customAlert.type === 'success' ? (
+                        <div className="fixed top-24 right-4 z-[200] animate-slide-in">
+                            <div className="bg-white shadow-xl rounded-lg border-l-4 border-green-500 p-4 flex items-center gap-3 min-w-[300px]">
+                                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 flex-shrink-0">
+                                    <span className="font-bold text-lg">✓</span>
+                                </div>
+                                <div className="flex-1">
+                                    <h4 className="font-bold text-gray-800 text-sm">Berhasil!</h4>
+                                    <p className="text-gray-600 text-xs">{customAlert.message}</p>
+                                </div>
+                                <button 
+                                    onClick={() => setCustomAlert({ ...customAlert, isOpen: false })} 
+                                    className="text-gray-400 hover:text-gray-600 font-bold"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        /* TAMPILAN 2: MODAL TENGAH (Warning / Error) */
+                        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4 animate-fade-in">
+                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 text-center transform scale-100 transition-all">
+                                
+                                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 
+                                    ${customAlert.type === 'warning' ? 'bg-yellow-100 text-yellow-600' : 'bg-red-100 text-red-600'}`}>
+                                    
+                                    <span className="text-3xl font-bold">
+                                        {customAlert.type === 'warning' ? '?' : '!'}
+                                    </span>
+                                </div>
+
+                                <h3 className="text-lg font-bold text-gray-800 mb-4">
+                                    {customAlert.message}
+                                </h3>
+
+                                <div className="flex gap-3">
+                                    {customAlert.showCancel && (
+                                        <button 
+                                            onClick={() => setCustomAlert({...customAlert, isOpen: false})}
+                                            className="flex-1 py-2.5 rounded-xl font-bold text-gray-600 border border-gray-300 hover:bg-gray-100 transition shadow-sm"
+                                        >
+                                            {customAlert.cancelText}
+                                        </button>
+                                    )}
+                                    
+                                    <button 
+                                        onClick={() => {
+                                            setCustomAlert({...customAlert, isOpen: false});
+                                            if(customAlert.onConfirm) customAlert.onConfirm();
+                                        }}
+                                        className={`flex-1 py-2.5 rounded-xl font-bold text-white transition shadow-lg 
+                                            ${customAlert.type === 'warning' ? 'bg-red-500 hover:bg-red-600' : 
+                                              'bg-blue-600 hover:bg-blue-700'}`}
+                                    >
+                                        {customAlert.confirmText}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </>
             )}
 
             <ChatBox 

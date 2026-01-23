@@ -39,9 +39,21 @@ export default function Profile() {
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    
+    // --- STATE TOAST BARU ---
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' }); // success or error
+
     const fileInputRef = useRef(null);
 
     useEffect(() => { fetchProfile(); }, []);
+
+    // --- EFFECT AUTO-CLOSE TOAST ---
+    useEffect(() => {
+        if (toast.show) {
+            const timer = setTimeout(() => setToast({ ...toast, show: false }), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [toast.show]);
 
     const fetchProfile = async () => {
         const token = localStorage.getItem('token');
@@ -88,14 +100,19 @@ export default function Profile() {
             });
             const data = await response.json();
             if (response.ok) {
-                alert("Profil berhasil diperbarui.");
+                // --- GANTI ALERT DENGAN TOAST ---
+                setToast({ show: true, message: "Profil berhasil diperbarui.", type: 'success' });
+                
                 setIsEditing(false);
                 setPhotoFile(null); 
                 fetchProfile(); 
             } else {
-                alert("Gagal: " + (data.message || "Terjadi kesalahan"));
+                setToast({ show: true, message: "Gagal: " + (data.message || "Terjadi kesalahan"), type: 'error' });
             }
-        } catch (error) { console.error(error); alert("Kesalahan koneksi"); } 
+        } catch (error) { 
+            console.error(error); 
+            setToast({ show: true, message: "Kesalahan koneksi", type: 'error' });
+        } 
         finally { setIsSaving(false); }
     };
 
@@ -108,7 +125,7 @@ export default function Profile() {
     if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-slate-800"></div></div>;
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans pb-20">
+        <div className="min-h-screen bg-slate-50 font-sans pb-20 relative">
             
             {/* --- TOP HEADER --- */}
             <div className="bg-white border-b border-slate-200 sticky top-0 z-40">
@@ -169,18 +186,14 @@ export default function Profile() {
                                 {user.role}
                             </span>
 
-                            {/* --- INFO META (DIPERBAIKI) --- */}
+                            {/* --- INFO META --- */}
                             <div className="w-full border-t border-slate-100 pt-4 space-y-3">
-                                
-                                {/* Bergabung */}
                                 <div className="flex justify-between text-xs">
                                     <span className="text-slate-400">Bergabung</span>
                                     <span className="text-slate-700 font-medium">
                                         {new Date(user.created_at).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })}
                                     </span>
                                 </div>
-
-                                {/* Terakhir Update (Selalu Muncul jika updated_at ada) */}
                                 {user.updated_at && (
                                     <div className="flex justify-between text-xs">
                                         <span className="text-slate-400">Terakhir Edit</span>
@@ -189,8 +202,6 @@ export default function Profile() {
                                         </span>
                                     </div>
                                 )}
-
-                                {/* Diupdate Oleh (Muncul hanya jika updater ada) */}
                                 {user.updater && (
                                     <div className="flex justify-between text-xs">
                                         <span className="text-slate-400">Oleh</span>
@@ -198,8 +209,6 @@ export default function Profile() {
                                     </div>
                                 )}
                             </div>
-                            {/* ------------------------------- */}
-
                         </div>
                     </div>
 
@@ -256,7 +265,6 @@ export default function Profile() {
                                     </div>
                                 </div>
 
-                                {/* --- TAMBAHAN BARU: BIO, JENIS KELAMIN, TANGGAL LAHIR --- */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4 border-t border-slate-100">
                                     <div>
                                         <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">Jenis Kelamin</label>
@@ -289,7 +297,6 @@ export default function Profile() {
                                         ></textarea>
                                     </div>
                                 </div>
-                                {/* ----------------------------------------------------- */}
 
                                 <div className="pt-4 border-t border-slate-100">
                                     <h4 className="text-sm font-bold text-slate-700 mb-4">Data Akademik</h4>
@@ -346,6 +353,37 @@ export default function Profile() {
 
                 </div>
             </div>
+
+            {/* --- TOAST NOTIFICATION (POJOK KANAN ATAS) --- */}
+            {toast.show && (
+                <div className="fixed top-24 right-4 z-50 animate-fade-in-down">
+                    <div className={`shadow-lg rounded-lg border-l-4 p-4 flex items-center gap-3 min-w-[300px] bg-white
+                        ${toast.type === 'success' ? 'border-green-500' : 'border-red-500'}`}>
+                        
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                            ${toast.type === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                            <span className="font-bold text-lg">
+                                {toast.type === 'success' ? '✓' : '!'}
+                            </span>
+                        </div>
+                        
+                        <div className="flex-1">
+                            <h4 className="font-bold text-gray-800 text-sm">
+                                {toast.type === 'success' ? 'Berhasil!' : 'Gagal!'}
+                            </h4>
+                            <p className="text-gray-600 text-xs">{toast.message}</p>
+                        </div>
+                        
+                        <button 
+                            onClick={() => setToast({ ...toast, show: false })} 
+                            className="text-gray-400 hover:text-gray-600 font-bold"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }
