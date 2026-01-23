@@ -30,6 +30,7 @@ export default function Profile() {
     const [user, setUser] = useState({
         name: '', email: '', phone: '', address: '', role: '',
         profile_photo: null, npm: '', prodi: '', fakultas: '',
+        bio: '', jenis_kelamin: '', tanggal_lahir: '',
         created_at: '', updated_at: '', updater: null
     });
     
@@ -75,7 +76,7 @@ export default function Profile() {
         const token = localStorage.getItem('token');
         const formData = new FormData();
         
-        ['name', 'phone', 'address', 'npm', 'prodi', 'fakultas'].forEach(key => formData.append(key, user[key] || ''));
+        ['name', 'phone', 'address', 'npm', 'prodi', 'fakultas', 'bio', 'jenis_kelamin', 'tanggal_lahir'].forEach(key => formData.append(key, user[key] || ''));
         formData.append('_method', 'PUT'); 
         if (photoFile) formData.append('profile_photo', photoFile);
 
@@ -254,6 +255,41 @@ export default function Profile() {
                                         />
                                     </div>
                                 </div>
+
+                                {/* --- TAMBAHAN BARU: BIO, JENIS KELAMIN, TANGGAL LAHIR --- */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4 border-t border-slate-100">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">Jenis Kelamin</label>
+                                        {isEditing ? (
+                                            <select name="jenis_kelamin" value={user.jenis_kelamin || ''} onChange={handleChange} className="w-full px-4 py-2.5 rounded-lg text-sm border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none">
+                                                <option value="">- Pilih -</option>
+                                                <option value="Laki-laki">Laki-laki</option>
+                                                <option value="Perempuan">Perempuan</option>
+                                            </select>
+                                        ) : (
+                                            <div className="w-full px-4 py-2.5 rounded-lg text-sm border border-transparent bg-slate-50 text-slate-800 font-medium">
+                                                {user.jenis_kelamin || '-'}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">Tanggal Lahir</label>
+                                        <input 
+                                            type="date" name="tanggal_lahir" value={user.tanggal_lahir || ''} onChange={handleChange} disabled={!isEditing}
+                                            className={`w-full px-4 py-2.5 rounded-lg text-sm border transition
+                                                ${isEditing ? 'border-slate-300 bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500' : 'border-transparent bg-slate-50 text-slate-800 font-medium'}`}
+                                        />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">Bio</label>
+                                        <textarea 
+                                            name="bio" rows="3" value={user.bio || ''} onChange={handleChange} disabled={!isEditing} placeholder="Ceritakan sedikit tentang Anda..."
+                                            className={`w-full px-4 py-3 rounded-lg text-sm border transition resize-none
+                                                ${isEditing ? 'border-slate-300 bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500' : 'border-transparent bg-slate-50 text-slate-800 font-medium'}`}
+                                        ></textarea>
+                                    </div>
+                                </div>
+                                {/* ----------------------------------------------------- */}
 
                                 <div className="pt-4 border-t border-slate-100">
                                     <h4 className="text-sm font-bold text-slate-700 mb-4">Data Akademik</h4>

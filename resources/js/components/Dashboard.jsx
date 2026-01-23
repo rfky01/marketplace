@@ -53,39 +53,56 @@ export default function Dashboard() {
             const response = await fetch('http://127.0.0.1:8000/api/produk');
             const data = await response.json();
             if (data.success) {
-                setProducts(data.data);
+                // Pastikan data adalah array sebelum diset
+                setProducts(Array.isArray(data.data) ? data.data : []);
             }
         } catch (error) {
             console.error("Error fetching products:", error);
+            setProducts([]); // Set array kosong jika error agar tidak crash
         }
     };
 
-    // --- LOGIKA FILTER + SORTIR PRODUK ---
+    // --- LOGIKA FILTER + SORTIR PRODUK (DIPERBAIKI) ---
     const getProcessedProducts = () => {
+        // Cek jika products belum siap atau bukan array
+        if (!products || !Array.isArray(products)) return [];
+
         // 1. Filter (Search & Kategori)
         let result = products.filter((product) => {
-            const matchSearch = searchTerm === "" || 
-                product.nama_barang.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                product.kategori.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchCategory = selectedCategory === "" || product.kategori === selectedCategory;
+            // PENGAMAN EKSTRA: Pastikan product tidak null
+            if (!product) return false;
+
+            // Ambil nilai string aman (jika null, jadi string kosong)
+            const pName = (product.nama_barang || "").toLowerCase();
+            const pCat = (product.kategori || "").toLowerCase();
+            const sTerm = (searchTerm || "").toLowerCase();
+            const sCat = selectedCategory || "";
+
+            const matchSearch = sTerm === "" || pName.includes(sTerm) || pCat.includes(sTerm);
+            const matchCategory = sCat === "" || product.kategori === sCat;
+            
             return matchSearch && matchCategory;
         });
 
         // 2. Sortir (Harga)
         if (sortOrder === 'lowest') {
-            result.sort((a, b) => a.harga_barang - b.harga_barang);
+            result.sort((a, b) => (a.harga_barang || 0) - (b.harga_barang || 0));
         } else if (sortOrder === 'highest') {
-            result.sort((a, b) => b.harga_barang - a.harga_barang);
+            result.sort((a, b) => (b.harga_barang || 0) - (a.harga_barang || 0));
         }
 
         return result;
     };
 
     const processedProducts = getProcessedProducts();
-    const uniqueCategories = [...new Set(products.map(p => p.kategori))];
+    
+    // Ambil kategori unik dengan aman
+    const uniqueCategories = products && Array.isArray(products) 
+        ? [...new Set(products.map(p => p.kategori).filter(k => k))] // filter(k => k) membuang kategori null/undefined
+        : [];
 
     const executeOpenShop = async () => {
-        setIsShopLoading(true); // Mulai Loading
+        setIsShopLoading(true); 
         const token = localStorage.getItem('token');
         
         try {
@@ -96,13 +113,12 @@ export default function Dashboard() {
             const data = await response.json();
             
             if (response.ok) {
-                // Update data user di local storage dan state
                 const updatedUser = { ...user, role: 'penjual' };
                 localStorage.setItem('user', JSON.stringify(updatedUser));
                 setUser(updatedUser);
                 
                 setIsShopLoading(false);
-                setShowShopModal(false); // Tutup Modal
+                setShowShopModal(false); 
                 alert("Selamat! Toko Anda aktif. Silakan mulai upload produk.");
             } else { 
                 setIsShopLoading(false);
@@ -122,6 +138,8 @@ export default function Dashboard() {
     };
 
     const formatRupiah = (number) => {
+        // Pengaman jika number null/undefined
+        if (number === null || number === undefined) return "Rp 0";
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
             currency: 'IDR',
@@ -153,7 +171,6 @@ export default function Dashboard() {
                         <div className="hidden md:flex items-center bg-gray-100 rounded-lg px-3 py-2 w-[400px] border border-gray-200 focus-within:border-blue-900 transition">
                             
                             <img src={iconSearch} alt="Search" className="w-8 h-8 object-contain opacity-50 mr-2" />
-                            {/* -------------------------------------- */}
                             
                             <input 
                                 type="text" 
@@ -163,9 +180,7 @@ export default function Dashboard() {
                                 onChange={(e) => setSearchTerm(e.target.value)} 
                             />
                             {searchTerm && (
-                                <button onClick={() => setSearchTerm('')} className="text-gray-400 hover:text-gray-600 text-xs font-bold px-2">✕
-                                <img src={searchIconImg} alt="Search" className="w-5 h-5" />
-                                </button>
+                                <button onClick={() => setSearchTerm('')} className="text-gray-400 hover:text-gray-600 text-xs font-bold px-2">✕</button>
                             )}
                             <div className="h-5 w-px bg-gray-300 mx-2"></div>
                             <select 
@@ -180,7 +195,7 @@ export default function Dashboard() {
                             </select>
                         </div>
 
-                        {/* --- DROPDOWN SORTIR HARGA (DIPERKECIL) --- */}
+                        {/* --- DROPDOWN SORTIR HARGA --- */}
                         <div className="hidden md:block">
                             <select 
                                 className="bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg py-2 px-2 w-28 outline-none focus:border-blue-900 transition cursor-pointer hover:bg-gray-50"
@@ -192,7 +207,6 @@ export default function Dashboard() {
                                 <option value="highest">Termahal</option>
                             </select>
                         </div>
-                        {/* ----------------------------------------- */}
 
                     </div>
 
@@ -252,13 +266,13 @@ export default function Dashboard() {
                                                 <div className="w-10 h-10 rounded-full overflow-hidden border border-blue-100 bg-white shadow-sm flex-shrink-0">
                                                     {getProfilePhoto() ? (
                                                         <img 
-                                                            src={getProfilePhoto()} 
-                                                            alt="Profile" 
-                                                            className="w-full h-full object-cover"
+                                                                src={getProfilePhoto()} 
+                                                                alt="Profile" 
+                                                                className="w-full h-full object-cover"
                                                         />
                                                     ) : (
                                                         <div className="w-full h-full bg-blue-200 flex items-center justify-center text-blue-900 font-bold text-lg">
-                                                            {user.name.charAt(0).toUpperCase()}
+                                                                {user.name.charAt(0).toUpperCase()}
                                                         </div>
                                                     )}
                                                 </div>

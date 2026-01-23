@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import iconPesan from './asset/pesan.png'
 import iconKeranjang from './asset/keranjang.png'
+import ChatBox from './ChatBox';
 
 export default function ProductDetail() {
     const { id } = useParams();
@@ -19,6 +20,9 @@ export default function ProductDetail() {
     // STATE MODAL
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
     const [isCartModalOpen, setIsCartModalOpen] = useState(false);
+
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [chatTarget, setChatTarget] = useState({ id: null, name: '' });
 
     const [isDescExpanded, setIsDescExpanded] = useState(false);
 
@@ -46,7 +50,7 @@ export default function ProductDetail() {
             .then(data => {
                 if(data.success) {
                     setProduct(data.data);
-                    // Set foto pertama sebagai main image default
+                    // Set foto pertama sebagai mainImage default
                     if (Array.isArray(data.data.foto_barang) && data.data.foto_barang.length > 0) {
                         setMainImage(data.data.foto_barang[0]);
                     }
@@ -56,7 +60,45 @@ export default function ProductDetail() {
         const token = localStorage.getItem('token');
         const userData = localStorage.getItem('user');
 
-        if (userData) setUser(JSON.parse(userData));
+        // 1. AMBIL DATA DARI LOCAL STORAGE & ISI FORM OTOMATIS
+        if (userData) {
+            const parsedUser = JSON.parse(userData);
+            setUser(parsedUser);
+            
+            // --- LOGIKA AUTOFILL (DARI LOCAL STORAGE) ---
+            setCheckoutForm(prev => ({
+                ...prev,
+                // Prioritas: data phone di user -> data lama di form
+                telepon: parsedUser.phone || parsedUser.telepon || parsedUser.no_hp || '',
+                alamat:''
+            }));
+        }
+
+        // 2. FETCH DATA USER TERBARU DARI API (UNTUK UPDATE JIKA ADA PERUBAHAN)
+        const fetchLatestUser = async () => {
+            if(!token) return;
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/user', {
+                    headers: { Authorization: `Bearer ${token}`, 'Accept': 'application/json' }
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    setUser(data);
+                    localStorage.setItem('user', JSON.stringify(data));
+                    
+                    // --- LOGIKA AUTOFILL (DARI API TERBARU) ---
+                    setCheckoutForm(prev => ({
+                        ...prev,
+                        telepon: data.phone || data.telepon || data.no_hp || '',
+                        alamat:''
+                    }));
+                }
+            } catch (error) {
+                console.error("Gagal refresh data user:", error);
+            }
+        };
+        fetchLatestUser();
 
         fetchProduct();
 
@@ -89,6 +131,20 @@ export default function ProductDetail() {
         } finally {
             setLoading(false);
         }
+    };
+
+    // --- FUNGSI BUKA CHAT ---
+    const openChat = (sellerId, sellerName) => {
+        const token = localStorage.getItem('token');
+        if (!token) return navigate('/login');
+        
+        if (user.id === sellerId) {
+            alert("Ini produk Anda sendiri.");
+            return;
+        }
+
+        setChatTarget({ id: sellerId, name: sellerName });
+        setIsChatOpen(true);
     };
 
     const handleOpenCartModal = () => {
@@ -413,8 +469,10 @@ export default function ProductDetail() {
 
                             {/* Penjual */}
                             <div className="border-t border-gray-100 pt-6 mt-auto">
-                                <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                                    {/* Foto Profil Penjual */}
+                                <Link 
+                                    to={`/profile/${product.user?.id}`} 
+                                    className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100 hover:bg-blue-50 transition cursor-pointer decoration-none"
+                                >
                                     <div className="w-12 h-12 bg-white rounded-full overflow-hidden border border-gray-200 flex-shrink-0 shadow-sm">
                                         {product.user?.profile_photo ? (
                                             <img src={`http://127.0.0.1:8000/storage/${product.user.profile_photo}`} alt={product.user?.name} className="w-full h-full object-cover"/>
@@ -423,14 +481,22 @@ export default function ProductDetail() {
                                         )}
                                     </div>
                                     
-                                    {/* Nama Penjual */}
                                     <div>
                                         <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-0.5">Penjual</p>
                                         <p className="text-base font-bold text-gray-800">{product.user?.name || "Official Store"}</p>
                                     </div>
-                                </div>
+                                </Link>
+                                {/* KANAN: Tombol Chat (Hanya muncul jika bukan barang sendiri) */}
+                                    {user.id !== product.user?.id && (
+                                        <button 
+                                            onClick={() => openChat(product.user?.id, product.user?.name)}
+                                            className="flex items-center gap-2 px-4 py-2 bg-white border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition shadow-sm font-bold text-sm"
+                                        >
+                                            <img src={iconPesan} alt="Chat" className="w-5 h-5 object-contain" />
+                                            Chat Penjual
+                                        </button>
+                                    )}
                             </div>
-
                         </div>
                     </div>
                 </div>
@@ -550,7 +616,8 @@ export default function ProductDetail() {
                                     <input 
                                         type="tel" 
                                         inputMode="numeric"
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition" 
+                                        readOnly
+                                        className="w-full border border-gray-200 bg-gray-100 text-gray-500 rounded-lg px-3 py-2 cursor-not-allowed outline-none" 
                                         placeholder="08xx..."
                                         value={checkoutForm.telepon} 
                                         onChange={(e) => setCheckoutForm({...checkoutForm, telepon: e.target.value})} 
@@ -566,7 +633,7 @@ export default function ProductDetail() {
                                 </div>
                             </div>
                             <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Alamat Pengiriman</label><textarea className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition h-24 resize-none" 
-                            placeholder="Masukkan alamat lengkap..."
+                            placeholder="Masukkan Spesifik Tempat: Ruang A, Ruang B, ..."
                             value={checkoutForm.alamat} 
                             onChange={(e) => setCheckoutForm({...checkoutForm, alamat: e.target.value})}></textarea></div>
                             <div className="grid grid-cols-2 gap-4">
@@ -630,6 +697,14 @@ export default function ProductDetail() {
                     </div>
                 </div>
             )}
+
+            {/* --- KOMPONEN CHAT --- */}
+            <ChatBox 
+                isOpen={isChatOpen} 
+                onClose={() => setIsChatOpen(false)} 
+                receiverId={chatTarget.id} 
+                receiverName={chatTarget.name} 
+            />
 
         </div>
     );

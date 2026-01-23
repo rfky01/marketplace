@@ -32,7 +32,10 @@ class AuthController extends Controller
         'npm' => 'nullable|string|max:20', 
         'prodi' => 'nullable|string|max:100',  
         'fakultas' => 'nullable|string|max:100',
-        'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Validasi foto
+        'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        'bio' => 'nullable|string',
+        'jenis_kelamin' => 'nullable|in:Laki-laki,Perempuan',
+        'tanggal_lahir' => 'nullable|date',
     ]);
 
     // Data yang akan diupdate
@@ -43,6 +46,9 @@ class AuthController extends Controller
         'npm' => $request->npm, 
         'prodi' => $request->prodi,   
         'fakultas' => $request->fakultas,
+        'bio' => $request->bio,
+        'jenis_kelamin' => $request->jenis_kelamin,
+        'tanggal_lahir' => $request->tanggal_lahir,
     ];
 
     // Cek jika ada upload foto

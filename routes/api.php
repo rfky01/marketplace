@@ -11,6 +11,7 @@ use App\Http\Controllers\RiviewController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\Api\SellerOrderController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\ProfileController;
 
 /*
 |--------------------------------------------------------------------------
@@ -95,5 +96,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/profile', [App\Http\Controllers\AuthController::class, 'getUserProfile']);
     Route::put('/profile', [App\Http\Controllers\AuthController::class, 'updateUserProfile']);
+
+    Route::get('/user/{id}/public-profile', [ProfileController::class, 'showPublicProfile']);
 
 });

@@ -30,6 +30,9 @@ class User extends Authenticatable
         'npm', 
         'prodi',  
         'fakultas',
+        'bio', 
+        'jenis_kelamin', 
+        'tanggal_lahir',
         'updated_by',
         ];
 

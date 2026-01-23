@@ -45,6 +45,42 @@ export default function Orders() {
 
         if (userData) setUser(JSON.parse(userData));
 
+        const fetchUserData = async () => {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/user', {
+                    headers: { 
+                        Authorization: `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    setUser(data);
+                    localStorage.setItem('user', JSON.stringify(data));
+                }
+            } catch (error) {
+                console.error("Gagal refresh user:", error);
+            }
+        };
+
+        const fetchOrders = async () => {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/orders', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    setOrders(data.data);
+                }
+            } catch (error) {
+                console.error("Error fetching orders:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUserData();
         fetchOrders();
 
         function handleClickOutside(event) {
@@ -215,6 +251,16 @@ export default function Orders() {
         navigate('/login');
     };
 
+    const getProfilePhoto = () => {
+        if (user.profile_photo) {
+            if (user.profile_photo.startsWith('http')) {
+                return user.profile_photo;
+            }
+            return `http://127.0.0.1:8000/storage/${user.profile_photo}`;
+        }
+        return null;
+    };
+
     const getProductImage = (produk) => {
         if (!produk) return "https://via.placeholder.com/150";
         if (Array.isArray(produk.foto_barang) && produk.foto_barang.length > 0) {
@@ -266,19 +312,70 @@ export default function Orders() {
                             <span className="mr-1 text-lg"></span>Dashboard
                         </Link>
                         <div className="relative" ref={dropdownRef}>
-                            <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition">
-                                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold text-gray-600">{user.name?.charAt(0).toUpperCase()}</div>
-                                <div className="text-left hidden sm:block">
-                                    <p className="text-xs text-gray-500">Halo,</p>
-                                    <p className="text-sm font-bold text-gray-800 max-w-[100px] truncate">{user.name}</p>
-                                </div>
-                            </button>
-                            {isDropdownOpen && (
-                                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 p-2 z-50">
-                                    <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-red-500 hover:bg-red-50 rounded-md text-sm font-bold">Keluar</button>
-                                </div>
-                            )}
-                        </div>
+                                <button 
+                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    className="flex items-center gap-3 hover:bg-gray-100 p-2 rounded-lg transition border border-transparent hover:border-gray-200"
+                                >
+                                    <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-blue-100 bg-gray-200">
+                                        {getProfilePhoto() ? (
+                                            <img 
+                                                src={getProfilePhoto()} 
+                                                alt="Profile" 
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-blue-600 font-bold text-lg bg-blue-50">
+                                                {user.name?.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="text-left hidden sm:block">
+                                        <p className="text-xs text-gray-500 font-medium">Halo,</p>
+                                        <p className="text-sm font-bold text-gray-800 max-w-[120px] truncate">{user.name}</p>
+                                    </div>
+                                </button>
+
+                                {isDropdownOpen && (
+                                    <div className="absolute right-0 top-full mt-3 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden animate-fade-in-down">
+                                        {/* Header Dropdown */}
+                                        <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-white">
+                                                {getProfilePhoto() ? (
+                                                    <img src={getProfilePhoto()} alt="Profile" className="w-full h-full object-cover"/>
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-blue-600 font-bold bg-blue-50">
+                                                        {user.name?.charAt(0).toUpperCase()}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="overflow-hidden">
+                                                <p className="text-sm font-bold text-gray-800 truncate">{user.name}</p>
+                                                <p className="text-xs text-gray-500">Pembeli</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Menu Items */}
+                                        <div className="py-2">
+                                            <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">
+                                                Edit Profil
+                                            </Link>
+                                            <Link to="/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">
+                                                Riwayat Pesanan
+                                            </Link>
+                                        </div>
+
+                                        {/* Logout */}
+                                        <div className="border-t border-gray-100 mt-1 pt-1">
+                                            <button 
+                                                onClick={handleLogout} 
+                                                className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition"
+                                            >
+                                                Keluar
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                     </div>
                 </div>
             </nav>

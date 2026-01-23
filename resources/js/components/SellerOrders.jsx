@@ -41,6 +41,26 @@ export default function SellerOrders() {
 
         if (userData) setUser(JSON.parse(userData));
 
+        const fetchUserData = async () => {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/user', { // Pastikan endpoint ini benar di Laravel
+                    headers: { 
+                        Authorization: `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    setUser(data); // Update state dengan data terbaru (termasuk foto)
+                    localStorage.setItem('user', JSON.stringify(data)); // Update simpanan di browser
+                }
+            } catch (error) {
+                console.error("Gagal refresh data user:", error);
+            }
+        };
+
+        fetchUserData();
         fetchSellerOrders();
 
         function handleClickOutside(event) {
@@ -87,18 +107,26 @@ export default function SellerOrders() {
     };
 
     // --- FUNGSI KIRIM WA (SUDAH DIPERBAIKI) ---
-    const sendWhatsappFonnte = async (targetPhone, customerName, invoice, estimasiKirim, alamatPenerima) => {
-        const token = "AL6yaCjsccosjGvVMPpA"; // <--- PASTIKAN TOKEN INI BENAR
+    const sendWhatsappFonnte = async (targetPhone, customerName, invoice, estimasiKirim, alamatPenerima, totalHarga, metodeBayar) => {
+        const token = "PzkJf4FzoSnZy5ATt9gN"; 
 
         if (!targetPhone) {
             console.log("Nomor telepon tidak tersedia untuk Fonnte.");
             return;
         }
 
-        // Format waktu agar lebih cantik di WA
         const waktuCantik = formatDateTimeIndo(estimasiKirim);
+        
+        // Format harga jadi Rupiah jika belum
+        const hargaCantik = typeof totalHarga === 'number' ? formatRupiah(totalHarga) : totalHarga;
 
-        const message = `Halo Kak ${customerName},\n\nPesanan Anda dengan invoice *${invoice}* telah kami *TERIMA* dan sedang dalam proses pengemasan.\n\n⏰ *Rencana Pengiriman:*\n👉 ${waktuCantik}\n\n📍 *Alamat Tujuan:*\n${alamatPenerima}\n\nTerima kasih telah berbelanja di MarketplacePlus!`;
+        const message = `Halo Kak ${customerName},\n\n` +
+            `Pesanan Anda dengan invoice *${invoice}* telah kami *TERIMA* dan sedang dalam proses pengemasan.\n\n` +
+            `💰 *Total Pesanan:* ${hargaCantik}\n` +  // <--- TOTAL HARGA DITAMBAHKAN
+            `💳 *Metode Pembayaran:* ${metodeBayar}\n` +
+            `⏰ *Estimasi Tiba:*\n  ${waktuCantik}\n\n` +
+            `📍 *Alamat Tujuan:*\n${alamatPenerima}\n\n` + 
+            `Terima kasih telah berbelanja di MarketplacePlus!`;
 
         const formData = new FormData();
         formData.append("target", targetPhone);
@@ -125,9 +153,6 @@ export default function SellerOrders() {
 
         const token = localStorage.getItem('token');
         
-        // LOGIKA PERBAIKAN: 
-        // Jika status 'dibatalkan', gunakan route cancel yang sama dengan pembeli.
-        // Jika status lain (dikirim/selesai), gunakan route update seller biasa.
         const url = newStatus === 'dibatalkan' 
             ? `http://127.0.0.1:8000/api/orders/${item.id}/cancel`
             : `http://127.0.0.1:8000/api/seller/orders/${item.id}`;
@@ -199,9 +224,11 @@ export default function SellerOrders() {
                 const name = selectedOrder.pesanan?.nama_penerima || "Pembeli";
                 const inv = selectedOrder.pesanan?.invoice_code || "-";
                 const address = selectedOrder.pesanan?.alamat_pengiriman || "Alamat tidak tersedia";
-                
+                const total = selectedOrder.pesanan?.grand_total || (selectedOrder.jumlah * selectedOrder.harga_satuan);
+                const paymentMethod = selectedOrder.pesanan?.metode_pembayaran || "-";
+
                 // Panggil fungsi kirim WA
-                sendWhatsappFonnte(phone, name, inv, deliveryTime, address); 
+                sendWhatsappFonnte(phone, name, inv, deliveryTime, address, total, paymentMethod); 
                 // -------------------------------------------------------------
 
                 fetchSellerOrders();
@@ -246,6 +273,29 @@ export default function SellerOrders() {
         localStorage.removeItem('user');
         navigate('/login');
     };
+
+    const getProfilePhoto = () => {
+        if (user.profile_photo) {
+            // Cek apakah sudah full URL atau masih path relative
+            if (user.profile_photo.startsWith('http')) {
+                return user.profile_photo;
+            }
+            return `http://127.0.0.1:8000/storage/${user.profile_photo}`;
+        }
+        return null;
+    };
+
+    // --- (FUNGSI INI YANG SEBELUMNYA HILANG) ---
+    const getBuyerPhoto = (buyerData) => {
+        if (buyerData && buyerData.profile_photo) {
+            if (buyerData.profile_photo.startsWith('http')) {
+                return buyerData.profile_photo;
+            }
+            return `http://127.0.0.1:8000/storage/${buyerData.profile_photo}`;
+        }
+        return null;
+    };
+    // ---------------------------------------------
 
     // --- HELPER GAMBAR (INI SAYA TAMBAHKAN AGAR GAMBAR MUNCUL) ---
     const getProductImage = (product) => {
@@ -312,17 +362,70 @@ export default function SellerOrders() {
                         <Link to="/" className="text-gray-500 hover:text-blue-600 font-medium px-4 py-2 transition decoration-none">
                             Dashboard
                         </Link>
+                        {/* --- PROFILE DROPDOWN --- */}
                         <div className="relative" ref={dropdownRef}>
-                            <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition">
-                                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold text-gray-600">{user.name?.charAt(0).toUpperCase()}</div>
+                            <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition border border-transparent hover:border-gray-200">
+                                {/* FOTO PROFIL (NAVBAR) */}
+                                <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-200 bg-gray-200">
+                                    {getProfilePhoto() ? (
+                                        <img 
+                                            src={getProfilePhoto()} 
+                                            alt="Profile" 
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-sm font-bold text-gray-600">
+                                            {user.name?.charAt(0).toUpperCase()}
+                                        </div>
+                                    )}
+                                </div>
+                                
                                 <div className="text-left hidden sm:block">
                                     <p className="text-xs text-gray-500">Halo,</p>
                                     <p className="text-sm font-bold text-gray-800 max-w-[100px] truncate">{user.name}</p>
                                 </div>
                             </button>
+
+                            {/* DROPDOWN MENU */}
                             {isDropdownOpen && (
-                                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 p-2 z-50">
-                                    <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-red-500 hover:bg-red-50 rounded-md text-sm font-bold">🚪 Keluar</button>
+                                <div className="absolute right-0 top-full mt-3 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden animate-fade-in-down">
+                                    
+                                    {/* HEADER DROPDOWN (FOTO BESAR + NAMA) */}
+                                    <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-white">
+                                            {getProfilePhoto() ? (
+                                                <img 
+                                                    src={getProfilePhoto()} 
+                                                    alt="Profile" 
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-blue-600 font-bold bg-blue-50">
+                                                    {user.name?.charAt(0).toUpperCase()}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="overflow-hidden">
+                                            <p className="text-sm font-bold text-gray-800 truncate">{user.name}</p>
+                                            <p className="text-xs text-blue-600 font-medium bg-blue-100 px-2 py-0.5 rounded-full inline-block">Penjual</p>
+                                        </div>
+                                    </div>
+
+                                    {/* MENU ITEMS */}
+                                    <div className="py-2">
+                                        <Link to="/my-products" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">
+                                            Toko Saya
+                                        </Link>
+                                        <Link to="/seller-orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">
+                                            Daftar Pesanan
+                                        </Link>
+                                    </div>
+
+                                    <div className="border-t border-gray-100 mt-1 pt-1">
+                                        <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition">
+                                            Keluar
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -359,6 +462,7 @@ export default function SellerOrders() {
                         {sellerOrders.map((item) => {
                             const currentStatus = item.pesanan?.status || 'pending';
                             const isCancelled = currentStatus.includes('dibatalkan') || currentStatus.includes('cancel');
+                            const buyerData = item.pesanan?.user; // Data Pembeli dari Pesanan
 
                             return (
                                 <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition">
@@ -366,12 +470,31 @@ export default function SellerOrders() {
                                     {/* Header Card */}
                                     <div className="bg-gray-50 px-6 py-3 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">👤</div>
+                                            {/* --- FOTO PROFIL PEMBELI (DI UPDATE DISINI) --- */}
+                                            {/* --- LINK KE PROFILE USER --- */}
+                                            {/* Foto Profil Pembeli */}
+                                            <Link to={`/profile/${buyerData?.id}`} className="group relative">
+                                                <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-200 bg-white group-hover:ring-2 ring-blue-400 transition">
+                                                    {getBuyerPhoto(buyerData) ? (
+                                                        <img 
+                                                            src={getBuyerPhoto(buyerData)} 
+                                                            alt="Pembeli" 
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-blue-600 font-bold bg-blue-50 text-sm">
+                                                            {item.pesanan?.nama_penerima?.charAt(0).toUpperCase() || '👤'}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </Link>
+
+                                            {/* Nama Pembeli */}
                                             <div>
-                                                <p className="text-sm font-bold text-gray-800">
+                                                <Link to={`/profile/${buyerData?.id}`} className="text-sm font-bold text-gray-800 hover:text-blue-600 hover:underline transition">
                                                     {item.pesanan?.nama_penerima || "Pembeli"} 
-                                                    <span className="text-gray-400 font-normal ml-2 text-xs">({formatDate(item.created_at)})</span>
-                                                </p>
+                                                </Link>
+                                                <span className="text-gray-400 font-normal ml-2 text-xs">({formatDate(item.created_at)})</span>
                                                 <p className="text-xs text-gray-500">{item.pesanan?.invoice_code}</p>
                                             </div>
                                         </div>
@@ -392,7 +515,6 @@ export default function SellerOrders() {
                                             {/* 1. PRODUK (KIRI) */}
                                             <div className="flex gap-4 flex-1">
                                                 <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
-                                                    {/* --- MENGGUNAKAN HELPER getProductImage DI SINI --- */}
                                                     <img 
                                                         src={getProductImage(item.produk)} 
                                                         alt={item.produk?.nama_barang} 
@@ -459,7 +581,6 @@ export default function SellerOrders() {
                                                     </button>
                                                 )}
                                                 
-                                                {/* --- LOGIKA BARU: PENJUAL TIDAK BISA KLIK SELESAI, HANYA MENUNGGU --- */}
                                                 {currentStatus === 'dikirim' && (
                                                     <div className="w-full py-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg font-bold text-xs text-center cursor-default">
                                                         ⏳ Menunggu Konfirmasi Pembeli
@@ -477,7 +598,6 @@ export default function SellerOrders() {
                                                     </div>
                                                 )}
                                             </div>
-
                                         </div>
                                     </div>
                                     
@@ -489,44 +609,42 @@ export default function SellerOrders() {
             </div>
 
             {/* --- POPUP MODAL ATUR JADWAL PENGIRIMAN --- */}
-            {isAcceptModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                            <h3 className="text-lg font-bold text-gray-800">Atur Jadwal Pengiriman</h3>
-                            <button onClick={() => setIsAcceptModalOpen(false)} className="text-gray-400 hover:text-gray-600 font-bold text-xl">✕</button>
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 animate-fade-in" style={{ display: isAcceptModalOpen ? 'flex' : 'none' }}>
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
+                    <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                        <h3 className="text-lg font-bold text-gray-800">Atur Jadwal Pengiriman</h3>
+                        <button onClick={() => setIsAcceptModalOpen(false)} className="text-gray-400 hover:text-gray-600 font-bold text-xl">✕</button>
+                    </div>
+                    <div className="p-6">
+                        <div className="mb-4">
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Kapan barang akan dikirim?</label>
+                            <input 
+                                type="datetime-local" 
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                                value={deliveryTime}
+                                onChange={(e) => setDeliveryTime(e.target.value)}
+                            />
+                            <p className="text-xs text-gray-500 mt-2">
+                                Masukkan estimasi waktu Anda mengirim barang ke kurir/pembeli.
+                            </p>
                         </div>
-                        <div className="p-6">
-                            <div className="mb-4">
-                                <label className="block text-sm font-bold text-gray-700 mb-2">Kapan barang akan dikirim?</label>
-                                <input 
-                                    type="datetime-local" 
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={deliveryTime}
-                                    onChange={(e) => setDeliveryTime(e.target.value)}
-                                />
-                                <p className="text-xs text-gray-500 mt-2">
-                                    Masukkan estimasi waktu Anda mengirim barang ke kurir/pembeli.
-                                </p>
-                            </div>
-                            <div className="flex gap-3 mt-6">
-                                <button 
-                                    onClick={() => setIsAcceptModalOpen(false)} 
-                                    className="flex-1 py-2 border border-gray-300 text-gray-600 font-bold rounded-lg hover:bg-gray-50"
-                                >
-                                    Batal
-                                </button>
-                                <button 
-                                    onClick={handleConfirmAccept} 
-                                    className="flex-1 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-lg"
-                                >
-                                    Konfirmasi
-                                </button>
-                            </div>
+                        <div className="flex gap-3 mt-6">
+                            <button 
+                                onClick={() => setIsAcceptModalOpen(false)} 
+                                className="flex-1 py-2 border border-gray-300 text-gray-600 font-bold rounded-lg hover:bg-gray-50"
+                            >
+                                Batal
+                            </button>
+                            <button 
+                                onClick={handleConfirmAccept} 
+                                className="flex-1 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-lg"
+                            >
+                                Konfirmasi
+                            </button>
                         </div>
                     </div>
                 </div>
-            )}
+            </div>
 
             <ChatBox 
                 isOpen={isChatOpen} 

@@ -33,7 +33,43 @@ export default function Keranjang() {
             return;
         }
         
-        if (userData) setUser(JSON.parse(userData));
+        // 1. Load data awal dari local storage
+        if (userData) {
+            const parsedUser = JSON.parse(userData);
+            setUser(parsedUser);
+            
+            // --- LOGIKA AUTOFILL DARI LOCAL STORAGE ---
+            setCheckoutForm(prev => ({
+                ...prev,
+                telepon: parsedUser.phone || parsedUser.telepon || parsedUser.no_hp || '',
+                alamat:''
+            }));
+        }
+
+        // 2. FETCH DATA USER TERBARU (Agar data profil selalu update)
+        const fetchUserData = async () => {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/user', {
+                    headers: { Authorization: `Bearer ${token}`, 'Accept': 'application/json' }
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    setUser(data);
+                    localStorage.setItem('user', JSON.stringify(data));
+                    
+                    // --- LOGIKA AUTOFILL DARI API TERBARU ---
+                    setCheckoutForm(prev => ({
+                        ...prev,
+                        telepon: data.phone || data.telepon || data.no_hp || '',
+                        alamat:''
+                    }));
+                }
+            } catch (error) {
+                console.error("Gagal refresh data user:", error);
+            }
+        };
+        fetchUserData();
 
         fetchKeranjang();
 
@@ -437,7 +473,8 @@ export default function Keranjang() {
                                     <input 
                                         type="tel" 
                                         inputMode="numeric"
-                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition"
+                                        readOnly
+                                        className="w-full border border-gray-200 bg-gray-100 text-gray-500 rounded-lg px-3 py-2 cursor-not-allowed outline-none"
                                         placeholder="08xx..."
                                         value={checkoutForm.telepon}
                                         onChange={(e) => setCheckoutForm({...checkoutForm, telepon: e.target.value})}
@@ -456,7 +493,7 @@ export default function Keranjang() {
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Alamat Pengiriman</label>
                                 <textarea 
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition h-24 resize-none"
-                                    placeholder="Masukkan alamat lengkap..."
+                                    placeholder="Masukkan Spesifik Tempat: Ruang A, Ruang B, ..."
                                     value={checkoutForm.alamat}
                                     onChange={(e) => setCheckoutForm({...checkoutForm, alamat: e.target.value})}
                                 ></textarea>

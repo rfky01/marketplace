@@ -57,4 +57,35 @@ class ProfileController extends Controller
 
         return Redirect::to('/');
     }
+
+    public function showPublicProfile($id)
+    {
+        $user = \App\Models\User::find($id);
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User tidak ditemukan'
+            ], 404);
+        }
+
+        // Hanya kembalikan data yang AMAN untuk publik
+        // Jangan kirim password, token, atau data sensitif lainnya
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'npm' => $user->npm,
+                'email' => $user->email, // Opsional
+                'profile_photo' => $user->profile_photo,
+                'role' => $user->role,
+                'fakultas' => $user->fakultas,
+                'prodi' => $user->prodi,
+                'bio' => $user->bio,
+                'jenis_kelamin' => $user->jenis_kelamin,
+                'created_at' => $user->created_at,
+            ]
+        ]);
+    }
 }

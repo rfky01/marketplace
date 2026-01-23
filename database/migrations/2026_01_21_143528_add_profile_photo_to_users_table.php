@@ -16,6 +16,9 @@ return new class extends Migration
             // Cek dulu biar aman, kalau kolom belum ada baru dibuat
             if (!Schema::hasColumn('users', 'profile_photo')) {
                 $table->string('profile_photo')->nullable()->after('email');
+                $table->text('bio')->nullable()->after('email');
+                $table->string('jenis_kelamin')->nullable()->after('bio');
+                $table->date('tanggal_lahir')->nullable()->after('jenis_kelamin');
             }
         });
     }

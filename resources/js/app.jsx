@@ -15,7 +15,7 @@ import EditProduct from './components/EditProduct';
 import ProductDetail from './components/ProductDetail';
 import Keranjang from './components/Keranjang';
 import SellerOrders from './components/SellerOrders';
-
+import PublicProfile from "./components/PublicProfile";
 
 function App() {
     return (
@@ -35,6 +35,7 @@ function App() {
                     <Route path="/product/:id" element={<ProductDetail />} />
                     <Route path="/Keranjang" element={<Keranjang />} />
                     <Route path="/seller-orders" element={<SellerOrders />} />
+                    <Route path="/profile/:id" element={<PublicProfile />} />
                 </Routes>
             </div>
         </BrowserRouter>
