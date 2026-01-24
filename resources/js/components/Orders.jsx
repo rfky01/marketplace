@@ -34,6 +34,7 @@ export default function Orders() {
     
     const navigate = useNavigate();
 
+    // --- STATE POPUP NOTIFIKASI ---
     const [customAlert, setCustomAlert] = useState({
         isOpen: false,
         message: '',
@@ -47,10 +48,11 @@ export default function Orders() {
     // --- EFFECT: AUTO-CLOSE UNTUK TOAST SUCCESS ---
     useEffect(() => {
         let timer;
-        if (customAlert.isOpen && customAlert.type === 'success') {
+        // Hanya auto-close jika BUKAN konfirmasi (tidak ada tombol cancel)
+        if (customAlert.isOpen && !customAlert.showCancel && customAlert.type === 'success') {
             timer = setTimeout(() => {
                 setCustomAlert(prev => ({ ...prev, isOpen: false }));
-            }, 3000); // Hilang otomatis dalam 3 detik
+            }, 3000); 
         }
         return () => clearTimeout(timer);
     }, [customAlert]);
@@ -85,24 +87,8 @@ export default function Orders() {
             }
         };
 
-        const fetchOrders = async () => {
-            try {
-                const response = await fetch('http://127.0.0.1:8000/api/orders', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                const data = await response.json();
-                if (data.success) {
-                    setOrders(data.data);
-                }
-            } catch (error) {
-                console.error("Error fetching orders:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
+        fetchOrders(); // Panggil fungsi fetch orders
         fetchUserData();
-        fetchOrders();
 
         function handleClickOutside(event) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -132,12 +118,79 @@ export default function Orders() {
         }
     };
 
+    // --- HELPER: CEK APAKAH WAKTU SUDAH LEWAT ---
+    const isTimePassed = (dateString) => {
+        if (!dateString) return false;
+        const targetDate = new Date(dateString);
+        const now = new Date();
+        // Return TRUE jika Waktu Sekarang LEBIH BESAR dari Waktu Target
+        return now > targetDate;
+    };
+
+    // --- LOGIKA RETURN BARANG ---
+    const handleReturnClick = (id) => {
+        setCustomAlert({
+            isOpen: true,
+            message: "Waktu pengiriman telah lewat. Apakah Anda ingin mengajukan pengembalian (Return)?",
+            type: 'warning',
+            showCancel: true,
+            confirmText: "Ya, Ajukan Return",
+            cancelText: "Batal",
+            onConfirm: () => executeReturnOrder(id)
+        });
+    };
+
+    const executeReturnOrder = async (id) => {
+        const token = localStorage.getItem('token');
+        try {
+            // MENGGUNAKAN POST (Sesuai update route API Anda)
+            const response = await fetch(`http://127.0.0.1:8000/api/orders/${id}/return`, {
+                method: 'POST', 
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ status: 'return_requested' }) 
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                setCustomAlert({
+                    isOpen: true,
+                    message: "Pengajuan Return berhasil dikirim.",
+                    type: 'success',
+                    showCancel: false,
+                    confirmText: "OK"
+                });
+                fetchOrders();
+            } else {
+                setCustomAlert({
+                    isOpen: true,
+                    message: "Gagal: " + (data.message || "Terjadi kesalahan"),
+                    type: 'error',
+                    showCancel: false,
+                    confirmText: "OK"
+                });
+            }
+        } catch (error) {
+            setCustomAlert({
+                isOpen: true,
+                message: "Gagal koneksi ke server.",
+                type: 'error',
+                showCancel: false,
+                confirmText: "OK"
+            });
+        }
+    };
+
     // --- LOGIKA TERIMA PESANAN ---
     const handleReceiveOrder = (id) => {
         setCustomAlert({
             isOpen: true,
             message: "Apakah Anda yakin barang sudah diterima dengan baik?",
-            type: 'warning', // Warning = Modal Tengah
+            type: 'warning', 
             showCancel: true,
             confirmText: "Ya, Diterima",
             cancelText: "Batal",
@@ -163,7 +216,7 @@ export default function Orders() {
                 setCustomAlert({
                     isOpen: true,
                     message: "Terima kasih! Pesanan selesai.",
-                    type: 'success', // Success = Toast Atas
+                    type: 'success', 
                     showCancel: false,
                     confirmText: "OK"
                 });
@@ -222,7 +275,7 @@ export default function Orders() {
                 setCustomAlert({
                     isOpen: true,
                     message: "Pesanan berhasil dibatalkan",
-                    type: 'success', // Success = Toast Atas
+                    type: 'success', 
                     showCancel: false,
                     confirmText: "OK",
                     onConfirm: null
@@ -273,7 +326,7 @@ export default function Orders() {
                 setCustomAlert({
                     isOpen: true,
                     message: "Riwayat pesanan dihapus.",
-                    type: 'success', // Success = Toast Atas
+                    type: 'success', 
                     showCancel: false,
                     confirmText: "OK"
                 });
@@ -342,7 +395,7 @@ export default function Orders() {
                 setCustomAlert({
                     isOpen: true,
                     message: "Ulasan berhasil dikirim! Terima kasih.",
-                    type: 'success', // Success = Toast Atas
+                    type: 'success', 
                     showCancel: false,
                     confirmText: "OK"
                 });
@@ -523,8 +576,9 @@ export default function Orders() {
                                     ${order.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border border-yellow-100' : 
                                       order.status === 'selesai' ? 'bg-green-50 text-green-700 border border-green-100' : 
                                       order.status === 'dikirim' ? 'bg-purple-50 text-purple-700 border border-purple-100' :
+                                      order.status === 'return_requested' ? 'bg-orange-50 text-orange-700 border border-orange-100' :
                                       'bg-red-50 text-red-700 border border-red-100'}`}>
-                                        {order.status}
+                                        {order.status === 'return_requested' ? 'Return' : order.status}
                                     </div>
                                 </div>
 
@@ -587,8 +641,33 @@ export default function Orders() {
                                                 )}
                                             </div>
 
-                                            <div className="text-right">
+                                            {/* --- AREA KANAN: HARGA & TOMBOL RETURN/CANCEL (PINDAH KESINI) --- */}
+                                            <div className="text-right flex flex-col items-end gap-2">
                                                 <p className="font-bold text-gray-800 text-sm">{formatRupiah((detail.produk?.harga_barang || 0) * detail.jumlah)}</p>
+                                                
+                                                {/* LOGIKA RETURN: HANYA MUNCUL JIKA STATUS SELESAI */}
+                                                {index === 0 && order.status === 'selesai' && (
+                                                    <button 
+                                                        onClick={() => handleReturnClick(order.id)}
+                                                        className="px-3 py-1.5 bg-orange-50 text-orange-600 border border-orange-200 rounded text-[10px] font-bold hover:bg-orange-100 transition shadow-sm"
+                                                    >
+                                                        Ajukan Return
+                                                    </button>
+                                                )}
+
+                                                {/* LOGIKA BATALKAN (JIKA WAKTU LEWAT & BELUM SELESAI & BUKAN PENDING) */}
+                                                {index === 0 && isTimePassed(order.waktu_pengiriman) && 
+                                                 order.status !== 'selesai' && 
+                                                 order.status !== 'pending' && // <-- TAMBAHAN KONDISI INI
+                                                 !order.status.toLowerCase().includes('cancel') && 
+                                                 !order.status.toLowerCase().includes('dibatalkan') && (
+                                                    <button 
+                                                        onClick={() => handleCancelClick(order.id)}
+                                                        className="px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded text-[10px] font-bold hover:bg-red-100 transition shadow-sm"
+                                                    >
+                                                        Batalkan Pesanan
+                                                    </button>
+                                                )}
                                             </div>
 
                                         </div>
@@ -612,6 +691,8 @@ export default function Orders() {
                                             💬 Chat Penjual
                                         </button>
                                         
+                                        {/* (SEMUA TOMBOL RETURN/CANCEL SUDAH DIHAPUS DARI SINI) */}
+
                                         {(order.status.toLowerCase().includes('dibatalkan') || order.status.toLowerCase().includes('cancel')) && (
                                             <button 
                                                 onClick={() => handleDeleteHistory(order.id)}

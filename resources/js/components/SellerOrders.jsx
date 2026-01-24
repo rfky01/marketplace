@@ -155,46 +155,45 @@ export default function SellerOrders() {
     };
 
     // --- FUNGSI UPDATE STATUS (DIPERBAIKI UNTUK MENANGANI PEMBATALAN) ---
-    const handleUpdateStatus = async (item, newStatus) => {
-        if (newStatus === 'dibatalkan' && !confirm("Yakin ingin menolak/membatalkan pesanan ini?")) return;
+    const handleUpdateStatus = async (item, action) => {
+        let confirmMsg = "Update status pesanan?";
+        
+        if (action === 'dibatalkan') confirmMsg = "Yakin ingin menolak pesanan ini?";
+        if (action === 'return_accepted') confirmMsg = "Yakin ingin MENERIMA pengajuan return? Dana akan dikembalikan ke pembeli.";
+        if (action === 'return_rejected') confirmMsg = "Yakin ingin MENOLAK pengajuan return? Status akan kembali Selesai.";
+
+        if (!confirm(confirmMsg)) return;
 
         const token = localStorage.getItem('token');
+        const url = `http://127.0.0.1:8000/api/seller/orders/${item.id}`; 
         
-        const url = newStatus === 'dibatalkan' 
-            ? `http://127.0.0.1:8000/api/orders/${item.id}/cancel`
-            : `http://127.0.0.1:8000/api/seller/orders/${item.id}`;
-
+        let statusToSend = action;
+        if (action === 'dibatalkan') statusToSend = 'canceled by seller';
+        
         try {
             const response = await fetch(url, {
                 method: 'PUT',
                 headers: { 
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json' // Penting agar error terbaca
+                    'Accept': 'application/json' 
                 },
-                body: JSON.stringify({ status: newStatus })
+                body: JSON.stringify({ status: statusToSend })
             });
             
             const data = await response.json();
 
             if(response.ok) {
-                if (newStatus === 'dikirim') {
-                    setCustomAlert({
-                        isOpen: true,
-                        message: "Barang siap! Segera kirimkan paket.",
-                        type: 'success',
-                        onConfirm: null 
-                    });
-                    // Tidak ada pemanggilan sendWhatsappFonnte di sini
-                } 
-                else if (newStatus === 'dibatalkan') {
-                    setCustomAlert({
-                        isOpen: true,
-                        message: "Pesanan berhasil ditolak/dibatalkan.",
-                        type: 'success',
-                        onConfirm: null
-                    });
-                }
+                let successMsg = "Status berhasil diperbarui.";
+                if (action === 'return_accepted') successMsg = "Return DITERIMA. Silakan hubungi pembeli untuk proses pengembalian barang.";
+                if (action === 'return_rejected') successMsg = "Return DITOLAK. Pesanan dianggap selesai.";
+
+                setCustomAlert({
+                    isOpen: true,
+                    message: successMsg,
+                    type: 'success',
+                    onConfirm: null 
+                });
 
                 fetchSellerOrders();
             } else {
@@ -490,144 +489,135 @@ export default function SellerOrders() {
                 ) : (
                     <div className="grid grid-cols-1 gap-6">
                         {sellerOrders.map((item) => {
-                            const currentStatus = item.pesanan?.status || 'pending';
+                            // --- PERBAIKAN PENTING DI SINI ---
+                            // Pastikan status selalu lowercase dan tanpa spasi aneh
+                            const rawStatus = item.pesanan?.status || 'pending';
+                            const currentStatus = rawStatus.toLowerCase().trim();
+                            // ---------------------------------
+
                             const isCancelled = currentStatus.includes('dibatalkan') || currentStatus.includes('cancel');
-                            const buyerData = item.pesanan?.user; // Data Pembeli dari Pesanan
+                            const buyerData = item.pesanan?.user;
 
                             return (
                                 <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition">
                                     
                                     {/* Header Card */}
-                                    <div className="bg-gray-50 px-6 py-3 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                    <div className="bg-white px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            {/* --- FOTO PROFIL PEMBELI (DI UPDATE DISINI) --- */}
-                                            {/* --- LINK KE PROFILE USER --- */}
-                                            {/* Foto Profil Pembeli */}
+                                            {/* Avatar Kecil */}
                                             <Link to={`/profile/${buyerData?.id}`} className="group relative">
-                                                <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-200 bg-white group-hover:ring-2 ring-blue-400 transition">
+                                                <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-50 flex-shrink-0 group-hover:ring-2 ring-blue-400 transition">
                                                     {getBuyerPhoto(buyerData) ? (
-                                                        <img 
-                                                            src={getBuyerPhoto(buyerData)} 
-                                                            alt="Pembeli" 
-                                                            className="w-full h-full object-cover"
-                                                        />
+                                                        <img src={getBuyerPhoto(buyerData)} alt="Pembeli" className="w-full h-full object-cover"/>
                                                     ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-blue-600 font-bold bg-blue-50 text-sm">
+                                                        <div className="w-full h-full flex items-center justify-center text-blue-600 font-bold bg-blue-50 text-xs">
                                                             {item.pesanan?.nama_penerima?.charAt(0).toUpperCase() || '👤'}
                                                         </div>
                                                     )}
                                                 </div>
                                             </Link>
-
-                                            {/* Nama Pembeli */}
-                                            <div>
-                                                <Link to={`/profile/${buyerData?.id}`} className="text-sm font-bold text-gray-800 hover:text-blue-600 hover:underline transition">
-                                                    {item.pesanan?.nama_penerima || "Pembeli"} 
-                                                </Link>
-                                                <span className="text-gray-400 font-normal ml-2 text-xs">({formatDate(item.created_at)})</span>
-                                                <p className="text-xs text-gray-500">{item.pesanan?.invoice_code}</p>
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-2">
+                                                    <Link to={`/profile/${buyerData?.id}`} className="text-sm font-bold text-gray-800 hover:text-blue-600 transition">
+                                                        {item.pesanan?.nama_penerima || "Pembeli"}
+                                                    </Link>
+                                                    <span className="text-[10px] text-gray-400">• {formatDate(item.created_at)}</span>
+                                                </div>
+                                                <span className="text-[10px] text-gray-500 font-mono tracking-wide">{item.pesanan?.invoice_code}</span>
                                             </div>
                                         </div>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide 
-                                            ${currentStatus === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
-                                                currentStatus === 'accepted' ? 'bg-blue-100 text-blue-700' :
-                                                currentStatus === 'dikirim' ? 'bg-purple-100 text-purple-700' :
-                                                currentStatus === 'selesai' ? 'bg-green-100 text-green-700' :
-                                                'bg-red-100 text-red-700'}`}>
-                                            {currentStatus}
+                                        
+                                        {/* Status Badge Kecil */}
+                                        <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border
+                                            ${currentStatus === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
+                                              currentStatus === 'accepted' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                              currentStatus === 'dikirim' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                              currentStatus === 'selesai' ? 'bg-green-50 text-green-700 border-green-200' :
+                                              currentStatus === 'return_requested' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                                              'bg-red-50 text-red-700 border-red-200'}`}>
+                                            {currentStatus === 'return_requested' ? 'Return' : currentStatus}
                                         </span>
                                     </div>
 
-                                    {/* Body Card */}
-                                    <div className="p-6">
-                                        <div className="flex flex-col lg:flex-row gap-6">
+                                    {/* --- BODY GRID --- */}
+                                    <div className="p-4 grid grid-cols-1 md:grid-cols-[1.5fr_1.2fr_auto] gap-4 items-start">
+                                        
+                                        {/* COL 1: PRODUK (Compact) */}
+                                        <div className="flex gap-3">
+                                            <div className="w-14 h-14 bg-gray-100 rounded-md overflow-hidden border border-gray-200 flex-shrink-0">
+                                                <img src={getProductImage(item.produk)} alt={item.produk?.nama_barang} className="w-full h-full object-cover" onError={(e)=>{e.target.src="https://via.placeholder.com/150"}}/>
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold text-gray-800 text-sm line-clamp-1 mb-0.5">{item.produk?.nama_barang}</h3>
+                                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                    <span>{item.jumlah} barang</span>
+                                                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                                    <span className="font-bold text-blue-600">{formatRupiah((item.jumlah * item.produk?.harga_barang))}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* COL 2: INFO PENGIRIMAN (Clean) */}
+                                        <div className="text-xs text-gray-600 border-l border-gray-100 pl-4 hidden md:block">
+                                            <div className="mb-2">
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">Alamat</p>
+                                                <p className="leading-tight text-gray-800 line-clamp-2">{item.pesanan?.alamat_pengiriman || "-"}</p>
+                                            </div>
+                                            {item.pesanan?.waktu_pengiriman && (
+                                                <div className="flex items-center gap-1.5 mt-1">
+                                                    <span className="text-blue-500 text-[10px]">⏰</span>
+                                                    <span className="font-medium text-gray-700">{formatDateTime(item.pesanan?.waktu_pengiriman)}</span>
+                                                </div>
+                                            )}
+                                            <div className="mt-1 text-gray-500">📞 {item.pesanan?.telepon_penerima || "-"}</div>
+                                        </div>
+
+                                        {/* COL 3: ACTIONS (Right Aligned) */}
+                                        <div className="flex flex-col gap-2 w-full md:w-auto min-w-[140px] items-end justify-center h-full">
                                             
-                                            {/* 1. PRODUK (KIRI) */}
-                                            <div className="flex gap-4 flex-1">
-                                                <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+                                            {/* Logic Tombol Utama (TETAP SAMA) */}
+                                            {currentStatus === 'pending' && (
+                                                <div className="flex gap-2 w-full">
+                                                    <button onClick={() => handleUpdateStatus(item, 'dibatalkan')} className="flex-1 py-1.5 text-xs font-bold text-red-600 border border-red-200 rounded hover:bg-red-50 transition">Tolak</button>
+                                                    <button onClick={() => openAcceptModal(item)} className="flex-1 py-1.5 text-xs font-bold text-white bg-blue-600 rounded hover:bg-blue-700 shadow-sm transition">Terima</button>
+                                                </div>
+                                            )}
+                                            
+                                            {currentStatus === 'accepted' && (
+                                                <button onClick={() => handleUpdateStatus(item, 'dikirim')} className="w-full py-1.5 text-xs font-bold text-white bg-yellow-500 rounded hover:bg-yellow-600 shadow-sm transition">Kirim Barang</button>
+                                            )}
+
+                                            {currentStatus === 'dikirim' && (
+                                                <div className="w-full py-1.5 bg-gray-100 text-gray-500 rounded text-[10px] font-bold text-center border border-gray-200 cursor-default">Menunggu Konfirmasi</div>
+                                            )}
+
+                                            {currentStatus === 'return_requested' && (
+                                                <div className="flex flex-col gap-1 w-full">
+                                                    <div className="text-[10px] text-orange-600 font-bold text-center bg-orange-50 py-0.5 rounded">Ajukan Return</div>
+                                                    <div className="flex gap-2">
+                                                        <button onClick={() => handleUpdateStatus(item, 'return_rejected')} className="flex-1 py-1.5 text-xs font-bold text-red-600 border border-red-200 rounded hover:bg-red-50">Tolak</button>
+                                                        <button onClick={() => handleUpdateStatus(item, 'return_accepted')} className="flex-1 py-1.5 text-xs font-bold text-white bg-green-600 rounded hover:bg-green-700 shadow-sm">Terima</button>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {(currentStatus === 'selesai' || isCancelled || currentStatus === 'return_accepted' || currentStatus === 'return_rejected') && (
+                                                <button onClick={() => handleDeleteOrder(item.id)} className="w-full py-1.5 text-xs font-bold text-gray-500 bg-white border border-gray-300 rounded hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition">Hapus Riwayat</button>
+                                            )}
+                                            
+                                            {/* Tombol Chat (LINK TETAP SAMA) */}
+                                            <button 
+                                                    onClick={() => openChat(buyerData?.id, item.pesanan?.nama_penerima)}
+                                                    className="w-full py-1.5 text-xs font-bold text-blue-600 border border-blue-200 rounded bg-blue-50 hover:bg-blue-100 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                                                >
                                                     <img 
-                                                        src={getProductImage(item.produk)} 
-                                                        alt={item.produk?.nama_barang} 
-                                                        className="w-full h-full object-cover"
-                                                        onError={(e)=>{e.target.src="https://via.placeholder.com/150"}}
+                                                        src={iconPesanan} 
+                                                        alt="Chat" 
+                                                        className="w-3.5 h-3.5 object-contain"
                                                     />
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-bold text-gray-800 text-lg line-clamp-2 leading-tight mb-1">{item.produk?.nama_barang}</h3>
-                                                    <p className="text-sm text-gray-500">
-                                                        Jumlah: <span className="font-bold text-gray-800">{item.jumlah} Unit</span>
-                                                    </p>
-                                                    <p className="text-blue-600 font-bold text-lg mt-1">
-                                                        Total: {formatRupiah((item.jumlah * item.produk?.harga_barang))}
-                                                    </p>
-                                                </div>
-                                            </div>
+                                                    <span>Chat Pembeli</span>
+                                                </button>
 
-                                            {/* 2. ALAMAT (TENGAH) */}
-                                            <div className="w-full lg:w-1/3 bg-gray-50 p-4 rounded-lg border border-dashed border-gray-300 flex flex-col justify-center text-sm">
-                                                <div className="mb-3">
-                                                    <p className="text-xs font-bold text-gray-400 uppercase mb-1">Alamat Pengiriman</p>
-                                                    <p className="text-gray-700 leading-snug">
-                                                        {item.pesanan?.alamat_pengiriman || "Alamat tidak tersedia"}
-                                                    </p>
-                                                </div>
-                                                <div className="mb-2">
-                                                    <p className="text-xs font-bold text-gray-400 uppercase mb-1">Jadwal Kirim</p>
-                                                    <div className="flex items-center gap-2 text-blue-700 font-bold">
-                                                        <span>⏰</span>
-                                                        {formatDateTime(item.pesanan?.waktu_pengiriman)}
-                                                    </div>
-                                                </div>
-                                                <div className="pt-2 border-t border-gray-200 text-gray-500 font-medium text-xs">
-                                                    📞 {item.pesanan?.telepon_penerima || "-"}
-                                                </div>
-                                            </div>
-
-                                            {/* 3. TOMBOL AKSI (KANAN) */}
-                                            <div className="flex flex-col gap-3 w-full lg:w-auto min-w-[180px] justify-center">
-
-                                                {currentStatus === 'pending' && (
-                                                    <>
-                                                        <button onClick={() => openAcceptModal(item)} className="w-full py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition shadow-sm">
-                                                            Terima Pesanan
-                                                        </button>
-                                                        <button onClick={() => handleUpdateStatus(item, 'dibatalkan')} className="w-full py-2 bg-white text-red-600 border border-red-200 rounded-lg font-bold text-sm hover:bg-red-50 transition">
-                                                            Tolak Pesanan
-                                                        </button>
-                                                    </>
-                                                )}
-
-                                                <Link to="/Pesanan" className="relative group flex items-center">
-                                                    <img 
-                                                    src={iconPesanan} 
-                                                    alt="Pesanan" 
-                                                    className="w-10 h-10 object-contain opacity-60 group-hover:opacity-100 transition duration-200"
-                                                    />
-                                                </Link>
-                                                
-                                                {currentStatus === 'accepted' && (
-                                                    <button onClick={() => handleUpdateStatus(item, 'dikirim')} className="w-full py-2 bg-yellow-500 text-white rounded-lg font-bold text-sm hover:bg-yellow-600 transition shadow-sm">
-                                                        Kirim Barang
-                                                    </button>
-                                                )}
-                                                
-                                                {currentStatus === 'dikirim' && (
-                                                    <div className="w-full py-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg font-bold text-xs text-center cursor-default">
-                                                        ⏳ Menunggu Konfirmasi Pembeli
-                                                    </div>
-                                                )}
-                                                
-                                                {(currentStatus === 'selesai' || isCancelled) && (
-                                                    <div className="text-center">
-                                                        <div className="text-xs text-gray-400 font-medium italic mb-2">
-                                                            {isCancelled ? 'Pesanan Batal' : 'Pesanan Selesai'}
-                                                        </div>
-                                                        <button onClick={() => handleDeleteOrder(item.id)} className="w-full py-2 bg-gray-100 text-gray-500 rounded-lg font-bold text-sm hover:bg-red-100 hover:text-red-600 transition border border-gray-200">
-                                                            🗑️ Hapus Riwayat
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
                                         </div>
                                     </div>
                                     

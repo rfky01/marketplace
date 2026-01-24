@@ -152,77 +152,108 @@ class OrderController extends Controller
     }
 
     // FITUR: Update Status (Penjual)
+    // Fungsi untuk Penjual mengupdate status (Terima, Kirim, Tolak)
+    // Pastikan Request diimport di bagian atas: use Illuminate\Http\Request;
     public function updateStatus(Request $request, $id)
     {
-        if ($request->user()->role !== 'penjual') {
-            return response()->json(['message' => 'Hanya penjual yang boleh mengubah status'], 403);
+        try {
+            $order = Pesanan::find($id);
+
+            if (!$order) {
+                return response()->json(['success' => false, 'message' => 'Pesanan tidak ditemukan'], 404);
+            }
+
+            // Validasi input status
+            $request->validate([
+                'status' => 'required|string'
+            ]);
+
+            $newStatus = $request->status;
+
+            // Update status
+            $order->status = $newStatus;
+            
+            // Jika ada input waktu pengiriman (saat terima pesanan)
+            if ($request->has('waktu_pengiriman')) {
+                $order->waktu_pengiriman = $request->waktu_pengiriman;
+            }
+
+            $order->save();
+
+            return response()->json([
+                'success' => true, 
+                'message' => 'Status pesanan berhasil diperbarui menjadi ' . $newStatus,
+                'data' => $order
+            ], 200);
+
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'Server Error: ' . $e->getMessage()], 500);
         }
-
-        $request->validate([
-            'status' => ['required', 'in:accepted,dikirim,selesai']
-        ]);
-
-        $pesanan = Pesanan::find($id);
-
-        if (!$pesanan) {
-            return response()->json(['message' => 'Pesanan tidak ditemukan'], 404);
-        }
-        
-        $pesanan->status = $request->status;
-        if ($request->has('waktu_pengiriman') && $request->waktu_pengiriman) {
-            $pesanan->waktu_pengiriman = $request->waktu_pengiriman;
-        }
-        $pesanan->save();
-
-        return response()->json([
-            'message' => 'Status pesanan berhasil diperbarui',
-            'data' => $pesanan
-        ]);
     }
 
     // FITUR: Penjual Membatalkan Pesanan
     // --- GANTI FUNGSI CANCEL YANG LAMA DENGAN INI ---
     // Fungsi ini Cerdas: Bisa mendeteksi apakah yang klik tombol itu Pembeli atau Penjual
-    public function cancelOrder(Request $request, $id)
+    // Hapus parameter "Request $request" agar tidak perlu import class Request
+   public function cancelOrder($id)
     {
-        $user = $request->user();
-        $pesanan = Pesanan::find($id);
+        try {
+            $order = Pesanan::find($id); 
 
-        if (!$pesanan) {
-            return response()->json(['message' => 'Pesanan tidak ditemukan'], 404);
-        }
-
-        // 1. Cek Status: Hanya boleh batal jika pending
-        if ($pesanan->status !== 'pending') {
-            return response()->json(['message' => 'Pesanan sudah diproses atau selesai, tidak bisa dibatalkan.'], 400);
-        }
-
-        // 2. Cek Hak Akses:
-        // - Boleh jika dia adalah PEMILIK pesanan (Pembeli)
-        // - Boleh jika dia adalah PENJUAL (Role Penjual)
-        if ($pesanan->user_id !== $user->id && $user->role !== 'penjual') {
-            return response()->json(['message' => 'Anda tidak berhak membatalkan pesanan ini.'], 403);
-        }
-
-        // 3. Proses Pembatalan
-        DB::transaction(function () use ($pesanan, $user) {
-            // Kembalikan Stok
-            $this->restoreStock($pesanan);
-
-            // Tentukan Status Baru (Biar ketahuan siapa yang membatalkan)
-            if ($pesanan->user_id === $user->id) {
-                $pesanan->status = 'canceled by buyer'; // Jika pembeli yang klik
-            } else {
-                $pesanan->status = 'canceled by seller'; // Jika penjual yang klik
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pesanan tidak ditemukan'
+                ], 404);
             }
-            
-            $pesanan->save();
-        });
 
-        return response()->json([
-            'message' => 'Pesanan berhasil dibatalkan dan stok dikembalikan.',
-            'data' => $pesanan
-        ]);
+            $status = strtolower($order->status);
+            // Cek apakah sudah selesai atau sudah batal
+            if ($status == 'selesai' || str_contains($status, 'batal') || str_contains($status, 'cancel')) {
+                 return response()->json([
+                    'success' => false,
+                    'message' => 'Pesanan sudah selesai atau sudah dibatalkan sebelumnya.'
+                ], 400);
+            }
+
+            $sekarang = \Carbon\Carbon::now();
+            $sudahLewatWaktu = false;
+
+            if ($order->waktu_pengiriman) {
+                try {
+                    $batasWaktu = \Carbon\Carbon::parse($order->waktu_pengiriman);
+                    $sudahLewatWaktu = $sekarang->greaterThan($batasWaktu);
+                } catch (\Exception $e) {
+                    $sudahLewatWaktu = false;
+                }
+            }
+
+            $isPending = ($status == 'pending');
+
+            if (!$isPending && !$sudahLewatWaktu) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal: Pesanan sedang diproses dan waktu pengiriman belum terlewat.'
+                ], 400);
+            }
+
+            // --- PERBAIKAN UTAMA DI SINI ---
+            // Menggunakan 'canceled by buyer' SESUAI FILE MIGRASI ANDA
+            $order->status = 'canceled by buyer'; 
+            $order->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pesanan berhasil dibatalkan',
+                'data' => $order
+            ], 200);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Server Error: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     // FITUR: Pembeli Membatalkan Pesanan Sendiri
@@ -306,5 +337,38 @@ class OrderController extends Controller
                 $produk->save();
             }
         }
+    }
+
+    public function requestReturn($id)
+    {
+        // PERBAIKAN: Gunakan Pesanan::find, bukan Order::find
+        $order = Pesanan::find($id); 
+
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pesanan tidak ditemukan'
+            ], 404);
+        }
+
+        // Cek otorisasi (opsional, jika perlu)
+        if ($order->user_id !== auth()->id()) {
+             return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak berhak melakukan aksi ini'
+            ], 403);
+        }
+
+        // Update status
+        // PERHATIAN: Pastikan 'return_requested' sudah didaftarkan di Database (ENUM)
+        // Jika belum, Anda mungkin akan mendapat error "Check violation" setelah ini.
+        $order->status = 'return_requested'; 
+        $order->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Pengajuan return berhasil dikirim',
+            'data' => $order
+        ], 200);
     }
 }

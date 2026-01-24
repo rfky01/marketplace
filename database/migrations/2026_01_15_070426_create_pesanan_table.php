@@ -23,7 +23,10 @@ return new class extends Migration
                 'dikirim', 
                 'selesai', 
                 'canceled by seller',
-                'canceled by buyer'
+                'canceled by buyer',
+                'return_requested',
+                'return_accepted',  // <--- TAMBAHAN BARU (Terima Return)
+                'return_rejected'
                 ])->default('pending');
             $table->timestamps();
         });
