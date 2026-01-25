@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getCroppedImg } from './canvasUtils';
 import Cropper from 'react-easy-crop'; // IMPORT TAMBAHAN
@@ -21,12 +21,48 @@ export default function AddProduct() {
 
     // --- STATE POPUP SUKSES (TETAP SAMA) ---
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showProfileWarning, setShowProfileWarning] = useState(false);
 
     // --- STATE BARU UNTUK CROPPER ---
     const [imageSrc, setImageSrc] = useState(null);
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+
+    // --- PENGECEKAN PROFIL LENGKAP (BARU) ---
+    useEffect(() => {
+        const checkProfile = () => {
+            try {
+                // Ambil data user dari Local Storage
+                const userData = localStorage.getItem('user');
+                
+                if (!userData) {
+                    navigate('/login');
+                    return;
+                }
+
+                // Parsing JSON dengan aman
+                const user = JSON.parse(userData);
+                
+                // Jika user ada tapi properti belum lengkap
+                if (!user || !user.address || !user.telepon) {
+                    // Gunakan setTimeout agar render selesai dulu sebelum alert (mencegah blank)
+                    setTimeout(() => {
+                        setShowProfileWarning(true);
+                        
+                    }, 100);
+                }
+            } catch (error) {
+                console.error("Error membaca data user:", error);
+                // Jika data rusak, paksa logout/login ulang
+                localStorage.removeItem('user');
+                localStorage.removeItem('token');
+                navigate('/login');
+            }
+        };
+
+        checkProfile();
+    }, [navigate]);
 
     // Helper: Baca file jadi base64 agar bisa dicrop
     const readFile = (file) => {
@@ -241,6 +277,41 @@ export default function AddProduct() {
                         >
                             OK
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* --- [BARU] MODAL PERINGATAN PROFIL BELUM LENGKAP --- */}
+            {showProfileWarning && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center border-t-4 border-orange-500 transform scale-100 transition-all">
+                        
+                        {/* Ikon Peringatan */}
+                        <div className="w-20 h-20 rounded-full bg-orange-100 flex items-center justify-center mx-auto mb-6">
+                            <svg className="w-10 h-10 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                        </div>
+
+                        <h3 className="text-2xl font-bold text-gray-800 mb-2">Profil Belum Lengkap</h3>
+                        <p className="text-gray-600 mb-8 leading-relaxed">
+                            Anda belum bisa mengupload produk. Harap lengkapi <b>Alamat</b> dan <b>Nomor Telepon</b> Anda terlebih dahulu.
+                        </p>
+
+                        <div className="flex flex-col gap-3">
+                            <button 
+                                onClick={() => navigate('/profile')} 
+                                className="w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl shadow-lg transition-all transform hover:scale-105"
+                            >
+                                Lengkapi Profil Sekarang
+                            </button>
+                            <button 
+                                onClick={() => navigate('/')} 
+                                className="w-full py-3 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-all"
+                            >
+                                Kembali ke Beranda
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

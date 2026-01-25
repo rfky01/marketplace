@@ -216,10 +216,12 @@ export default function ProductDetail() {
         if (!checkoutForm.telepon || !checkoutForm.alamat) {
             setCustomAlert({ 
                 isOpen: true, 
-                message: "Mohon lengkapi semua data pengiriman.", 
-                type: 'error',
-                showCancel: false,
-                confirmText: 'OK'
+                message: "Profil Anda belum lengkap. Harap isi Alamat dan Nomor Telepon di menu Profil sebelum memesan.", 
+                type: 'error', // Tipe Error
+                showCancel: true, // TRUE agar muncul di tengah (Modal)
+                confirmText: 'Lengkapi Profil',
+                cancelText: 'Batal',
+                onConfirm: () => navigate('/profile') // Arahkan ke profil
             });
             return;
         }
@@ -275,13 +277,26 @@ export default function ProductDetail() {
                     onConfirm: () => navigate('/orders')
                 });
             } else {
-                setCustomAlert({ 
-                    isOpen: true, 
-                    message: "Gagal: " + (data.message || "Terjadi kesalahan"), 
-                    type: 'error',
-                    showCancel: false,
-                    confirmText: 'OK'
-                });
+                if (data.message && data.message.toLowerCase().includes('profil')) {
+                    setCustomAlert({
+                        isOpen: true,
+                        message: data.message, // Pesan dari backend
+                        type: 'error',
+                        showCancel: true, // TRUE = MODAL TENGAH
+                        confirmText: 'Lengkapi Profil',
+                        cancelText: 'Batal',
+                        onConfirm: () => navigate('/profile')
+                    });
+                } else {
+                    // Error lain tetap Toast
+                    setCustomAlert({ 
+                        isOpen: true, 
+                        message: "Gagal: " + (data.message || "Terjadi kesalahan"), 
+                        type: 'error',
+                        showCancel: false,
+                        confirmText: 'OK'
+                    });
+                }
             }
         } catch (error) {
             console.error("Detail Error:", error);
@@ -539,7 +554,7 @@ export default function ProductDetail() {
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Alamat Pengiriman</label>
-                                <textarea className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition h-24 resize-none" placeholder="Masukkan alamat lengkap..." value={checkoutForm.alamat} onChange={(e) => setCheckoutForm({...checkoutForm, alamat: e.target.value})}></textarea>
+                                <textarea className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition h-24 resize-none" placeholder="Spesifik tempat: Ruang A, Ruang B, ...." value={checkoutForm.alamat} onChange={(e) => setCheckoutForm({...checkoutForm, alamat: e.target.value})}></textarea>
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Pembayaran</label>
@@ -591,13 +606,23 @@ export default function ProductDetail() {
                             </div>
                         </div>
                     ) : (
-                        /* 2. TAMPILKAN MODAL TENGAH (JIKA BUTUH KONFIRMASI) */
+                        /* 2. TAMPILKAN MODAL TENGAH (JIKA BUTUH KONFIRMASI / ERROR) */
                         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4 animate-fade-in">
                             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 text-center transform scale-100 transition-all">
-                                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-green-100 text-green-600">
-                                    <span className="text-3xl font-bold">✓</span>
+                                
+                                {/* --- MODIFIKASI: WARNA ICON DINAMIS (Merah jika Error) --- */}
+                                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 
+                                    ${customAlert.type === 'error' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                    <span className="text-3xl font-bold">
+                                        {customAlert.type === 'error' ? '!' : '✓'}
+                                    </span>
                                 </div>
-                                <h3 className="text-lg font-bold text-gray-800 mb-2">Berhasil!</h3>
+
+                                {/* --- MODIFIKASI: JUDUL DINAMIS --- */}
+                                <h3 className="text-lg font-bold text-gray-800 mb-2">
+                                    {customAlert.type === 'error' ? 'Perhatian!' : 'Berhasil!'}
+                                </h3>
+
                                 <p className="text-gray-600 text-sm mb-6 leading-relaxed">
                                     {customAlert.message}
                                 </p>
@@ -608,12 +633,15 @@ export default function ProductDetail() {
                                     >
                                         {customAlert.cancelText}
                                     </button>
+                                    
+                                    {/* --- MODIFIKASI: WARNA TOMBOL DINAMIS (Orange jika Error) --- */}
                                     <button 
                                         onClick={() => {
                                             setCustomAlert({...customAlert, isOpen: false});
                                             if(customAlert.onConfirm) customAlert.onConfirm();
                                         }}
-                                        className="flex-1 py-2.5 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 transition shadow-lg"
+                                        className={`flex-1 py-2.5 rounded-xl font-bold text-white transition shadow-lg 
+                                            ${customAlert.type === 'error' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-600 hover:bg-green-700'}`}
                                     >
                                         {customAlert.confirmText}
                                     </button>

@@ -1,222 +1,316 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import suksesImg from './asset/sukses.png';
-import salahImg from './asset/salah.png'; 
-
-// Import icon mata (Opsional: Jika pakai heroicons/react-icons, bisa import dari situ.
-// Di sini saya pakai SVG inline agar tidak perlu install library tambahan)
 
 export default function Register() {
     const navigate = useNavigate();
-    
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        password: '',
-        password_confirmation: '',
-        phone: '',
-        address: '',
-    });
 
-    // --- STATE BARU: SHOW PASSWORD ---
+    // State Form
+    const [name, setName] = useState('');
+    const [phone, setPhone] = useState('');
+    const [email, setEmail] = useState('');
+    const [address, setAddress] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    
+    // State OTP
+    const [otp, setOtp] = useState('');
+    const [otpSent, setOtpSent] = useState(false); // Apakah OTP sudah dikirim?
+    const [otpLoading, setOtpLoading] = useState(false); // Loading saat kirim WA
+    const [timer, setTimer] = useState(0); // Timer hitung mundur (opsional)
 
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+    const [isLoading, setIsLoading] = useState(false);
+    const [errors, setErrors] = useState([]);
+
+    // --- STATE BARU: TOAST (Pojok Kanan Atas) ---
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+    // --- STATE BARU: MODAL SUKSES (Tengah) ---
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+    // Effect: Auto-hide Toast setelah 3 detik
+    useEffect(() => {
+        if (toast.show) {
+            const timer = setTimeout(() => setToast({ ...toast, show: false }), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [toast.show]);
+
+    // Fungsi Kirim OTP
+    const handleSendOtp = async () => {
+        if (!phone) {
+            alert("Masukkan nomor HP terlebih dahulu!");
+            return;
+        }
+
+        setOtpLoading(true);
+        try {
+            const response = await fetch('http://127.0.0.1:8000/api/send-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ no_hp: phone })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setOtpSent(true);
+                // Tampilkan Toast Sukses
+                setToast({ show: true, message: "Kode OTP terkirim ke WhatsApp!", type: 'success' });
+            } else {
+                setToast({ show: true, message: data.message || "Gagal kirim OTP", type: 'error' });
+            }
+        } catch (error) {
+            console.error(error);
+            setToast({ show: true, message: "Terjadi kesalahan koneksi", type: 'error' });
+        } finally {
+            setOtpLoading(false);
+        }
     };
 
-    // --- STATE VISUAL (LOADING & POPUP) ---
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [showErrorModal, setShowErrorModal] = useState(false); 
-    const [errorMessage, setErrorMessage] = useState('');        
-    const [isLoading, setIsLoading] = useState(false);
-    // --------------------------------------
-
-    const handleSubmit = async (e) => {
+    // Fungsi Register Utama
+    const handleRegister = async (e) => {
         e.preventDefault();
-        setIsLoading(true); 
+        setIsLoading(true);
+        setErrors([]);
 
         try {
             const response = await fetch('http://127.0.0.1:8000/api/register', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify(formData)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: name,
+                    email: email,
+                    password: password,
+                    password_confirmation: confirmPassword,
+                    no_hp: phone,
+                    alamat: address,
+                    otp: otp 
+                })
             });
+
             const data = await response.json();
-            
+
             if (response.ok) {
-                setIsLoading(false); 
-                setShowSuccessModal(true); 
-
-                setTimeout(() => {
-                    navigate('/login'); 
-                }, 2000); 
-
+                // Simpan token & Redirect
+                localStorage.setItem('token', data.access_token);
+                localStorage.setItem('user', JSON.stringify(data.data));
+                
+                // Tampilkan Modal Sukses
+                setShowSuccessModal(true);
             } else {
-                setIsLoading(false); 
-                let msg = data.message || JSON.stringify(data.errors);
-                setErrorMessage(msg);
-                setShowErrorModal(true); 
+                // Tampilkan error
+                if (typeof data === 'object' && data !== null) {
+                    setErrors(Object.values(data).flat());
+                } else {
+                    setErrors([data.message]);
+                }
+                setToast({ show: true, message: "Registrasi Gagal. Periksa inputan.", type: 'error' });
             }
         } catch (error) {
-            setIsLoading(false); 
-            console.error('Error:', error);
-            setErrorMessage('Terjadi kesalahan koneksi ke server.');
-            setShowErrorModal(true);
+            console.error(error);
+            setToast({ show: true, message: "Terjadi kesalahan sistem", type: 'error' });
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    const closeErrorModal = () => {
-        setShowErrorModal(false);
-    };
-
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 p-6 relative">
-            <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-lg border border-gray-200">
-                <h2 className="text-3xl font-extrabold text-gray-800 text-center mb-6">Daftar Akun Baru</h2>
-                
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
-                            <input type="text" name="name" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Nomor HP</label>
-                            <input type="text" name="phone" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Alamat Email</label>
-                        <input type="email" name="email" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Alamat Lengkap</label>
-                        <textarea name="address" rows="2" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required></textarea>
-                    </div>
-
-                    {/* --- AREA PASSWORD (DIPERBAIKI) --- */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="relative">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                            <input 
-                                type={showPassword ? "text" : "password"} // Logic type
-                                name="password" 
-                                onChange={handleChange} 
-                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
-                                required 
-                            />
-                        </div>
-                        <div className="relative">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Konfirmasi Password</label>
-                            <input 
-                                type={showPassword ? "text" : "password"} // Logic type
-                                name="password_confirmation" 
-                                onChange={handleChange} 
-                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" 
-                                required 
-                            />
-                        </div>
-                    </div>
-
-                    {/* --- CHECKBOX SHOW PASSWORD --- */}
-                    <div className="flex items-center">
-                        <input 
-                            id="show-pass" 
-                            type="checkbox" 
-                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
-                            checked={showPassword}
-                            onChange={() => setShowPassword(!showPassword)}
-                        />
-                        <label htmlFor="show-pass" className="ml-2 text-sm text-gray-600 cursor-pointer select-none">
-                            Tampilkan Password
-                        </label>
-                    </div>
-
-                    <button 
-                        type="submit" 
-                        disabled={isLoading} 
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition duration-300 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isLoading ? "Memproses..." : "Daftar Sekarang"}
-                    </button>
-                </form>
-
-                <p className="text-center text-gray-600 mt-6 text-sm">
-                    Sudah punya akun? <Link to="/login" className="text-blue-600 font-semibold hover:underline">Login disini</Link>
-                </p>
-            </div>
-
-            {/* --- LOADING SPINNER --- */}
-            {isLoading && !showErrorModal && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm">
-                    <div className="bg-white p-6 rounded-2xl shadow-2xl flex flex-col items-center animate-bounce-in">
-                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mb-3"></div>
-                        <p className="text-gray-700 font-bold text-sm">Mendaftarkan Akun...</p>
-                    </div>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 relative">
+            
+            {/* --- [TAMBAHAN 1] UI TOAST NOTIFICATION (POJOK KANAN ATAS) --- */}
+            {toast.show && (
+                <div className={`fixed top-5 right-5 z-50 px-6 py-4 rounded-lg shadow-xl text-white font-semibold transition-all transform translate-y-0 opacity-100 flex items-center gap-3 animate-fade-in-down
+                    ${toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
+                    <span>{toast.type === 'success' ? '✓' : '✕'}</span>
+                    {toast.message}
                 </div>
             )}
 
-            {/* --- POPUP MODAL SUKSES --- */}
+            {/* --- [TAMBAHAN 2] UI MODAL POPUP SUKSES (TENGAH LAYAR) --- */}
             {showSuccessModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-sm w-full transform scale-100 transition-transform duration-300">
-                        <div className="w-32 h-32 mx-auto mb-6 flex items-center justify-center relative">
-                            <img
-                                src={suksesImg} 
-                                alt="Register Berhasil"
-                                className="w-full h-full object-contain animate-bounce-in drop-shadow-lg"
-                                onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn-icons-png.flaticon.com/512/148/148767.png"; }}
-                            />
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center transform scale-100 transition-all">
+                        <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
+                            <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
                         </div>
-                        
-                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Registrasi Berhasil!</h2>
-                        <p className="text-gray-600 mb-6">
-                            Akun Anda telah dibuat. Silakan login untuk melanjutkan.
+                        <h3 className="text-2xl font-bold text-gray-800 mb-2">Registrasi Berhasil!</h3>
+                        <p className="text-gray-500 mb-8">
+                            Selamat datang, {name}! Akun Anda telah aktif.
                         </p>
-                        
-                        <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2 overflow-hidden">
-                            <div 
-                                className="bg-green-500 h-1.5 rounded-full" 
-                                style={{ width: '100%', transition: 'width 2s ease-in-out' }}
-                            ></div>
-                        </div>
-                        <p className="text-xs text-gray-400">Mengalihkan ke halaman login...</p>
-                    </div>
-                </div>
-            )}
-
-            {/* --- POPUP MODAL ERROR --- */}
-            {showErrorModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-sm w-full animate-shake">
-                        
-                        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <img
-                                src={salahImg} 
-                                alt="Register Gagal"
-                                className="w-full h-full object-contain animate-bounce-in drop-shadow-lg"
-                                onError={(e) => { e.target.onerror = null; e.target.src = "https://cdn-icons-png.flaticon.com/512/1828/1828843.png"; }}
-                            />
-                        </div>
-
-                        <h2 className="text-2xl font-bold text-gray-800 mb-2">Registrasi Gagal</h2>
-                        <p className="text-gray-600 mb-6 text-sm">
-                            {errorMessage}
-                        </p>
-
                         <button 
-                            onClick={closeErrorModal} 
-                            className="w-full bg-red-600 text-white font-bold py-2.5 rounded-lg hover:bg-red-700 transition shadow-lg active:scale-95"
+                            onClick={() => navigate('/login')} // Sesuaikan redirect
+                            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg transition-all transform hover:scale-105"
                         >
-                            Coba Lagi
+                            Lanjut ke Login →
                         </button>
                     </div>
                 </div>
             )}
 
+            {/* --- FORM REGISTRASI (KODE ASLI ANDA) --- */}
+            <div className="max-w-2xl w-full space-y-8 bg-white p-10 rounded-xl shadow-lg">
+                <div className="text-center">
+                    <h2 className="mt-2 text-3xl font-extrabold text-gray-900">
+                        Daftar Akun Baru
+                    </h2>
+                    <p className="mt-2 text-sm text-gray-600">
+                        Lengkapi data diri Anda di bawah ini
+                    </p>
+                </div>
+
+                {errors.length > 0 && (
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+                        <ul className="list-disc list-inside">
+                            {errors.map((err, index) => <li key={index}>{err}</li>)}
+                        </ul>
+                    </div>
+                )}
+
+                <form className="mt-8 space-y-6" onSubmit={handleRegister}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        {/* Nama Lengkap */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Nama Lengkap</label>
+                            <input
+                                type="text"
+                                required
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                placeholder="Nama Lengkap"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                            />
+                        </div>
+
+                        {/* Nomor HP & Tombol OTP */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Nomor HP (WhatsApp)</label>
+                            <div className="mt-1 flex rounded-md shadow-sm">
+                                <input
+                                    type="text"
+                                    required
+                                    className="flex-1 block w-full min-w-0 px-3 py-2 rounded-none rounded-l-md border border-gray-300 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    placeholder="08xxxxxxxxxx"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value)}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleSendOtp}
+                                    disabled={otpLoading || !phone}
+                                    className="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-gray-700 text-sm font-medium hover:bg-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+                                >
+                                    {otpLoading ? 'Mengirim...' : 'Kirim OTP'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Input OTP (Hanya Muncul Jika OTP Sudah Dikirim) */}
+                    {otpSent && (
+                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 animate-fade-in">
+                            <label className="block text-sm font-bold text-blue-800 mb-1">
+                                Masukkan Kode OTP
+                            </label>
+                            <p className="text-xs text-blue-600 mb-2">Kode telah dikirim ke WhatsApp {phone}</p>
+                            <input
+                                type="text"
+                                required
+                                className="block w-full px-3 py-2 border border-blue-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm text-center tracking-widest font-bold text-lg"
+                                placeholder="X X X X X X"
+                                value={otp}
+                                onChange={(e) => setOtp(e.target.value)}
+                                maxLength={6}
+                            />
+                        </div>
+                    )}
+
+                    {/* Alamat Email */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Alamat Email</label>
+                        <input
+                            type="email"
+                            required
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            placeholder="nama@email.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Alamat Lengkap */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Alamat Lengkap</label>
+                        <textarea
+                            required
+                            rows={3}
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            placeholder="Jalan, Kelurahan, Kecamatan..."
+                            value={address}
+                            onChange={(e) => setAddress(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Password */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Password</label>
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                required
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                placeholder="********"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Konfirmasi Password</label>
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                required
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                placeholder="********"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex items-center">
+                        <input
+                            id="show-password"
+                            type="checkbox"
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            checked={showPassword}
+                            onChange={() => setShowPassword(!showPassword)}
+                        />
+                        <label htmlFor="show-password" class="ml-2 block text-sm text-gray-900">
+                            Tampilkan Password
+                        </label>
+                    </div>
+
+                    <div>
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 shadow-lg"
+                        >
+                            {isLoading ? 'Memproses...' : 'Daftar Sekarang'}
+                        </button>
+                    </div>
+
+                    <div className="text-center text-sm">
+                        Sudah punya akun?{' '}
+                        <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+                            Masuk di sini
+                        </Link>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 }

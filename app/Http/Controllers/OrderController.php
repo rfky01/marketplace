@@ -15,6 +15,17 @@ class OrderController extends Controller
     // FITUR CHECKOUT (Membuat Pesanan)
     public function store(Request $request)
     {
+        $user = $request->user();
+
+        // --- VALIDASI PROFIL LENGKAP (BARU) ---
+        // Cek apakah kolom address atau telepon kosong/null
+        if (empty($user->address) || empty($user->telepon)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal! Profil Anda belum lengkap. Harap isi Alamat dan Nomor Telepon di menu Profil sebelum memesan.'
+            ], 403); // 403 Forbidden
+        }
+        
         $request->validate([
             'items' => 'required|array',
             'items.*.produk_id' => 'required|exists:produk,id',

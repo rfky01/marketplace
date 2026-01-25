@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import ChatDropdown from './ChatDropdown';
+import ProductImageSlider from './ProductImageSlider';
+
 import iconKeranjang from './asset/keranjang.png'
 import iconPesanan from './asset/pesan.png'
 import iconSearch from './asset/search.png'
@@ -347,15 +349,9 @@ export default function Dashboard() {
                             return (
                                 <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition duration-300 transform hover:-translate-y-1 flex flex-col h-full group">
                                     <Link to={`/product/${product.id}`} className="block cursor-pointer relative">
-                                        <img 
-                                            src={
-                                                Array.isArray(product.foto_barang) 
-                                                ? `http://127.0.0.1:8000/storage/${product.foto_barang[0]}`
-                                                : product.foto_barang
-                                            } 
+                                        <ProductImageSlider 
+                                            images={product.foto_barang} 
                                             alt={product.nama_barang} 
-                                            className="w-full h-40 object-cover group-hover:opacity-90 transition"
-                                            onError={(e) => { e.target.src = "https://via.placeholder.com/300?text=No+Image"; }} 
                                         />
                                         {product.stok_barang <= 0 && (<div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"><span className="text-white font-bold text-xs bg-red-600 px-2 py-1 rounded">HABIS</span></div>)}
                                     </Link>

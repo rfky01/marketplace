@@ -26,6 +26,8 @@ use App\Http\Controllers\ProfileController;
 Route::post('/register', [AuthController::class, 'register']); // Daftar
 Route::post('/login', [AuthController::class, 'login']);       // Masuk
 
+Route::post('/send-otp', [AuthController::class, 'sendOtp']);
+
 // Produk (Melihat katalog tidak perlu login)
 Route::get('/produk', [produkController::class, 'index']);     // List Barang
 Route::get('/produk/{id}', [produkController::class, 'show']); // Detail Barang
