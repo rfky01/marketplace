@@ -1,40 +1,48 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import Cropper from 'react-easy-crop'; // IMPORT BARU
+import { getCroppedImg } from './canvasUtils'; // IMPORT BARU (Sesuaikan path jika perlu)
 
 export default function EditProduct() {
     const navigate = useNavigate();
-    const { id } = useParams(); // Ambil ID produk dari URL
+    const { id } = useParams(); 
     const [loading, setLoading] = useState(true);
     
-    // State Form
+    // State Form (TETAP SAMA)
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
     const [stock, setStock] = useState('');
     const [category, setCategory] = useState('Elektronik');
     const [description, setDescription] = useState('');
-    const [image, setImage] = useState(null); // File baru (jika ada)
-    const [previewImage, setPreviewImage] = useState(''); // URL gambar lama untuk preview
+    const [image, setImage] = useState(null); 
+    const [previewImage, setPreviewImage] = useState(''); 
     const [errors, setErrors] = useState([]);
 
-    const [existingImages, setExistingImages] = useState([]); // Foto lama dari DB
-    const [newFiles, setNewFiles] = useState([]); // File baru yang akan diupload
+    const [existingImages, setExistingImages] = useState([]); 
+    const [newFiles, setNewFiles] = useState([]); 
     const [newPreviews, setNewPreviews] = useState([]);
 
     const [isLoading, setIsLoading] = useState(false);
     const [isFetching, setIsFetching] = useState(true);
 
-    // --- STATE TOAST NOTIFICATION (BARU) ---
+    // --- STATE TOAST (TETAP SAMA) ---
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-    // --- EFFECT: AUTO-CLOSE TOAST ---
+    // --- STATE BARU UNTUK CROPPER ---
+    const [imageSrc, setImageSrc] = useState(null);
+    const [crop, setCrop] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+
+    // --- EFFECT: AUTO-CLOSE TOAST (TETAP SAMA) ---
     useEffect(() => {
         if (toast.show) {
-            const timer = setTimeout(() => setToast({ ...toast, show: false }), 3000); // Hilang dalam 3 detik
+            const timer = setTimeout(() => setToast({ ...toast, show: false }), 3000); 
             return () => clearTimeout(timer);
         }
     }, [toast.show]);
 
-    // 1. Ambil Data Produk Lama saat halaman dibuka
+    // 1. Ambil Data Produk Lama (TETAP SAMA)
     useEffect(() => {
         fetchProductData();
     }, []);
@@ -52,17 +60,15 @@ export default function EditProduct() {
                 setDescription(p.deskripsi);
                 setPreviewImage(p.foto_barang);
 
-                // --- LOGIKA MENANGANI FOTO (ARRAY vs STRING) ---
                 if (Array.isArray(p.foto_barang)) {
                     setExistingImages(p.foto_barang);
                 } else if (typeof p.foto_barang === 'string' && p.foto_barang) {
-                    setExistingImages([p.foto_barang]); // Jadikan array meski cuma 1
+                    setExistingImages([p.foto_barang]); 
                 } else {
                     setExistingImages([]);
                 }
 
             } else {
-                // Ganti alert dengan Toast Error jika mau, tapi karena ini redirect, alert lebih aman
                 alert("Produk tidak ditemukan");
                 navigate('/my-products');
             }
@@ -73,21 +79,57 @@ export default function EditProduct() {
         }
     };
 
-    const handleFileChange = (e) => {
-        const files = Array.from(e.target.files);
-        setNewFiles(files);
-
-        // Buat preview untuk foto baru
-        const previews = files.map(file => URL.createObjectURL(file));
-        setNewPreviews(previews);
+    // --- HELPER CROPPER BARU ---
+    const readFile = (file) => {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.addEventListener('load', () => resolve(reader.result), false);
+            reader.readAsDataURL(file);
+        });
     };
 
+    // MODIFIKASI: Handle File Change membuka Cropper
+    const handleFileChange = async (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const file = e.target.files[0];
+            const imageData = await readFile(file);
+            setImageSrc(imageData); // Buka Modal Crop
+            e.target.value = null; // Reset input
+        }
+    };
+
+    const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
+        setCroppedAreaPixels(croppedAreaPixels);
+    }, []);
+
+    const showCroppedImage = async () => {
+        try {
+            const croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
+            const previewUrl = URL.createObjectURL(croppedImageBlob);
+            
+            // Masukkan ke state (APPEND)
+            setNewFiles(prev => [...prev, croppedImageBlob]);
+            setNewPreviews(prev => [...prev, previewUrl]);
+            
+            setImageSrc(null); 
+            setZoom(1);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    // Fungsi Hapus Foto Baru (Jika user salah crop)
+    const removeNewImage = (index) => {
+        setNewFiles(newFiles.filter((_, i) => i !== index));
+        setNewPreviews(newPreviews.filter((_, i) => i !== index));
+    };
+
+    // handleSubmit (TETAP SAMA PERSIS)
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         const token = localStorage.getItem('token');
 
-        // Gunakan FormData karena ada file upload
         const formData = new FormData();
         formData.append('nama_barang', name);
         formData.append('harga_barang', price);
@@ -95,21 +137,21 @@ export default function EditProduct() {
         formData.append('kategori', category);
         formData.append('deskripsi', description);
         
-        // PENTING: Trik agar Laravel membaca ini sebagai PUT request
         formData.append('_method', 'PUT'); 
 
+        // newFiles sekarang berisi Blob hasil crop
         if (newFiles.length > 0) {
             newFiles.forEach(file => {
                 formData.append('foto_barang[]', file);
             });
         }
 
+        // Fallback backward compatibility code lama Anda
         if (image) {
             formData.append('foto_barang', image);
         }
 
         try {
-            // Method tetap POST, tapi Laravel akan membacanya sebagai PUT karena ada _method
             const response = await fetch(`http://127.0.0.1:8000/api/produk/${id}`, {
                 method: 'POST', 
                 headers: {
@@ -122,14 +164,10 @@ export default function EditProduct() {
             const data = await response.json();
 
             if (response.ok) {
-                // --- GANTI ALERT DENGAN TOAST ---
                 setToast({ show: true, message: "Produk berhasil diupdate!", type: 'success' });
-                
-                // Beri jeda sedikit sebelum pindah halaman agar toast terlihat (opsional)
                 setTimeout(() => {
                     navigate('/my-products');
                 }, 1500); 
-                
             } else {
                 setErrors(data.errors || { message: [data.message] });
                 setToast({ show: true, message: "Gagal update produk", type: 'error' });
@@ -138,7 +176,7 @@ export default function EditProduct() {
             console.error("Error updating:", error);
             setToast({ show: true, message: "Terjadi kesalahan sistem", type: 'error' });
         } finally {
-            setIsLoading(false); // Pastikan loading berhenti
+            setIsLoading(false); 
         }
     };
 
@@ -181,7 +219,7 @@ export default function EditProduct() {
                             <option value="Buku">Buku</option>
                             <option value="Pakaian">Pakaian</option>
                             <option value="Makanan">Makanan</option>
-                            <option value="Perlengkapan">Perlengkapam</option>
+                            <option value="Perlengkapan">Perlengkapan</option>
                             <option value="Elektronik">Elektronik</option>
                             <option value="Kecantikan">Kecantikan</option>
                             <option value="Lainya...">Lainya...</option>
@@ -207,7 +245,7 @@ export default function EditProduct() {
                                             key={index}
                                             src={`http://127.0.0.1:8000/storage/${img}`} 
                                             alt="Existing" 
-                                            className="w-20 h-20 object-cover rounded border border-gray-300"
+                                            className="w-20 h-20 object-contain bg-gray-50 rounded border border-gray-300"
                                             onError={(e) => e.target.src = "https://via.placeholder.com/150"}
                                         />
                                     ))}
@@ -215,27 +253,41 @@ export default function EditProduct() {
                             </div>
                         )}
 
-                        {/* 2. INPUT FILE BARU */}
+                        {/* 2. INPUT FILE BARU (TRIGGER CROPPER) */}
                         <div className="bg-gray-50 p-4 rounded-lg border border-dashed border-gray-300">
                             <input 
                                 type="file" 
-                                multiple 
+                                // Hapus multiple agar crop satu per satu
                                 onChange={handleFileChange} 
                                 className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                                 accept="image/*"
                             />
                             <p className="text-xs text-orange-500 mt-2 italic">
-                                *Mengupload foto baru akan <b>menghapus/mengganti</b> semua foto lama.
+                                *Mengupload foto baru akan <b>menghapus/mengganti</b> semua foto lama. Pilih satu per satu untuk menyesuaikan (Crop).
                             </p>
                         </div>
 
-                        {/* 3. PREVIEW FOTO BARU (Jika user memilih file) */}
+                        {/* 3. PREVIEW FOTO BARU (HASIL CROP) */}
                         {newPreviews.length > 0 && (
                             <div className="mt-4">
-                                <p className="text-xs text-blue-600 font-bold mb-2">Preview Foto Baru:</p>
+                                <p className="text-xs text-blue-600 font-bold mb-2">Preview Foto Baru (Akan Diupload):</p>
                                 <div className="grid grid-cols-4 gap-2">
                                     {newPreviews.map((src, index) => (
-                                        <img key={index} src={src} alt="New Preview" className="w-full h-20 object-cover rounded border border-blue-200" />
+                                        <div key={index} className="relative group">
+                                            <img 
+                                                src={src} 
+                                                alt="New Preview" 
+                                                className="w-full h-20 object-contain bg-white rounded border border-blue-200" 
+                                            />
+                                            {/* Tombol Hapus per Item */}
+                                            <button
+                                                type="button"
+                                                onClick={() => removeNewImage(index)}
+                                                className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-md hover:bg-red-600"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
                                     ))}
                                 </div>
                             </div>
@@ -248,7 +300,52 @@ export default function EditProduct() {
                 </form>
             </div>
 
-            {/* --- TOAST NOTIFICATION (POJOK KANAN ATAS) --- */}
+            {/* --- MODAL CROPPER (BARU) --- */}
+            {imageSrc && (
+                <div className="fixed inset-0 z-[200] bg-black bg-opacity-90 flex flex-col items-center justify-center p-4">
+                    <div className="relative w-full max-w-lg h-96 bg-gray-800 rounded-lg overflow-hidden border border-gray-600">
+                        <Cropper
+                            image={imageSrc}
+                            crop={crop}
+                            zoom={zoom}
+                            aspect={1 / 1} // RASIO KOTAK
+                            onCropChange={setCrop}
+                            onCropComplete={onCropComplete}
+                            onZoomChange={setZoom}
+                        />
+                    </div>
+                    
+                    <div className="mt-4 w-full max-w-lg flex items-center gap-4">
+                        <span className="text-white text-sm font-bold">Zoom:</span>
+                        <input
+                            type="range"
+                            value={zoom}
+                            min={1}
+                            max={3}
+                            step={0.1}
+                            onChange={(e) => setZoom(e.target.value)}
+                            className="w-full"
+                        />
+                    </div>
+
+                    <div className="mt-6 flex gap-4">
+                        <button 
+                            onClick={() => setImageSrc(null)} // Batal
+                            className="px-6 py-2 bg-white text-gray-800 font-bold rounded-full hover:bg-gray-200"
+                        >
+                            Batal
+                        </button>
+                        <button 
+                            onClick={showCroppedImage} // Simpan
+                            className="px-6 py-2 bg-blue-600 text-white font-bold rounded-full hover:bg-blue-700 shadow-lg"
+                        >
+                            Potong & Simpan
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* --- TOAST NOTIFICATION (TETAP SAMA) --- */}
             {toast.show && (
                 <div className="fixed top-24 right-4 z-50 animate-fade-in-down">
                     <div className={`shadow-lg rounded-lg border-l-4 p-4 flex items-center gap-3 min-w-[300px] bg-white

@@ -1,38 +1,88 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { getCroppedImg } from './canvasUtils';
+import Cropper from 'react-easy-crop'; // IMPORT TAMBAHAN
 
 export default function AddProduct() {
     const navigate = useNavigate();
 
-    // State Data Produk
+    // State Data Produk (TETAP SAMA)
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
     const [stock, setStock] = useState('');
     const [category, setCategory] = useState('Elektronik');
     const [description, setDescription] = useState('');
     
-    // State Khusus Upload & Loading
-    const [files, setFiles] = useState([]); // Menampung array file
-    const [previews, setPreviews] = useState([]); // Menampung URL preview
+    // State Khusus Upload & Loading (TETAP SAMA)
+    const [files, setFiles] = useState([]); 
+    const [previews, setPreviews] = useState([]); 
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState([]);
 
-    // --- STATE POPUP SUKSES (BARU) ---
+    // --- STATE POPUP SUKSES (TETAP SAMA) ---
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-    // Handle File Change (Multiple)
-    const handleFileChange = (e) => {
-        const selectedFiles = Array.from(e.target.files);
-        setFiles(selectedFiles);
+    // --- STATE BARU UNTUK CROPPER ---
+    const [imageSrc, setImageSrc] = useState(null);
+    const [crop, setCrop] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
-        // Buat URL preview
-        const filePreviews = selectedFiles.map(file => URL.createObjectURL(file));
-        setPreviews(filePreviews);
+    // Helper: Baca file jadi base64 agar bisa dicrop
+    const readFile = (file) => {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.addEventListener('load', () => resolve(reader.result), false);
+            reader.readAsDataURL(file);
+        });
     };
 
+    // MODIFIKASI: Handle File Change sekarang membuka Cropper dulu
+    const handleFileChange = async (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const file = e.target.files[0];
+            const imageData = await readFile(file);
+            setImageSrc(imageData); // Buka Modal Crop
+            e.target.value = null; // Reset input agar bisa pilih file yang sama jika mau
+        }
+    };
+
+    // FUNGSI BARU: Simpan posisi crop
+    const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
+        setCroppedAreaPixels(croppedAreaPixels);
+    }, []);
+
+    // FUNGSI BARU: Eksekusi hasil potong & masukkan ke state 'files' Anda
+    const showCroppedImage = async () => {
+        try {
+            // 1. Buat file baru hasil crop
+            const croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
+            
+            // 2. Buat URL preview
+            const previewUrl = URL.createObjectURL(croppedImageBlob);
+            
+            // 3. Masukkan ke state 'files' dan 'previews' milik Anda (APPEND/MENAMBAHKAN)
+            setFiles(prev => [...prev, croppedImageBlob]);
+            setPreviews(prev => [...prev, previewUrl]);
+            
+            // 4. Tutup Cropper
+            setImageSrc(null); 
+            setZoom(1);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    // Fungsi Hapus Gambar (Tambahan agar user bisa batal upload 1 foto)
+    const removeImage = (index) => {
+        setFiles(files.filter((_, i) => i !== index));
+        setPreviews(previews.filter((_, i) => i !== index));
+    };
+
+    // handleSubmit (TETAP SAMA PERSIS LOGIKANYA)
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsLoading(true); // Aktifkan loading
+        setIsLoading(true); 
         setErrors([]);
 
         const formData = new FormData();
@@ -42,7 +92,6 @@ export default function AddProduct() {
         formData.append('kategori', category);
         formData.append('deskripsi', description);
 
-        // Loop file dan masukkan ke formData dengan nama array 'foto_barang[]'
         files.forEach((file) => {
             formData.append('foto_barang[]', file);
         });
@@ -62,9 +111,7 @@ export default function AddProduct() {
             const result = await response.json();
 
             if (response.ok) {
-                // --- GANTI ALERT DENGAN MODAL SUKSES ---
                 setShowSuccessModal(true);
-                // navigate akan dipanggil saat tombol OK di modal diklik
             } else {
                 setErrors(result.errors || { message: [result.message] });
             }
@@ -73,7 +120,7 @@ export default function AddProduct() {
             console.error("Error uploading product:", error);
             alert("Terjadi kesalahan koneksi.");
         } finally {
-            setIsLoading(false); // Matikan loading
+            setIsLoading(false); 
         }
     };
 
@@ -85,7 +132,6 @@ export default function AddProduct() {
                     <Link to="/" className="text-gray-500 hover:text-gray-700">Batal</Link>
                 </div>
 
-                {/* Tampilkan Error jika ada */}
                 {Object.keys(errors).length > 0 && (
                     <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
                         <ul className="list-disc list-inside">
@@ -97,26 +143,23 @@ export default function AddProduct() {
                 )}
                 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Nama Barang */}
+                    {/* INPUT FORM STANDAR (TETAP SAMA) */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Nama Barang</label>
                         <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="Nama produk anda" required />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Harga */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Harga (Rp)</label>
                             <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="1000000" required />
                         </div>
-                        {/* Stok */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Stok</label>
                             <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="10" required />
                         </div>
                     </div>
 
-                    {/* Kategori */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
                         <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border p-2 rounded bg-white focus:ring-2 focus:ring-blue-500">
@@ -130,30 +173,43 @@ export default function AddProduct() {
                         </select>
                     </div>
 
-                    {/* Deskripsi */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Deskripsi Produk</label>
                         <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows="4" className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="Jelaskan detail produk Anda..." required></textarea>
                     </div>
 
-                    {/* Foto Barang (Multiple) */}
+                    {/* --- MODIFIKASI: INPUT FILE MENJADI TRIGGER CROPPER --- */}
                     <div>
-                        <label className="block font-bold mb-1 text-sm text-gray-600">Foto Produk (Bisa pilih banyak)</label>
+                        <label className="block font-bold mb-1 text-sm text-gray-600">Foto Produk</label>
                         <input 
                             type="file" 
-                            multiple 
+                            // Hapus 'multiple' agar flow crop satu-persatu lebih enak (opsional, tapi disarankan)
                             onChange={handleFileChange} 
                             className="w-full border p-2 rounded"
                             accept="image/*"
                         />
-                        <p className="text-xs text-gray-400 mt-1">*Tekan Ctrl saat memilih file untuk upload lebih dari satu.</p>
+                        <p className="text-xs text-gray-400 mt-1">*Pilih foto satu per satu untuk menyesuaikan posisi (Crop).</p>
                     </div>
 
-                    {/* --- PREVIEW GRID --- */}
+                    {/* --- PREVIEW GRID DENGAN TOMBOL HAPUS --- */}
                     {previews.length > 0 && (
                         <div className="grid grid-cols-4 gap-2 mt-2">
                             {previews.map((src, index) => (
-                                <img key={index} src={src} alt="Preview" className="w-full h-20 object-cover rounded border" />
+                                <div key={index} className="relative group">
+                                    <img 
+                                        src={src} 
+                                        alt="Preview" 
+                                        className="w-full h-20 object-contain bg-gray-50 rounded border" 
+                                    />
+                                    {/* Tombol X kecil untuk hapus gambar */}
+                                    <button
+                                        type="button"
+                                        onClick={() => removeImage(index)}
+                                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-md hover:bg-red-600"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
                             ))}
                         </div>
                     )}
@@ -168,27 +224,68 @@ export default function AddProduct() {
                 </form>
             </div>
 
-            {/* --- MODAL POPUP SUKSES (TENGAH) --- */}
+            {/* --- MODAL SUKSES (TETAP SAMA) --- */}
             {showSuccessModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4 animate-fade-in">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center transform scale-100 transition-all">
-                        
                         <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-green-100 text-green-600">
                             <span className="text-3xl font-bold">✓</span>
                         </div>
-
                         <h3 className="text-lg font-bold text-gray-800 mb-2">Upload Berhasil!</h3>
                         <p className="text-gray-600 text-sm mb-6 leading-relaxed">
                             Produk Anda berhasil ditambahkan dan siap dijual.
                         </p>
-
                         <button 
                             onClick={() => navigate('/')} 
                             className="w-full py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition shadow-lg"
                         >
-                            OK, Kembali ke Dashboard
+                            OK
                         </button>
+                    </div>
+                </div>
+            )}
 
+            {/* --- MODAL CROPPER (BARU - DITAURUH DI LUAR FORM) --- */}
+            {imageSrc && (
+                <div className="fixed inset-0 z-[200] bg-black bg-opacity-90 flex flex-col items-center justify-center p-4">
+                    <div className="relative w-full max-w-lg h-96 bg-gray-800 rounded-lg overflow-hidden border border-gray-600">
+                        <Cropper
+                            image={imageSrc}
+                            crop={crop}
+                            zoom={zoom}
+                            aspect={1 / 1} // RASIO KOTAK (Agar rapi di kolom)
+                            onCropChange={setCrop}
+                            onCropComplete={onCropComplete}
+                            onZoomChange={setZoom}
+                        />
+                    </div>
+                    
+                    <div className="mt-4 w-full max-w-lg flex items-center gap-4">
+                        <span className="text-white text-sm font-bold">Zoom:</span>
+                        <input
+                            type="range"
+                            value={zoom}
+                            min={1}
+                            max={3}
+                            step={0.1}
+                            onChange={(e) => setZoom(e.target.value)}
+                            className="w-full"
+                        />
+                    </div>
+
+                    <div className="mt-6 flex gap-4">
+                        <button 
+                            onClick={() => setImageSrc(null)} // Batal
+                            className="px-6 py-2 bg-white text-gray-800 font-bold rounded-full hover:bg-gray-200"
+                        >
+                            Batal
+                        </button>
+                        <button 
+                            onClick={showCroppedImage} // Simpan
+                            className="px-6 py-2 bg-blue-600 text-white font-bold rounded-full hover:bg-blue-700 shadow-lg"
+                        >
+                            Potong & Simpan
+                        </button>
                     </div>
                 </div>
             )}
