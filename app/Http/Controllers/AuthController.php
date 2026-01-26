@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Http; // TAMBAHAN PENTING
 use Illuminate\Support\Facades\Validator; // TAMBAHAN
+use Illuminate\Support\Facades\Cache;
 
 class AuthController extends Controller
 {
@@ -33,16 +34,20 @@ class AuthController extends Controller
             'prodi' => 'nullable|string|max:100',  
             'fakultas' => 'nullable|string|max:100',
             'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'ktm_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'bio' => 'nullable|string',
             'jenis_kelamin' => 'nullable|in:Laki-laki,Perempuan',
             'tanggal_lahir' => 'nullable|date',
         ]);
 
+        $phoneInput = $request->phone ?? $request->no_hp ?? $request->telepon ?? $user->phone;
+        $addressInput = $request->address ?? $request->alamat ?? $user->address;
+
         // Data yang akan diupdate
         $dataToUpdate = [
             'name' => $request->name,
-            'phone' => $request->phone, // Pastikan mapping ke 'phone'
-            'address' => $request->address,
+            'phone' => $phoneInput, // Pastikan mapping ke 'phone'
+            'address' => $addressInput,
             'npm' => $request->npm, 
             'prodi' => $request->prodi,   
             'fakultas' => $request->fakultas,
@@ -59,6 +64,17 @@ class AuthController extends Controller
             $dataToUpdate['profile_photo'] = $path;
         }
 
+        // 4. UPLOAD FOTO KTM (BARU)
+        if ($request->hasFile('ktm_image')) {
+            // Hapus foto lama jika ada
+            if ($user->ktm_image && Storage::disk('public')->exists($user->ktm_image)) {
+                Storage::disk('public')->delete($user->ktm_image);
+            }
+            // Simpan foto baru
+            $pathKtm = $request->file('ktm_image')->store('ktm_images', 'public');
+            $dataToUpdate['ktm_image'] = $pathKtm;
+        }
+
         $user->update($dataToUpdate);
         $user->refresh();
 
@@ -73,10 +89,10 @@ class AuthController extends Controller
     public function sendOtp(Request $request)
     {
         $request->validate([
-            'no_hp' => 'required|numeric',
+            'phone' => 'required|numeric',
         ]);
 
-        $phone = $request->no_hp;
+        $phone = $request->phone;
         
         // Format nomor HP: Ubah 08xx jadi 628xx (Fonnte lebih suka 62)
         if (substr($phone, 0, 1) == '0') {
@@ -84,7 +100,7 @@ class AuthController extends Controller
         }
 
         $otp = rand(100000, 999999);
-        \Illuminate\Support\Facades\Cache::put('otp_' . $request->no_hp, $otp, 300); // Simpan cache pakai input asli (08xx)
+        \Illuminate\Support\Facades\Cache::put('otp_' . $request->phone, $otp, 300); // Simpan cache pakai input asli (08xx)
 
         try {
             // Tambahkan withoutVerifying() untuk localhost
@@ -124,12 +140,12 @@ class AuthController extends Controller
     // --- FITUR REGISTER ---
     public function register(Request $request)
     {
-        // PERBAIKAN 1: Validasi input harus 'no_hp' (sesuai frontend), bukan 'phone'
+        // PERBAIKAN 1: Validasi input harus 'phone' (sesuai frontend), bukan 'phone'
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'no_hp' => 'required|string|unique:users,phone', // Cek unique ke kolom 'phone'
+            'phone' => 'required|string|unique:users,phone', // Cek unique ke kolom 'phone'
             'otp' => 'required|numeric',
             'address' => 'nullable|string',
         ]);
@@ -138,29 +154,30 @@ class AuthController extends Controller
             return response()->json($validator->errors(), 400);
         }
 
-        // PERBAIKAN 2: Ambil cache berdasarkan 'no_hp'
-        $cachedOtp = \Illuminate\Support\Facades\Cache::get('otp_' . $request->no_hp);
+        // PERBAIKAN 2: Ambil cache berdasarkan 'phone'
+        $cachedOtp = \Illuminate\Support\Facades\Cache::get('otp_' . $request->phone);
 
         if (!$cachedOtp || $cachedOtp != $request->otp) {
             return response()->json([
                 'message' => 'Kode OTP salah atau sudah kadaluarsa. Silakan kirim ulang.'
             ], 400);
         }
+        $addressInput = $request->address ?? $request->alamat;
 
-        // PERBAIKAN 3: Insert ke DB kolom 'phone' menggunakan data 'no_hp'
+        // PERBAIKAN 3: Insert ke DB kolom 'phone' menggunakan data 'phone'
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'phone' => $request->no_hp, // Masuk ke kolom 'phone'
-            'address' => $request->address, // Pastikan di DB kolomnya 'address' atau 'alamat' (sesuaikan)
+            'phone' => $request->phone, // Masuk ke kolom 'phone'
+            'address' => $addressInput, // Pastikan di DB kolomnya 'address' atau 'alamat' (sesuaikan)
             'role' => 'pembeli',
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
         
         // Hapus OTP setelah sukses
-        \Illuminate\Support\Facades\Cache::forget('otp_' . $request->no_hp);
+        \Illuminate\Support\Facades\Cache::forget('otp_' . $request->phone);
 
         return response()->json([
             'success' => true,

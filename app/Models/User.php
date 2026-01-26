@@ -27,6 +27,7 @@ class User extends Authenticatable
         'address',  // Jika tadi Anda menambahkan address
         'role',     // Pastikan role juga ada di sini
         'profile_photo',
+        'ktm_image',
         'npm', 
         'prodi',  
         'fakultas',

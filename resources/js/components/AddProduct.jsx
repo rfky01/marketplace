@@ -31,33 +31,53 @@ export default function AddProduct() {
 
     // --- PENGECEKAN PROFIL LENGKAP (BARU) ---
     useEffect(() => {
-        const checkProfile = () => {
+        const checkProfile = async () => {
             try {
-                // Ambil data user dari Local Storage
-                const userData = localStorage.getItem('user');
+                const token = localStorage.getItem('token');
                 
-                if (!userData) {
+                if (!token) {
                     navigate('/login');
                     return;
                 }
 
-                // Parsing JSON dengan aman
-                const user = JSON.parse(userData);
-                
-                // Jika user ada tapi properti belum lengkap
-                if (!user || !user.address || !user.telepon) {
-                    // Gunakan setTimeout agar render selesai dulu sebelum alert (mencegah blank)
-                    setTimeout(() => {
+                // 1. Ambil data user TERBARU dari server (agar tidak kena cache lama)
+                // Pastikan route '/api/user' tersedia di Laravel (biasanya default Sanctum)
+                const response = await fetch('http://127.0.0.1:8000/api/user', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    // Normalisasi: Kadang Laravel membungkus dalam { data: ... }
+                    const userFixed = data.data || data; 
+
+                    // 2. Update Local Storage agar sinkron
+                    localStorage.setItem('user', JSON.stringify(userFixed));
+
+                    // 3. Cek Kelengkapan (Prioritaskan data server)
+                    // Cek 'telepon' (sesuai DB) atau 'phone' (kadang beda mapping)
+                    const telp = userFixed.telepon || userFixed.phone || userFixed.no_hp;
+                    const almt = userFixed.address || userFixed.alamat;
+                    const ktm = userFixed.ktm_image;
+                    const npm = userFixed.npm
+
+                    if (!telp || !almt || !ktm || !npm) {
                         setShowProfileWarning(true);
-                        
-                    }, 100);
+                    }
+                } else {
+                    // Fallback: Jika gagal fetch (misal offline), pakai data LocalStorage lama
+                    const localData = localStorage.getItem('user');
+                    if (localData) {
+                        const user = JSON.parse(localData);
+                        if (!user.phone || !user.address) setShowProfileWarning(true);
+                    }
                 }
+
             } catch (error) {
-                console.error("Error membaca data user:", error);
-                // Jika data rusak, paksa logout/login ulang
-                localStorage.removeItem('user');
-                localStorage.removeItem('token');
-                navigate('/login');
+                console.error("Error checking profile:", error);
             }
         };
 

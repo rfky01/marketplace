@@ -39,19 +39,18 @@ export default function ProductDetail() {
     });
 
     const [checkoutForm, setCheckoutForm] = useState({
-        telepon: '',
-        alamat: '',
+        phone: '',
+        address: '',
         metode_pembayaran: 'COD'
     });
 
     // --- EFFECT: AUTO-CLOSE TOAST ---
     useEffect(() => {
         let timer;
-        // Hanya auto-close jika BUKAN konfirmasi (tidak ada tombol cancel)
         if (customAlert.isOpen && !customAlert.showCancel) {
             timer = setTimeout(() => {
                 setCustomAlert(prev => ({ ...prev, isOpen: false }));
-            }, 3000); // 3 Detik
+            }, 3000); 
         }
         return () => clearTimeout(timer);
     }, [customAlert]);
@@ -77,8 +76,8 @@ export default function ProductDetail() {
             setUser(parsedUser);
             setCheckoutForm(prev => ({
                 ...prev,
-                telepon: parsedUser.phone || parsedUser.telepon || parsedUser.no_hp || '',
-                alamat: parsedUser.address || parsedUser.alamat || ''
+                phone: parsedUser.phone || parsedUser.telepon || parsedUser.no_hp || '',
+                address: parsedUser.address || parsedUser.alamat || ''
             }));
         }
 
@@ -95,8 +94,8 @@ export default function ProductDetail() {
                     localStorage.setItem('user', JSON.stringify(data));
                     setCheckoutForm(prev => ({
                         ...prev,
-                        telepon: data.phone || data.telepon || data.no_hp || '',
-                        alamat: data.address || data.alamat || ''
+                        phone: data.phone || data.telepon || data.no_hp || '',
+                        address: data.address || data.alamat || ''
                     }));
                 }
             } catch (error) {
@@ -117,6 +116,31 @@ export default function ProductDetail() {
         };
         
     }, [id]);
+
+    useEffect(() => {
+        if (isCheckoutModalOpen) {
+            const token = localStorage.getItem('token');
+            if (token) {
+                fetch('http://127.0.0.1:8000/api/user', {
+                    headers: { Authorization: `Bearer ${token}`, 'Accept': 'application/json' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    const userData = data.data || data; // Handle wrapper
+                    setUser(userData);
+                    localStorage.setItem('user', JSON.stringify(userData));
+
+                    // Update form dengan data terbaru dari server
+                    setCheckoutForm(prev => ({
+                        ...prev,
+                        phone: userData.phone || userData.telepon || userData.no_hp || '',
+                        address: userData.address || userData.alamat || ''
+                    }));
+                })
+                .catch(err => console.error("Gagal refresh user:", err));
+            }
+        }
+    }, [isCheckoutModalOpen]);
 
     const fetchProduct = async () => {
         try {
@@ -213,10 +237,17 @@ export default function ProductDetail() {
     };
 
     const handleConfirmOrder = async () => {
-        if (!checkoutForm.telepon || !checkoutForm.alamat) {
+        if (!checkoutForm.phone || !checkoutForm.address || !user.ktm_image) {
+            
+            // Pesan error spesifik agar user tahu apa yang kurang
+            let missingParts = [];
+            if (!checkoutForm.phone) missingParts.push("Nomor Telepon");
+            if (!checkoutForm.address) missingParts.push("Alamat");
+            if (!user.ktm_image) missingParts.push("Foto KTM");
+
             setCustomAlert({ 
                 isOpen: true, 
-                message: "Profil Anda belum lengkap. Harap isi Alamat dan Nomor Telepon di menu Profil sebelum memesan.", 
+                message: "Profil Anda belum lengkap. Harap isi address dan Nomor Telepon di menu Profil sebelum memesan.", 
                 type: 'error', // Tipe Error
                 showCancel: true, // TRUE agar muncul di tengah (Modal)
                 confirmText: 'Lengkapi Profil',
@@ -246,8 +277,8 @@ export default function ProductDetail() {
             grand_total: product.harga_barang * qty,
             nama_penerima: user.name,
             email_penerima: user.email || "email@example.com", 
-            telepon_penerima: checkoutForm.telepon,
-            alamat_pengiriman: checkoutForm.alamat,
+            phone_penerima: checkoutForm.phone,
+            alamat_pengiriman: checkoutForm.address,
             metode_pembayaran: checkoutForm.metode_pembayaran,
             waktu_pengiriman: formattedTime 
         };
@@ -329,6 +360,7 @@ export default function ProductDetail() {
         : 0;
 
     const images = Array.isArray(product.foto_barang) ? product.foto_barang : [];
+    const isOwner = String(user.id) === String(product.user?.id);
 
     return (
         <div className="min-h-screen bg-gray-50 w-full font-sans pb-20">
@@ -392,10 +424,18 @@ export default function ProductDetail() {
                                     ))}
                                 </div>
                             )}
-                            <div className="w-full max-w-xs flex gap-3 mt-2">
-                                <button onClick={handleOpenCartModal} className="flex-1 py-3 border-2 border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition">+ Keranjang</button>
-                                <button onClick={handleBuyNow} disabled={product.stok_barang <= 0} className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed">Beli Sekarang</button>
-                            </div>
+                            {isOwner ? (
+                                // JIKA PEMILIK: TAMPILKAN INFO
+                                <div className="w-full max-w-xs mt-2 p-3 bg-gray-100 text-gray-500 text-center font-bold text-sm rounded-xl border border-gray-200 cursor-not-allowed">
+                                    Produk Anda
+                                </div>
+                            ) : (
+                                // JIKA BUKAN PEMILIK: TAMPILKAN TOMBOL BELI
+                                <div className="w-full max-w-xs flex gap-3 mt-2">
+                                    <button onClick={handleOpenCartModal} className="flex-1 py-3 border-2 border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition">+ Keranjang</button>
+                                    <button onClick={handleBuyNow} disabled={product.stok_barang <= 0} className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed">Beli Sekarang</button>
+                                </div>
+                            )}
                         </div>
 
                         <div className="w-full md:w-7/12 lg:w-8/12 p-8 flex flex-col border-l border-gray-100">
@@ -438,8 +478,9 @@ export default function ProductDetail() {
                                     </Link>
                                     {String(user.id) !== String(product.user?.id) && (
                                         <button type="button" onClick={() => openChat(product.user?.id, product.user?.name)} className="flex items-center gap-2 px-4 py-2 bg-white border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition shadow-sm font-bold text-sm ml-auto cursor-pointer">
-                                            <img src={iconPesan} alt="Chat" className="w-5 h-5 object-contain" />
-                                            Chat Penjual
+                                            {!isOwner && (
+                                                <button onClick={() => openChat(product.user?.id, product.user?.name)} className="px-3 py-1 bg-blue-100 text-blue-600 rounded text-sm font-bold">Chat Penjual</button>
+                                            )}
                                         </button>
                                     )}
                                 </div>
@@ -541,7 +582,7 @@ export default function ProductDetail() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">No. Telepon</label>
-                                    <input type="tel" inputMode="numeric" readOnly className="w-full border border-gray-200 bg-gray-100 text-gray-500 rounded-lg px-3 py-2 cursor-not-allowed outline-none" placeholder="Nomor diambil dari profil..." value={checkoutForm.telepon} onChange={(e) => setCheckoutForm({...checkoutForm, telepon: e.target.value})}/>
+                                    <input type="tel" inputMode="numeric" readOnly className="w-full border border-gray-200 bg-gray-100 text-gray-500 rounded-lg px-3 py-2 cursor-not-allowed outline-none" placeholder="Nomor diambil dari profil..." value={checkoutForm.phone} onChange={(e) => setCheckoutForm({...checkoutForm, phone: e.target.value})}/>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Jumlah</label>
@@ -554,7 +595,7 @@ export default function ProductDetail() {
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Alamat Pengiriman</label>
-                                <textarea className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition h-24 resize-none" placeholder="Spesifik tempat: Ruang A, Ruang B, ...." value={checkoutForm.alamat} onChange={(e) => setCheckoutForm({...checkoutForm, alamat: e.target.value})}></textarea>
+                                <textarea className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition h-24 resize-none" placeholder="Spesifik tempat: Ruang A, Ruang B, ...." value={checkoutForm.address} onChange={(e) => setCheckoutForm({...checkoutForm, address: e.target.value})}></textarea>
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Pembayaran</label>

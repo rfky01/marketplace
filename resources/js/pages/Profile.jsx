@@ -20,6 +20,12 @@ const Icons = {
     ),
     Mail: () => (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+    ),
+    Card: () => (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+    ),
+    Upload: () => (
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
     )
 };
 
@@ -29,25 +35,31 @@ export default function Profile() {
     // --- STATE ---
     const [user, setUser] = useState({
         name: '', email: '', phone: '', address: '', role: '',
-        profile_photo: null, npm: '', prodi: '', fakultas: '',
+        profile_photo: null, ktm_image: null, // TAMBAHAN STATE KTM
+        npm: '', prodi: '', fakultas: '',
         bio: '', jenis_kelamin: '', tanggal_lahir: '',
         created_at: '', updated_at: '', updater: null
     });
     
+    // Foto Profil
     const [photoPreview, setPhotoPreview] = useState(null); 
     const [photoFile, setPhotoFile] = useState(null); 
+    
+    // Foto KTM (BARU)
+    const [ktmPreview, setKtmPreview] = useState(null);
+    const [ktmFile, setKtmFile] = useState(null);
+
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     
-    // --- STATE TOAST BARU ---
-    const [toast, setToast] = useState({ show: false, message: '', type: 'success' }); // success or error
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
     const fileInputRef = useRef(null);
+    const ktmInputRef = useRef(null); // Ref untuk input KTM
 
     useEffect(() => { fetchProfile(); }, []);
 
-    // --- EFFECT AUTO-CLOSE TOAST ---
     useEffect(() => {
         if (toast.show) {
             const timer = setTimeout(() => setToast({ ...toast, show: false }), 3000);
@@ -72,6 +84,7 @@ export default function Profile() {
 
     const handleChange = (e) => setUser({ ...user, [e.target.name]: e.target.value });
 
+    // Handle Ganti Foto Profil
     const handlePhotoChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -80,7 +93,17 @@ export default function Profile() {
         }
     };
 
+    // Handle Ganti KTM (BARU)
+    const handleKtmChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setKtmFile(file);
+            setKtmPreview(URL.createObjectURL(file));
+        }
+    };
+
     const triggerFileSelect = () => { if (isEditing && fileInputRef.current) fileInputRef.current.click(); };
+    const triggerKtmSelect = () => { if (isEditing && ktmInputRef.current) ktmInputRef.current.click(); };
 
     const handleSave = async (e) => {
         e.preventDefault();
@@ -90,7 +113,9 @@ export default function Profile() {
         
         ['name', 'phone', 'address', 'npm', 'prodi', 'fakultas', 'bio', 'jenis_kelamin', 'tanggal_lahir'].forEach(key => formData.append(key, user[key] || ''));
         formData.append('_method', 'PUT'); 
+        
         if (photoFile) formData.append('profile_photo', photoFile);
+        if (ktmFile) formData.append('ktm_image', ktmFile); // Append file KTM
 
         try {
             const response = await fetch('http://127.0.0.1:8000/api/profile', {
@@ -100,11 +125,10 @@ export default function Profile() {
             });
             const data = await response.json();
             if (response.ok) {
-                // --- GANTI ALERT DENGAN TOAST ---
                 setToast({ show: true, message: "Profil berhasil diperbarui.", type: 'success' });
-                
                 setIsEditing(false);
                 setPhotoFile(null); 
+                setKtmFile(null);
                 fetchProfile(); 
             } else {
                 setToast({ show: true, message: "Gagal: " + (data.message || "Terjadi kesalahan"), type: 'error' });
@@ -120,6 +144,13 @@ export default function Profile() {
         if (photoPreview) return photoPreview; 
         if (user.profile_photo) return `http://127.0.0.1:8000/storage/${user.profile_photo}`; 
         return null; 
+    };
+
+    // Helper untuk URL KTM
+    const getKtmUrl = () => {
+        if (ktmPreview) return ktmPreview;
+        if (user.ktm_image) return `http://127.0.0.1:8000/storage/${user.ktm_image}`;
+        return null;
     };
 
     if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-slate-800"></div></div>;
@@ -159,7 +190,7 @@ export default function Profile() {
                             <div className="relative mb-6">
                                 <div 
                                     onClick={triggerFileSelect}
-                                    className={`w-32 h-32 rounded-full overflow-hidden border-4 border-slate-50 shadow-inner
+                                    className={`w-32 h-32 rounded-full overflow-hidden border-4 border-slate-50 shadow-inner bg-slate-100
                                         ${isEditing ? 'cursor-pointer ring-2 ring-blue-500 ring-offset-2 hover:opacity-90' : ''}`}
                                 >
                                     {getPhotoUrl() ? (
@@ -194,20 +225,6 @@ export default function Profile() {
                                         {new Date(user.created_at).toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })}
                                     </span>
                                 </div>
-                                {user.updated_at && (
-                                    <div className="flex justify-between text-xs">
-                                        <span className="text-slate-400">Terakhir Edit</span>
-                                        <span className="text-slate-700 font-medium">
-                                            {new Date(user.updated_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour:'2-digit', minute:'2-digit' })}
-                                        </span>
-                                    </div>
-                                )}
-                                {user.updater && (
-                                    <div className="flex justify-between text-xs">
-                                        <span className="text-slate-400">Oleh</span>
-                                        <span className="text-slate-700 font-medium truncate max-w-[120px]">{user.updater.name}</span>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -222,6 +239,7 @@ export default function Profile() {
                             </div>
 
                             <div className="p-6 space-y-6">
+                                {/* Nama & NPM */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div>
                                         <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">Nama Lengkap</label>
@@ -244,6 +262,7 @@ export default function Profile() {
                                     </div>
                                 </div>
 
+                                {/* Email & HP */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div>
                                         <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">Email</label>
@@ -265,6 +284,7 @@ export default function Profile() {
                                     </div>
                                 </div>
 
+                                {/* Jenis Kelamin & Tanggal Lahir */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4 border-t border-slate-100">
                                     <div>
                                         <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">Jenis Kelamin</label>
@@ -291,16 +311,20 @@ export default function Profile() {
                                     <div className="md:col-span-2">
                                         <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">Bio</label>
                                         <textarea 
-                                            name="bio" rows="3" value={user.bio || ''} onChange={handleChange} disabled={!isEditing} placeholder="Ceritakan sedikit tentang Anda..."
+                                            name="bio" rows="2" value={user.bio || ''} onChange={handleChange} disabled={!isEditing} placeholder="Ceritakan sedikit tentang Anda..."
                                             className={`w-full px-4 py-3 rounded-lg text-sm border transition resize-none
                                                 ${isEditing ? 'border-slate-300 bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500' : 'border-transparent bg-slate-50 text-slate-800 font-medium'}`}
                                         ></textarea>
                                     </div>
                                 </div>
 
+                                {/* DATA AKADEMIK & KTM */}
                                 <div className="pt-4 border-t border-slate-100">
-                                    <h4 className="text-sm font-bold text-slate-700 mb-4">Data Akademik</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
+                                        <Icons.Card /> Data Akademik & KTM
+                                    </h4>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
                                         <div>
                                             <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">Fakultas</label>
                                             <input 
@@ -318,6 +342,39 @@ export default function Profile() {
                                             />
                                         </div>
                                     </div>
+
+                                    {/* === AREA UPLOAD KTM === */}
+                                    <div className="w-full">
+                                        <label className="block text-xs font-semibold text-slate-500 mb-2 uppercase">Kartu Tanda Mahasiswa (KTM)</label>
+                                        
+                                        <div 
+                                            onClick={triggerKtmSelect}
+                                            className={`relative w-full h-48 rounded-xl border-2 flex flex-col items-center justify-center overflow-hidden transition-all
+                                                ${isEditing ? 'border-dashed border-blue-300 bg-blue-50 cursor-pointer hover:bg-blue-100' : 'border-slate-200 bg-slate-50'}`}
+                                        >
+                                            {getKtmUrl() ? (
+                                                <img src={getKtmUrl()} alt="KTM" className="w-full h-full object-contain p-2" />
+                                            ) : (
+                                                <div className="text-center p-4">
+                                                    <div className="mx-auto w-12 h-12 text-slate-300 mb-2">
+                                                        <Icons.Card className="w-12 h-12" />
+                                                    </div>
+                                                    <p className="text-sm text-slate-500 font-medium">Belum ada foto KTM</p>
+                                                    {isEditing && <p className="text-xs text-blue-500 mt-1">Klik untuk upload</p>}
+                                                </div>
+                                            )}
+
+                                            {isEditing && (
+                                                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 hover:bg-opacity-10 transition-all group">
+                                                    <div className="bg-white p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <Icons.Upload />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <input type="file" ref={ktmInputRef} onChange={handleKtmChange} className="hidden" accept="image/*" />
+                                        {isEditing && <p className="text-xs text-slate-400 mt-2">*Format: JPG, PNG. Maks 2MB.</p>}
+                                    </div>
                                 </div>
 
                                 <div className="pt-2">
@@ -334,7 +391,12 @@ export default function Profile() {
                                 <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
                                     <button 
                                         type="button" 
-                                        onClick={() => { setIsEditing(false); setPhotoFile(null); fetchProfile(); }} 
+                                        onClick={() => { 
+                                            setIsEditing(false); 
+                                            setPhotoFile(null); 
+                                            setKtmFile(null);
+                                            fetchProfile(); 
+                                        }} 
                                         className="px-5 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-white hover:border-slate-300 border border-transparent transition"
                                     >
                                         Batal
@@ -354,7 +416,7 @@ export default function Profile() {
                 </div>
             </div>
 
-            {/* --- TOAST NOTIFICATION (POJOK KANAN ATAS) --- */}
+            {/* --- TOAST NOTIFICATION --- */}
             {toast.show && (
                 <div className="fixed top-24 right-4 z-50 animate-fade-in-down">
                     <div className={`shadow-lg rounded-lg border-l-4 p-4 flex items-center gap-3 min-w-[300px] bg-white

@@ -48,7 +48,7 @@ export default function Register() {
             const response = await fetch('http://127.0.0.1:8000/api/send-otp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ no_hp: phone })
+                body: JSON.stringify({ phone: phone })
             });
 
             const data = await response.json();
@@ -83,8 +83,8 @@ export default function Register() {
                     email: email,
                     password: password,
                     password_confirmation: confirmPassword,
-                    no_hp: phone,
-                    alamat: address,
+                    phone: phone,
+                    address: address,
                     otp: otp 
                 })
             });
@@ -228,9 +228,9 @@ export default function Register() {
                         </div>
                     )}
 
-                    {/* Alamat Email */}
+                    {/* address Email */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Alamat Email</label>
+                        <label className="block text-sm font-medium text-gray-700">address Email</label>
                         <input
                             type="email"
                             required
@@ -241,9 +241,9 @@ export default function Register() {
                         />
                     </div>
 
-                    {/* Alamat Lengkap */}
+                    {/* address Lengkap */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Alamat Lengkap</label>
+                        <label className="block text-sm font-medium text-gray-700">address Lengkap</label>
                         <textarea
                             required
                             rows={3}
