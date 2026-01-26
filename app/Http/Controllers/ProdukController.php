@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Produk; // Pastikan nama Model diawali Huruf Besar (Standar Laravel)
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
@@ -35,12 +36,29 @@ class ProdukController extends Controller
     // 2. MENAMPILKAN DETAIL 1 PRODUK
     public function show($id)
     {
-        $produk = Produk::with(['user', 'updater', 'ulasan.user'])->find($id); 
+        // --- PERBAIKAN UTAMA DISINI ---
+        // Cek apakah $id berisi angka (ID asli) atau teks (Slug)
+        // Ini MENCEGAH Error SQL "Invalid input syntax for integer"
+        
+        $query = Produk::with(['user', 'ulasan']); // Load User & Ulasan agar frontend tidak error
 
-        if (!$produk) {
-            return response()->json(['message' => 'Produk tidak ditemukan'], 404);
+        if (is_numeric($id)) {
+            // Jika angka, cari berdasarkan ID
+            $produk = $query->find($id);
+        } else {
+            // Jika teks, cari berdasarkan SLUG
+            $produk = $query->where('slug', $id)->first();
         }
 
+        // JIKA TIDAK KETEMU
+        if (!$produk) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk tidak ditemukan'
+            ], 404);
+        }
+
+        // JIKA KETEMU
         return response()->json([
             'success' => true,
             'data'    => $produk
@@ -74,6 +92,9 @@ class ProdukController extends Controller
             }
         }
 
+        $slugRaw = Str::slug($request->nama_barang);
+        $slug = $slugRaw . '-' . Str::random(5);
+
         // Simpan ke Database (Laravel otomatis cast array ke JSON jika di model sudah di-cast)
         $produk = Produk::create([
             'user_id'      => $request->user()->id,
@@ -83,6 +104,7 @@ class ProdukController extends Controller
             'kategori'     => $request->kategori,
             'deskripsi'    => $request->deskripsi,
             'foto_barang'  => $fotoPaths, 
+            'slug'         => $slug,
         ]);
 
         return response()->json([

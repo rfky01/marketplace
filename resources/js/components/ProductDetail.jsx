@@ -5,7 +5,8 @@ import iconKeranjang from './asset/keranjang.png'
 import ChatBox from './ChatBox'; 
 
 export default function ProductDetail() {
-    const { id } = useParams();
+    const params = useParams();
+    const slug = params.id || params.slug;
     const navigate = useNavigate();
     const [product, setProduct] = useState(null);
     const [mainImage, setMainImage] = useState('');
@@ -56,7 +57,8 @@ export default function ProductDetail() {
     }, [customAlert]);
 
     useEffect(() => {
-        fetch(`http://127.0.0.1:8000/api/produk/${id}`)
+        if (!slug) return;
+        fetch(`http://127.0.0.1:8000/api/produk/${slug}`)
             .then(res => res.json())
             .then(data => {
                 if(data.success) {
@@ -64,9 +66,12 @@ export default function ProductDetail() {
                     if (Array.isArray(data.data.foto_barang) && data.data.foto_barang.length > 0) {
                         setMainImage(data.data.foto_barang[0]);
                     }
+                } else {
+                    console.error("Produk tidak ditemukan di API");
                 }
             })
-            .catch(err => console.error("Gagal fetch produk:", err));
+            .catch(err => console.error("Gagal fetch produk:", err))
+            .finally(() => setLoading(false));
             
         const token = localStorage.getItem('token');
         const userData = localStorage.getItem('user');
@@ -115,7 +120,7 @@ export default function ProductDetail() {
             document.removeEventListener("mousedown", handleClickOutside);
         };
         
-    }, [id]);
+    }, [slug]);
 
     useEffect(() => {
         if (isCheckoutModalOpen) {
@@ -237,6 +242,9 @@ export default function ProductDetail() {
     };
 
     const handleConfirmOrder = async () => {
+        console.log("Data User saat ini:", user); 
+        console.log("Link KTM:", user.ktm_image);
+
         if (!checkoutForm.phone || !checkoutForm.address || !user.ktm_image) {
             
             // Pesan error spesifik agar user tahu apa yang kurang
@@ -277,7 +285,7 @@ export default function ProductDetail() {
             grand_total: product.harga_barang * qty,
             nama_penerima: user.name,
             email_penerima: user.email || "email@example.com", 
-            phone_penerima: checkoutForm.phone,
+            telepon_penerima: checkoutForm.phone,
             alamat_pengiriman: checkoutForm.address,
             metode_pembayaran: checkoutForm.metode_pembayaran,
             waktu_pengiriman: formattedTime 

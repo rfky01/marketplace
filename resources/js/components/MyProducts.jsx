@@ -27,6 +27,32 @@ export default function MyProducts() {
         }
     }, [toast.show]);
 
+    const fetchMyProducts = async () => {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        try {
+            // PERBAIKAN: Gunakan endpoint '/api/my-products' bukan '/api/produk'
+            const response = await fetch('http://127.0.0.1:8000/api/my-products', {
+                headers: { 
+                    Authorization: `Bearer ${token}`,
+                    'Accept': 'application/json'
+                }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                // Backend 'userIndex' sekarang pakai get(), jadi data.data langsung Array
+                setProducts(data.data);
+            } else {
+                setProducts([]);
+            }
+        } catch (error) {
+            console.error("Gagal ambil produk:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         const token = localStorage.getItem('token');
         const userData = localStorage.getItem('user');
@@ -60,26 +86,7 @@ export default function MyProducts() {
             } catch (error) {
                 console.error("Gagal refresh data user:", error);
             }
-        };
-
-        const fetchMyProducts = async () => {
-            try {
-                const response = await fetch('http://127.0.0.1:8000/api/produk');
-                const data = await response.json();
-                
-                if (data.success) {
-                    const currentUserId = userData ? JSON.parse(userData).id : null;
-                    if(currentUserId) {
-                        const myItems = data.data.filter(product => product.user_id === currentUserId);
-                        setProducts(myItems);
-                    }
-                }
-            } catch (error) {
-                console.error("Error fetching products:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+        };     
 
         fetchUserData();
         fetchMyProducts();
@@ -94,23 +101,6 @@ export default function MyProducts() {
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, []);
-
-    const fetchMyProducts = async () => {
-        const token = localStorage.getItem('token');
-        try {
-            const response = await fetch('http://127.0.0.1:8000/api/my-products', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const data = await response.json();
-            if (data.success) {
-                setProducts(data.data);
-            }
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     // --- 1. FUNGSI MEMBUKA POPUP DELETE ---
     const openDeleteModal = (id) => {

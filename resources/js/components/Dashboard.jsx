@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import ChatDropdown from './ChatDropdown';
 import ProductImageSlider from './ProductImageSlider';
+import Pagination from './Pagination'; // Pastikan file ini sudah dibuat!
 
 import iconKeranjang from './asset/keranjang.png'
 import iconPesanan from './asset/pesan.png'
@@ -31,6 +32,9 @@ export default function Dashboard() {
 
     const dropdownRef = useRef(null);
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const [lastPage, setLastPage] = useState(1);
+
     // --- EFFECT: AUTO-CLOSE TOAST ---
     useEffect(() => {
         if (toast.show) {
@@ -47,31 +51,53 @@ export default function Dashboard() {
             setUser(JSON.parse(userData));
         }
 
-        fetchProducts();
-
         function handleClickOutside(event) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
                 setIsDropdownOpen(false);
             }
         }
         document.addEventListener("mousedown", handleClickOutside);
+        
+        // Fetch Produk dipanggil DISINI SAJA (Hapus yang duplikat)
+        fetchProducts(currentPage);
+
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
         };
-    }, []);
+    }, [currentPage]); // Dependency currentPage memastikan fetch ulang saat ganti halaman
 
-    const fetchProducts = async () => {
+    const fetchProducts = async (page) => {
+        setLoading(true);
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/produk');
-            const data = await response.json();
-            if (data.success) {
-                setProducts(Array.isArray(data.data) ? data.data : []);
+            // Panggil API dengan parameter ?page=...
+            const response = await fetch(`http://127.0.0.1:8000/api/produk?page=${page}`);
+            const result = await response.json();
+
+            if (result.success) {
+                // --- [PERBAIKAN LOGIKA DISINI] ---
+                // Cek apakah data dari backend berbentuk Pagination (objek dengan key 'data') 
+                // ATAU Array biasa. Ini mencegah produk hilang jika backend salah format.
+                if (result.data && Array.isArray(result.data.data)) {
+                    // Jika Format Pagination
+                    setProducts(result.data.data);
+                    setCurrentPage(result.data.current_page);
+                    setLastPage(result.data.last_page);
+                } else if (Array.isArray(result.data)) {
+                    // Jika Format Array Biasa (Fallback)
+                    setProducts(result.data);
+                } else {
+                    setProducts([]);
+                }
             }
         } catch (error) {
-            console.error("Error fetching products:", error);
-            setProducts([]);
+            console.error("Gagal ambil produk:", error);
+        } finally {
+            setLoading(false);
         }
     };
+
+    // --- State Loading didefinisikan disini agar tidak error ---
+    const [loading, setLoading] = useState(true);
 
     const getProcessedProducts = () => {
         if (!products || !Array.isArray(products)) return [];
@@ -101,6 +127,7 @@ export default function Dashboard() {
 
     const processedProducts = getProcessedProducts();
     
+    // Ambil Kategori Unik dari data produk yang ada
     const uniqueCategories = products && Array.isArray(products) 
         ? [...new Set(products.map(p => p.kategori).filter(k => k))] 
         : [];
@@ -124,7 +151,6 @@ export default function Dashboard() {
                 setIsShopLoading(false);
                 setShowShopModal(false); 
                 
-                // --- GANTI ALERT DENGAN TOAST ---
                 setToast({ 
                     show: true, 
                     message: "Selamat! Toko Anda aktif. Silakan mulai upload produk.", 
@@ -133,7 +159,6 @@ export default function Dashboard() {
 
             } else { 
                 setIsShopLoading(false);
-                // --- GANTI ALERT DENGAN TOAST ERROR ---
                 setToast({ 
                     show: true, 
                     message: "Gagal: " + (data.message || "Terjadi kesalahan"), 
@@ -329,7 +354,11 @@ export default function Dashboard() {
                     </div>
                 )}
 
-                {processedProducts.length === 0 ? (
+                {loading ? (
+                    <div className="flex justify-center items-center py-20">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-900"></div>
+                    </div>
+                ) : processedProducts.length === 0 ? (
                     <div className="text-center py-20 bg-white rounded-xl shadow">
                         <img 
                             src={iconSearch} 
@@ -337,48 +366,68 @@ export default function Dashboard() {
                             className="w-16 h-16 mx-auto mb-4 opacity-50 object-contain"
                         />
                         <p className="text-gray-500 text-lg">Produk tidak ditemukan.</p>
+                        
+                        {/* --- KOMPONEN PAGINATION TETAP MUNCUL AGAR BISA KEMBALI --- */}
+                        <div className="mt-12 border-t border-gray-200 pt-6">
+                            <Pagination 
+                                currentPage={currentPage} 
+                                lastPage={lastPage} 
+                                onPageChange={(page) => setCurrentPage(page)} 
+                            />
+                        </div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                        {processedProducts.map((product) => {
-                            const ulasan = product.ulasan || [];
-                            const ratingCount = ulasan.length;
-                            const totalRating = ulasan.reduce((acc, curr) => acc + parseInt(curr.rating), 0);
-                            const avgRating = ratingCount > 0 ? (totalRating / ratingCount).toFixed(1) : 0;
+                    <>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                            {processedProducts.map((product) => {
+                                const ulasan = product.ulasan || [];
+                                const ratingCount = ulasan.length;
+                                const totalRating = ulasan.reduce((acc, curr) => acc + parseInt(curr.rating), 0);
+                                const avgRating = ratingCount > 0 ? (totalRating / ratingCount).toFixed(1) : 0;
 
-                            return (
-                                <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition duration-300 transform hover:-translate-y-1 flex flex-col h-full group">
-                                    <Link to={`/product/${product.id}`} className="block cursor-pointer relative">
-                                        <ProductImageSlider 
-                                            images={product.foto_barang} 
-                                            alt={product.nama_barang} 
-                                        />
-                                        {product.stok_barang <= 0 && (<div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"><span className="text-white font-bold text-xs bg-red-600 px-2 py-1 rounded">HABIS</span></div>)}
-                                    </Link>
-                                    <div className="p-3 flex flex-col flex-1">
-                                        <Link to={`/product/${product.id}`} className="no-underline">
-                                            <h3 className="text-sm font-semibold text-gray-800 mb-1 line-clamp-2 leading-snug hover:text-blue-900 transition min-h-[40px]" title={product.nama_barang}>{product.nama_barang}</h3>
+                                return (
+                                    <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition duration-300 transform hover:-translate-y-1 flex flex-col h-full group">
+                                        <Link to={`/product/${product.slug}`} className="block cursor-pointer relative">
+                                            <ProductImageSlider 
+                                                images={product.foto_barang} 
+                                                alt={product.nama_barang} 
+                                            />
+                                            {product.stok_barang <= 0 && (<div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"><span className="text-white font-bold text-xs bg-red-600 px-2 py-1 rounded">HABIS</span></div>)}
                                         </Link>
-                                        <div className="mb-1">
-                                            <span className="text-gray-800 font-bold text-base">{formatRupiah(product.harga_barang)}</span>
-                                        </div>
-                                        <p className="text-[10px] text-gray-500 uppercase tracking-wide font-medium mb-3">{product.kategori}</p>
-                                        
-                                        <div className="flex items-center gap-1 mb-2">
-                                            <span className="text-yellow-400 text-xs">★</span>
-                                            <span className="text-xs font-bold text-gray-600">{avgRating > 0 ? avgRating : '0.0'}</span>
-                                            <span className="text-[10px] text-gray-400">({ratingCount})</span>
-                                        </div>
+                                        <div className="p-3 flex flex-col flex-1">
+                                            <Link to={`/product/${product.slug}`} className="block cursor-pointer relative">
+                                                <h3 className="text-sm font-semibold text-gray-800 mb-1 line-clamp-2 leading-snug hover:text-blue-900 transition min-h-[40px]" title={product.nama_barang}>{product.nama_barang}</h3>
+                                            </Link>
+                                            <div className="mb-1">
+                                                <span className="text-gray-800 font-bold text-base">{formatRupiah(product.harga_barang)}</span>
+                                            </div>
+                                            <p className="text-[10px] text-gray-500 uppercase tracking-wide font-medium mb-3">{product.kategori}</p>
+                                            
+                                            <div className="flex items-center gap-1 mb-2">
+                                                <span className="text-yellow-400 text-xs">★</span>
+                                                <span className="text-xs font-bold text-gray-600">{avgRating > 0 ? avgRating : '0.0'}</span>
+                                                <span className="text-[10px] text-gray-400">({ratingCount})</span>
+                                            </div>
 
-                                        <div className="flex items-center gap-1 mt-auto">
-                                            <span className="text-[10px] bg-blue-100 text-blue-900 px-1.5 py-0.5 rounded font-bold">Stok {product.stok_barang}</span>
-                                            <span className="text-[10px] text-gray-400 truncate max-w-[100px]">{product.user ? product.user.name : 'Unknown'}</span>
+                                            <div className="flex items-center gap-1 mt-auto">
+                                                <span className="text-[10px] bg-blue-100 text-blue-900 px-1.5 py-0.5 rounded font-bold">Stok {product.stok_barang}</span>
+                                                <span className="text-[10px] text-gray-400 truncate max-w-[100px]">{product.user ? product.user.name : 'Unknown'}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* --- KOMPONEN PAGINATION --- */}
+                        <div className="mt-12 border-t border-gray-200 pt-6">
+                            <Pagination 
+                                currentPage={currentPage} 
+                                lastPage={lastPage} 
+                                onPageChange={(page) => setCurrentPage(page)} 
+                            />
+                        </div>
+                    </>
                 )}
             </div>
 

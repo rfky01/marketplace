@@ -48,7 +48,7 @@ export default function Keranjang() {
             // --- LOGIKA AUTOFILL DARI LOCAL STORAGE ---
             setCheckoutForm(prev => ({
                 ...prev,
-                telepon: parsedUser.phone || parsedUser.telepon || parsedUser.no_hp || '',
+                telepon: parsedUser.telepon || parsedUser.telepon || parsedUser.no_hp || '',
                 alamat:''
             }));
         }
@@ -68,7 +68,7 @@ export default function Keranjang() {
                     // --- LOGIKA AUTOFILL DARI API TERBARU ---
                     setCheckoutForm(prev => ({
                         ...prev,
-                        telepon: data.phone || data.telepon || data.no_hp || '',
+                        telepon: data.telepon || data.phone || data.no_hp || '',
                         alamat:''
                     }));
                 }
@@ -500,7 +500,7 @@ export default function Keranjang() {
                         {/* Body Form */}
                         <div className="p-6 overflow-y-auto space-y-4">
                             
-                            {/* Baris 1: Telepon & Total Item */}
+                            {/* Baris 1: telepon & Total Item */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-500 uppercase mb-1">No. Telepon</label>
