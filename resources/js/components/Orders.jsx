@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import ChatBox from '../components/ChatBox';
+import ChatBox from '../components/ChatBox'; 
 import iconKeranjang from './asset/keranjang.png'
-import iconHome from './asset/home.png'
 import iconBelumada from './asset/belumada.png'
-
 
 export default function Orders() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState({});
+
+    const [activeTab, setActiveTab] = useState('all');
     
     // --- STATE NAVBAR ---
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -34,11 +34,21 @@ export default function Orders() {
     
     const navigate = useNavigate();
 
+    const tabs = [
+        { id: 'all', label: 'Semua', statuses: [] },
+        { id: 'pending', label: 'Menunggu Konfirmasi', statuses: ['pending'] },
+        { id: 'proses', label: 'Diproses', statuses: ['accepted', 'proses', 'dikemas'] },
+        { id: 'dikirim', label: 'Dikirim', statuses: ['dikirim'] },
+        { id: 'selesai', label: 'Selesai', statuses: ['selesai'] },
+        { id: 'return', label: 'Pengembalian', statuses: ['return_requested', 'return_accepted', 'return_rejected'] },
+        { id: 'batal_pembeli', label: 'Dibatalkan Pembeli', statuses: ['canceled by buyer', 'canceled'] },
+        { id: 'batal_penjual', label: 'Dibatalkan Penjual', statuses: ['canceled by seller', 'ditolak'] },    ];
+
     // --- STATE POPUP NOTIFIKASI ---
     const [customAlert, setCustomAlert] = useState({
         isOpen: false,
         message: '',
-        type: 'success', // 'success', 'error', atau 'warning'
+        type: 'success', 
         showCancel: false,
         confirmText: 'OK',
         cancelText: 'Batal',
@@ -48,7 +58,6 @@ export default function Orders() {
     // --- EFFECT: AUTO-CLOSE UNTUK TOAST SUCCESS ---
     useEffect(() => {
         let timer;
-        // Hanya auto-close jika BUKAN konfirmasi (tidak ada tombol cancel)
         if (customAlert.isOpen && !customAlert.showCancel && customAlert.type === 'success') {
             timer = setTimeout(() => {
                 setCustomAlert(prev => ({ ...prev, isOpen: false }));
@@ -87,7 +96,7 @@ export default function Orders() {
             }
         };
 
-        fetchOrders(); // Panggil fungsi fetch orders
+        fetchOrders(); 
         fetchUserData();
 
         function handleClickOutside(event) {
@@ -118,12 +127,19 @@ export default function Orders() {
         }
     };
 
+    // --- FILTER LOGIC ---
+    const filteredOrders = orders.filter(item => {
+        if (activeTab === 'all') return true;
+        const currentStatus = (item.status || 'pending').toLowerCase().trim();
+        const targetStatuses = tabs.find(t => t.id === activeTab)?.statuses || [];
+        return targetStatuses.includes(currentStatus);
+    });
+
     // --- HELPER: CEK APAKAH WAKTU SUDAH LEWAT ---
     const isTimePassed = (dateString) => {
         if (!dateString) return false;
         const targetDate = new Date(dateString);
         const now = new Date();
-        // Return TRUE jika Waktu Sekarang LEBIH BESAR dari Waktu Target
         return now > targetDate;
     };
 
@@ -143,7 +159,6 @@ export default function Orders() {
     const executeReturnOrder = async (id) => {
         const token = localStorage.getItem('token');
         try {
-            // MENGGUNAKAN POST (Sesuai update route API Anda)
             const response = await fetch(`http://127.0.0.1:8000/api/orders/${id}/return`, {
                 method: 'POST', 
                 headers: { 
@@ -457,6 +472,7 @@ export default function Orders() {
     return (
         <div className="min-h-screen bg-gray-50 w-full font-sans pb-20">
             
+            {/* 1. NAVBAR */}
             <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
                 <div className="max-w-7xl mx-auto h-16 flex items-center justify-between px-4 lg:px-8">
                     <div className="flex items-center gap-8">
@@ -466,277 +482,253 @@ export default function Orders() {
                     </div>
                     <div className="flex items-center gap-6">
                         <Link to="/keranjang" className="text-2xl text-gray-500 hover:text-blue-900">
-                            <img 
-                            src={iconKeranjang} 
-                            alt="keranjang" 
-                            className="w-10 h-10 object-contain opacity-60 group-hover:opacity-100 transition duration-200"
-                            />
+                            <img src={iconKeranjang} alt="keranjang" className="w-10 h-10 object-contain opacity-60 group-hover:opacity-100 transition duration-200"/>
                         </Link>
                         <Link to="/" className="hidden md:inline-flex items-center text-gray-500 hover:text-blue-600 font-medium transition no-underline text-sm border-r border-gray-300 pr-6">
                             <span className="mr-1 text-lg"></span>Dashboard
                         </Link>
                         <div className="relative" ref={dropdownRef}>
-                                <button 
-                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                    className="flex items-center gap-3 hover:bg-gray-100 p-2 rounded-lg transition border border-transparent hover:border-gray-200"
-                                >
-                                    <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-blue-100 bg-gray-200">
-                                        {getProfilePhoto() ? (
-                                            <img 
-                                                src={getProfilePhoto()} 
-                                                alt="Profile" 
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-blue-600 font-bold text-lg bg-blue-50">
-                                                {user.name?.charAt(0).toUpperCase()}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="text-left hidden sm:block">
-                                        <p className="text-xs text-gray-500 font-medium">Halo,</p>
-                                        <p className="text-sm font-bold text-gray-800 max-w-[120px] truncate">{user.name}</p>
-                                    </div>
-                                </button>
-
-                                {isDropdownOpen && (
-                                    <div className="absolute right-0 top-full mt-3 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden animate-fade-in-down">
-                                        {/* Header Dropdown */}
-                                        <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-white">
-                                                {getProfilePhoto() ? (
-                                                    <img src={getProfilePhoto()} alt="Profile" className="w-full h-full object-cover"/>
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-blue-600 font-bold bg-blue-50">
-                                                        {user.name?.charAt(0).toUpperCase()}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="overflow-hidden">
-                                                <p className="text-sm font-bold text-gray-800 truncate">{user.name}</p>
-                                                <p className="text-xs text-gray-500">Pembeli</p>
-                                            </div>
+                            <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-3 hover:bg-gray-100 p-2 rounded-lg transition border border-transparent hover:border-gray-200">
+                                <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-blue-100 bg-gray-200">
+                                    {getProfilePhoto() ? (
+                                        <img src={getProfilePhoto()} alt="Profile" className="w-full h-full object-cover"/>
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-blue-600 font-bold text-lg bg-blue-50">
+                                            {user.name?.charAt(0).toUpperCase()}
                                         </div>
-
-                                        {/* Menu Items */}
-                                        <div className="py-2">
-                                            <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">
-                                                Edit Profil
-                                            </Link>
-                                            <Link to="/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">
-                                                Riwayat Pesanan
-                                            </Link>
+                                    )}
+                                </div>
+                                <div className="text-left hidden sm:block">
+                                    <p className="text-xs text-gray-500 font-medium">Halo,</p>
+                                    <p className="text-sm font-bold text-gray-800 max-w-[120px] truncate">{user.name}</p>
+                                </div>
+                            </button>
+                            {isDropdownOpen && (
+                                <div className="absolute right-0 top-full mt-3 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden animate-fade-in-down">
+                                    <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-white">
+                                            {getProfilePhoto() ? (
+                                                <img src={getProfilePhoto()} alt="Profile" className="w-full h-full object-cover"/>
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-blue-600 font-bold bg-blue-50">
+                                                    {user.name?.charAt(0).toUpperCase()}
+                                                </div>
+                                            )}
                                         </div>
-
-                                        {/* Logout */}
-                                        <div className="border-t border-gray-100 mt-1 pt-1">
-                                            <button 
-                                                onClick={handleLogout} 
-                                                className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition"
-                                            >
-                                                Keluar
-                                            </button>
+                                        <div className="overflow-hidden">
+                                            <p className="text-sm font-bold text-gray-800 truncate">{user.name}</p>
+                                            <p className="text-xs text-gray-500">Pembeli</p>
                                         </div>
                                     </div>
-                                )}
-                            </div>
+                                    <div className="py-2">
+                                        <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">Edit Profil</Link>
+                                        <Link to="/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">Riwayat Pesanan</Link>
+                                    </div>
+                                    <div className="border-t border-gray-100 mt-1 pt-1">
+                                        <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition">Keluar</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </nav>
 
-            <div className="max-w-5xl mx-auto px-4">
-                <div className="flex items-center gap-3 mb-6">
-                    <h1 className="text-2xl font-bold text-gray-800">Riwayat Pesanan</h1>
-                </div>
-
-                {orders.length === 0 ? (
-                    <div className="bg-white p-12 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
-                        <img 
-                        src={iconBelumada} 
-                        alt="belumada" 
-                        className="w-25 h-20 object-contain opacity-60 group-hover:opacity-100 transition duration-200"
-                        />
-                        <h2 className="text-xl font-bold text-gray-800 mb-2">Belum ada pesanan</h2>
-                        <Link to="/" className="inline-block bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-700 transition shadow-lg no-underline">
-                            Mulai Belanja
-                        </Link>
-                    </div>
-                ) : (
-                    <div className="space-y-3">
-                        {orders.map((order) => (
-                            <div key={order.id} className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+            {/* 2. CONTAINER UTAMA */}
+            <div className="max-w-7xl mx-auto px-4 py-6">
                                 
-                                <div className="bg-gray-50 px-3 py-1.5 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-xs font-bold text-gray-700 font-mono">{order.invoice_code || `INV-${order.id}`}</p>
-                                        <span className="text-gray-300">|</span>
-                                        <p className="text-[10px] text-gray-500">{formatDate(order.created_at)}</p>
-                                    </div>
-                                    <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide 
-                                    ${order.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border border-yellow-100' : 
-                                      order.status === 'selesai' ? 'bg-green-50 text-green-700 border border-green-100' : 
-                                      order.status === 'dikirim' ? 'bg-purple-50 text-purple-700 border border-purple-100' :
-                                      order.status === 'return_requested' ? 'bg-orange-50 text-orange-700 border border-orange-100' :
-                                      'bg-red-50 text-red-700 border border-red-100'}`}>
-                                        {order.status === 'return_requested' ? 'Return' : order.status}
-                                    </div>
-                                </div>
-
-                                <div className="p-3 space-y-3">
-                                    {order.detail_pesanan?.map((detail, index) => (
-                                        <div key={index} className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_1fr_auto] gap-4 items-start border-b border-dashed border-gray-100 pb-3 last:border-0 last:pb-0">
-                                            
-                                            <div className="flex items-start gap-3">
-                                                <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden flex-shrink-0 border border-gray-200">
-                                                    <img 
-                                                        src={getProductImage(detail.produk)} 
-                                                        alt={detail.produk?.nama_barang} 
-                                                        className="w-full h-full object-cover"
-                                                        onError={(e)=>{e.target.src="https://via.placeholder.com/150"}}
-                                                    />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <h4 className="font-bold text-gray-800 text-sm line-clamp-1">{detail.produk?.nama_barang || 'Produk dihapus'}</h4>
-                                                    <p className="text-[11px] text-gray-500">{detail.jumlah} x {formatRupiah(detail.produk?.harga_barang || 0)}</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="hidden md:block">
-                                                <div className="p-2 rounded border border-gray-100 bg-gray-50 text-[10px]">
-                                                    <div className="mb-1">
-                                                        <span className="font-bold text-gray-400 uppercase block mb-0.5">Penjual</span>
-                                                        <div className="flex items-center gap-1 font-semibold text-gray-700">
-                                                            <span className="text-base">👤</span>
-                                                            <span className="truncate">
-                                                                {detail.produk?.user?.name || "Official Store"}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="flex items-center gap-1 text-gray-500">
-                                                            <span className="text-xs">📞</span>
-                                                            <span>
-                                                                {detail.produk?.user?.phone}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="hidden md:block">
-                                                {index === 0 && (
-                                                    <div className="p-2 bg-blue-50 bg-opacity-40 rounded border border-blue-100 text-[10px]">
-                                                        <div className="mb-1">
-                                                            <span className="font-bold text-gray-400 uppercase">Kirim ke: </span>
-                                                            <span className="font-semibold text-gray-700 truncate block">
-                                                                {order.alamat_pengiriman || "-"}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="font-bold text-blue-800">
-                                                                ⏰ {formatDate(order.waktu_pengiriman || order.created_at)}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* --- AREA KANAN: HARGA & TOMBOL RETURN/CANCEL (PINDAH KESINI) --- */}
-                                            <div className="text-right flex flex-col items-end gap-2">
-                                                <p className="font-bold text-gray-800 text-sm">{formatRupiah((detail.produk?.harga_barang || 0) * detail.jumlah)}</p>
-                                                
-                                                {/* LOGIKA RETURN: HANYA MUNCUL JIKA STATUS SELESAI */}
-                                                {index === 0 && order.status === 'selesai' && (
-                                                    <button 
-                                                        onClick={() => handleReturnClick(order.id)}
-                                                        className="px-3 py-1.5 bg-orange-50 text-orange-600 border border-orange-200 rounded text-[10px] font-bold hover:bg-orange-100 transition shadow-sm"
-                                                    >
-                                                        Ajukan Return
-                                                    </button>
-                                                )}
-
-                                                {/* LOGIKA BATALKAN (JIKA WAKTU LEWAT & BELUM SELESAI & BUKAN PENDING) */}
-                                                {index === 0 && isTimePassed(order.waktu_pengiriman) && 
-                                                 order.status !== 'selesai' && 
-                                                 order.status !== 'pending' && // <-- TAMBAHAN KONDISI INI
-                                                 !order.status.toLowerCase().includes('cancel') && 
-                                                 !order.status.toLowerCase().includes('dibatalkan') && (
-                                                    <button 
-                                                        onClick={() => handleCancelClick(order.id)}
-                                                        className="px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded text-[10px] font-bold hover:bg-red-100 transition shadow-sm"
-                                                    >
-                                                        Batalkan Pesanan
-                                                    </button>
-                                                )}
-                                            </div>
-
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="px-3 py-2 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-[11px] text-gray-500 font-bold">Total:</p>
-                                        <p className="text-base font-extrabold text-blue-700">{formatRupiah(order.grand_total)}</p>
-                                    </div>
-                                    
-                                    <div className="flex gap-2">
-                                        <button 
-                                            onClick={() => {
-                                                const seller = order.detail_pesanan?.[0]?.produk?.user;
-                                                openChat(seller?.id, seller?.name);
-                                            }}
-                                            className="px-3 py-1 bg-white text-blue-600 border border-blue-300 rounded text-[10px] font-bold hover:bg-blue-50 transition shadow-sm flex items-center gap-1"
-                                        >
-                                            💬 Chat Penjual
-                                        </button>
-                                        
-                                        {/* (SEMUA TOMBOL RETURN/CANCEL SUDAH DIHAPUS DARI SINI) */}
-
-                                        {(order.status.toLowerCase().includes('dibatalkan') || order.status.toLowerCase().includes('cancel')) && (
-                                            <button 
-                                                onClick={() => handleDeleteHistory(order.id)}
-                                                className="px-3 py-1 bg-white text-gray-500 border border-gray-300 rounded text-[10px] font-bold hover:bg-gray-100 transition shadow-sm"
-                                            >
-                                                Hapus
-                                            </button>
-                                        )}
-
-                                        {order.status === 'pending' && (
-                                            <button 
-                                                onClick={() => handleCancelClick(order.id)}
-                                                className="px-3 py-1 bg-white text-red-600 border border-red-200 rounded text-[10px] font-bold hover:bg-red-50 transition shadow-sm"
-                                            >
-                                                Batalkan
-                                            </button>
-                                        )}
-
-                                        {order.status === 'dikirim' && (
-                                            <button 
-                                                onClick={() => handleReceiveOrder(order.id)}
-                                                className="px-3 py-1 bg-green-600 text-white rounded text-[10px] font-bold hover:bg-green-700 transition shadow-sm"
-                                            >
-                                                📦 Pesanan Diterima
-                                            </button>
-                                        )}
-
-                                        {order.status === 'selesai' && (
-                                            <button 
-                                                onClick={() => openRatingModal(order)}
-                                                className="px-3 py-1 bg-yellow-400 text-white rounded text-[10px] font-bold hover:bg-yellow-500 transition shadow-sm flex items-center gap-1"
-                                            >
-                                                ★ Ulasan
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
+                <div className="flex flex-col lg:flex-row gap-6 items-start">                    
+                    {/* SIDEBAR MENU (KIRI) */}
+                    <div className="w-full lg:w-64 flex-shrink-0 sticky top-24 z-30">
+                        <h1 className="text-2xl font-bold text-gray-800 mb-4 px-1 hidden lg:block">
+                            Riwayat Pesanan
+                        </h1>
+                        {/* Judul Khusus Mobile (Hilang di Layar Besar) */}
+                        <h1 className="text-2xl font-bold text-gray-800 mb-4 lg:hidden">
+                            Riwayat Pesanan
+                        </h1>
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                            <div className="p-4 border-b border-gray-100 bg-gray-50 hidden lg:flex justify-between items-center">
+                                <h3 className="font-bold text-gray-700 text-sm">Status Pesanan</h3>
+                                <span className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                                    {orders.length}
+                                </span>
                             </div>
-                        ))}
+                            
+                            {/* Desktop: Vertical List */}
+                            <div className="hidden lg:flex flex-col p-2">
+                                {tabs.map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`w-full text-left px-4 py-3 rounded-lg text-sm font-bold transition-all mb-1 flex justify-between items-center ${
+                                            activeTab === tab.id 
+                                            ? 'bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-100' 
+                                            : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                                        }`}
+                                    >
+                                        {tab.label}
+                                        {activeTab === tab.id && <span className="text-blue-500">•</span>}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Mobile: Horizontal List */}
+                            <div className="lg:hidden flex overflow-x-auto no-scrollbar p-2 gap-2 border-b border-gray-100">
+                                {tabs.map(tab => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap border transition-all ${
+                                            activeTab === tab.id 
+                                            ? 'bg-blue-600 text-white border-blue-600' 
+                                            : 'bg-white text-gray-500 border-gray-200'
+                                        }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
-                )}
+
+                    {/* KONTEN UTAMA (KANAN) */}
+                    <div className="flex-1 w-full min-w-0">
+                        {filteredOrders.length === 0 ? (
+                            <div className="bg-white p-12 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
+                                <img src={iconBelumada} alt="belumada" className="w-24 h-24 object-contain opacity-60 mb-4"/>
+                                {activeTab === 'all' || orders.length === 0 ? (
+                                    <>
+                                        <h2 className="text-xl font-bold text-gray-800 mb-2">Belum ada pesanan</h2>
+                                        <p className="text-gray-500 mb-6 text-sm">Belum ada transaksi di akun Anda.</p>
+                                        <Link to="/" className="inline-block bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-700 transition shadow-lg no-underline">Mulai Belanja</Link>
+                                    </>
+                                ) : (
+                                    <>
+                                        <h2 className="text-gray-500 text-sm">Tidak ada pesanan di status "{tabs.find(t => t.id === activeTab)?.label}"</h2>
+                                    </>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {filteredOrders.map((order) => (
+                                    <div key={order.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition duration-200">
+                                        
+                                        {/* Header Card */}
+                                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className="bg-white border border-gray-200 p-1.5 rounded text-xs font-mono font-bold text-gray-600">
+                                                    {order.invoice_code || `INV-${order.id}`}
+                                                </div>
+                                                <p className="text-[11px] text-gray-500 flex items-center gap-1">
+                                                    📅 {formatDate(order.created_at)}
+                                                </p>
+                                            </div>
+                                            <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border
+                                            ${order.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
+                                            order.status === 'selesai' ? 'bg-green-50 text-green-700 border-green-200' : 
+                                            order.status === 'dikirim' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                            order.status === 'return_requested' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                                            'bg-red-50 text-red-700 border-red-200'}`}>
+                                                {order.status === 'return_requested' ? 'Return' : order.status}
+                                            </div>
+                                        </div>
+
+                                        <div className="p-4 space-y-4">
+                                            {order.detail_pesanan?.map((detail, index) => (
+                                                <div key={index} className="grid grid-cols-1 md:grid-cols-[1.5fr_1.5fr_auto] gap-4 items-start border-b border-dashed border-gray-100 pb-4 last:border-0 last:pb-0">
+                                                    
+                                                    {/* Produk Info */}
+                                                    <div className="flex items-start gap-4">
+                                                        <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                                                            <img src={getProductImage(detail.produk)} alt={detail.produk?.nama_barang} className="w-full h-full object-cover" onError={(e)=>{e.target.src="https://via.placeholder.com/150"}}/>
+                                                        </div>
+                                                        <div className="flex-1 min-w-0 pt-1">
+                                                            <h4 className="font-bold text-gray-800 text-sm line-clamp-2 leading-snug">{detail.produk?.nama_barang || 'Produk dihapus'}</h4>
+                                                            <p className="text-xs text-gray-500 mt-1">{detail.jumlah} x {formatRupiah(detail.produk?.harga_barang || 0)}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Penjual & Alamat (Hanya Baris Pertama) */}
+                                                    <div className="hidden md:block text-xs text-gray-600 border-l border-gray-100 pl-4 h-full">
+                                                        {index === 0 && (
+                                                            <>
+                                                                <div className="mb-3">
+                                                                    <p className="font-bold text-gray-400 uppercase text-[10px] mb-0.5">Penjual</p>
+                                                                    <div className="flex items-center gap-1 font-semibold text-gray-700">
+                                                                        <span>🛒</span> {detail.produk?.user?.name || "Official Store"}
+                                                                    </div>
+                                                                    {/* --- BAGIAN INI SAYA KEMBALIKAN (TELEPON) --- */}
+                                                                    <div className="flex items-center gap-1 text-gray-500 mt-1">
+                                                                        <span>📞</span> {detail.produk?.user?.phone || detail.produk?.user?.telepon || detail.produk?.user?.no_hp || "-"}
+                                                                    </div>
+                                                                    {/* ------------------------------------------- */}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-bold text-gray-400 uppercase text-[10px] mb-0.5">Pengiriman</p>
+                                                                    <p className="line-clamp-1">{order.alamat_pengiriman || "-"}</p>
+                                                                    {order.waktu_pengiriman && <p className="text-blue-600 font-medium mt-0.5">Estimasi: {formatDate(order.waktu_pengiriman)}</p>}
+                                                                </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Total & Aksi */}
+                                                    <div className="text-right flex flex-col items-end justify-between h-full gap-2">
+                                                        <div>
+                                                            <p className="text-[10px] text-gray-400 font-bold uppercase mb-0.5">Subtotal</p>
+                                                            <p className="font-bold text-gray-800 text-sm">{formatRupiah((detail.produk?.harga_barang || 0) * detail.jumlah)}</p>
+                                                        </div>
+                                                        
+                                                        {index === 0 && order.status === 'selesai' && (
+                                                            <button onClick={() => handleReturnClick(order.id)} className="px-3 py-1.5 bg-orange-50 text-orange-600 border border-orange-200 rounded text-[10px] font-bold hover:bg-orange-100 transition shadow-sm w-full">Ajukan Return</button>
+                                                        )}
+
+                                                        {index === 0 && isTimePassed(order.waktu_pengiriman) && order.status !== 'selesai' && order.status !== 'pending' && !order.status.toLowerCase().includes('cancel') && !order.status.toLowerCase().includes('dibatalkan') && (
+                                                            <button onClick={() => handleCancelClick(order.id)} className="px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded text-[10px] font-bold hover:bg-red-100 transition shadow-sm w-full">Batalkan Pesanan</button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 flex flex-wrap justify-between items-center gap-3">
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-xs text-gray-500 font-bold uppercase">Total Bayar:</p>
+                                                <p className="text-lg font-extrabold text-blue-700">{formatRupiah(order.grand_total)}</p>
+                                            </div>
+                                            
+                                            <div className="flex gap-2 flex-wrap justify-end">
+                                                <button onClick={() => {const seller = order.detail_pesanan?.[0]?.produk?.user; openChat(seller?.id, seller?.name);}} className="px-4 py-2 bg-white text-blue-600 border border-blue-300 rounded-lg text-xs font-bold hover:bg-blue-50 transition shadow-sm flex items-center gap-1">
+                                                    💬 Chat
+                                                </button>
+                                                
+                                                {(order.status.toLowerCase().includes('dibatalkan') || order.status.toLowerCase().includes('cancel')) && (
+                                                    <button onClick={() => handleDeleteHistory(order.id)} className="px-4 py-2 bg-white text-gray-500 border border-gray-300 rounded-lg text-xs font-bold hover:bg-gray-100 transition shadow-sm">Hapus Riwayat</button>
+                                                )}
+
+                                                {order.status === 'pending' && (
+                                                    <button onClick={() => handleCancelClick(order.id)} className="px-4 py-2 bg-white text-red-600 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-50 transition shadow-sm">Batalkan</button>
+                                                )}
+
+                                                {order.status === 'dikirim' && (
+                                                    <button onClick={() => handleReceiveOrder(order.id)} className="px-4 py-2 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition shadow-sm shadow-green-200">📦 Pesanan Diterima</button>
+                                                )}
+
+                                                {order.status === 'selesai' && (
+                                                    <button onClick={() => openRatingModal(order)} className="px-4 py-2 bg-yellow-400 text-white rounded-lg text-xs font-bold hover:bg-yellow-500 transition shadow-sm flex items-center gap-1 shadow-yellow-200">★ Beri Ulasan</button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
-            {/* --- MODAL POPUP RATING --- */}
+            {/* MODAL DAN POPUP */}
             {isRatingModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 animate-fade-in">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
@@ -747,30 +739,10 @@ export default function Orders() {
                         <div className="p-6">
                             <div className="flex justify-center gap-2 mb-6">
                                 {[1, 2, 3, 4, 5].map((star) => (
-                                    <button 
-                                        key={star}
-                                        onClick={() => setRating(star)}
-                                        className={`text-4xl transition transform hover:scale-110 ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
-                                    >
-                                        ★
-                                    </button>
+                                    <button key={star} onClick={() => setRating(star)} className={`text-4xl transition transform hover:scale-110 ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}>★</button>
                                 ))}
                             </div>
-                            <p className="text-center text-sm text-gray-500 mb-4 font-medium">
-                                {rating === 0 ? "Ketuk bintang untuk menilai" : 
-                                 rating === 5 ? "Sempurna! 😍" : 
-                                 rating === 4 ? "Puas! 😄" : 
-                                 rating === 3 ? "Cukup Bagus 🙂" : 
-                                 rating === 2 ? "Kurang 😐" : "Kecewa 😞"}
-                            </p>
-
-                            <textarea 
-                                className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none text-sm h-24 resize-none"
-                                placeholder="Bagaimana kualitas produk ini? Ceritakan pengalamanmu..."
-                                value={reviewText}
-                                onChange={(e) => setReviewText(e.target.value)}
-                            ></textarea>
-
+                            <textarea className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 outline-none text-sm h-24 resize-none" placeholder="Ceritakan pengalamanmu..." value={reviewText} onChange={(e) => setReviewText(e.target.value)}></textarea>
                             <div className="mt-6 flex gap-3">
                                 <button onClick={() => setIsRatingModalOpen(false)} className="flex-1 py-2.5 border border-gray-300 text-gray-600 font-bold rounded-xl hover:bg-gray-50 text-sm">Batal</button>
                                 <button onClick={handleSubmitRating} className="flex-1 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg text-sm">Kirim Ulasan</button>
@@ -780,79 +752,22 @@ export default function Orders() {
                 </div>
             )}
 
-            {/* --- CUSTOM POPUP & TOAST RENDERER --- */}
             {customAlert.isOpen && (
-                <>
-                    {/* TAMPILAN 1: TOAST SUCCESS (Pojok Kanan Atas) */}
-                    {customAlert.type === 'success' ? (
-                        <div className="fixed top-24 right-4 z-[200] animate-slide-in">
-                            <div className="bg-white shadow-xl rounded-lg border-l-4 border-green-500 p-4 flex items-center gap-3 min-w-[300px]">
-                                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 flex-shrink-0">
-                                    <span className="font-bold text-lg">✓</span>
-                                </div>
-                                <div className="flex-1">
-                                    <h4 className="font-bold text-gray-800 text-sm">Berhasil!</h4>
-                                    <p className="text-gray-600 text-xs">{customAlert.message}</p>
-                                </div>
-                                <button 
-                                    onClick={() => setCustomAlert({ ...customAlert, isOpen: false })} 
-                                    className="text-gray-400 hover:text-gray-600 font-bold"
-                                >
-                                    ✕
-                                </button>
-                            </div>
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 text-center transform scale-100 transition-all">
+                        <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${customAlert.type === 'warning' ? 'bg-yellow-100 text-yellow-600' : customAlert.type === 'success' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                            <span className="text-3xl font-bold">{customAlert.type === 'warning' ? '?' : customAlert.type === 'success' ? '✓' : '!'}</span>
                         </div>
-                    ) : (
-                        /* TAMPILAN 2: MODAL TENGAH (Warning / Error) */
-                        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4 animate-fade-in">
-                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-6 text-center transform scale-100 transition-all">
-                                
-                                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 
-                                    ${customAlert.type === 'warning' ? 'bg-yellow-100 text-yellow-600' : 'bg-red-100 text-red-600'}`}>
-                                    
-                                    <span className="text-3xl font-bold">
-                                        {customAlert.type === 'warning' ? '?' : '!'}
-                                    </span>
-                                </div>
-
-                                <h3 className="text-lg font-bold text-gray-800 mb-4">
-                                    {customAlert.message}
-                                </h3>
-
-                                <div className="flex gap-3">
-                                    {customAlert.showCancel && (
-                                        <button 
-                                            onClick={() => setCustomAlert({...customAlert, isOpen: false})}
-                                            className="flex-1 py-2.5 rounded-xl font-bold text-gray-600 border border-gray-300 hover:bg-gray-100 transition shadow-sm"
-                                        >
-                                            {customAlert.cancelText}
-                                        </button>
-                                    )}
-                                    
-                                    <button 
-                                        onClick={() => {
-                                            setCustomAlert({...customAlert, isOpen: false});
-                                            if(customAlert.onConfirm) customAlert.onConfirm();
-                                        }}
-                                        className={`flex-1 py-2.5 rounded-xl font-bold text-white transition shadow-lg 
-                                            ${customAlert.type === 'warning' ? 'bg-red-500 hover:bg-red-600' : 
-                                              'bg-blue-600 hover:bg-blue-700'}`}
-                                    >
-                                        {customAlert.confirmText}
-                                    </button>
-                                </div>
-                            </div>
+                        <h3 className="text-lg font-bold text-gray-800 mb-4">{customAlert.message}</h3>
+                        <div className="flex gap-3">
+                            {customAlert.showCancel && <button onClick={() => setCustomAlert({...customAlert, isOpen: false})} className="flex-1 py-2.5 rounded-xl font-bold text-gray-600 border border-gray-300 hover:bg-gray-100 transition shadow-sm">{customAlert.cancelText}</button>}
+                            <button onClick={() => { setCustomAlert({...customAlert, isOpen: false}); if(customAlert.onConfirm) customAlert.onConfirm(); }} className={`flex-1 py-2.5 rounded-xl font-bold text-white transition shadow-lg ${customAlert.type === 'warning' ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-600 hover:bg-blue-700'}`}>{customAlert.confirmText}</button>
                         </div>
-                    )}
-                </>
+                    </div>
+                </div>
             )}
 
-            <ChatBox 
-                isOpen={isChatOpen} 
-                onClose={() => setIsChatOpen(false)} 
-                receiverId={chatTarget.id} 
-                receiverName={chatTarget.name} 
-            />
+            <ChatBox isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} receiverId={chatTarget.id} receiverName={chatTarget.name} />
 
         </div>
     );
