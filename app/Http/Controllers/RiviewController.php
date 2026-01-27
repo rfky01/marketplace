@@ -79,4 +79,44 @@ class RiviewController extends Controller
             ], 400);
         }
     }
+
+    // Update Ulasan
+    public function update(Request $request, $id)
+    {
+        // 1. Cari Ulasan
+        $ulasan = \App\Models\Riview::find($id); // Sesuaikan nama Model Anda (Riview/Ulasan)
+
+        if (!$ulasan) {
+            return response()->json(['message' => 'Ulasan tidak ditemukan'], 404);
+        }
+
+        // 2. Cek Kepemilikan (Hanya pembuat ulasan yang boleh edit)
+        if ($request->user()->id !== $ulasan->user_id) {
+            return response()->json(['message' => 'Anda tidak berhak mengedit ulasan ini'], 403);
+        }
+
+        // 3. Validasi
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'required|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // 4. Update Database
+        $ulasan->update([
+            'rating' => $request->rating,
+            'comment' => $request->comment,
+        ]);
+
+        // 5. Kembalikan data terbaru (termasuk user agar frontend tidak error)
+        return response()->json([
+            'success' => true,
+            'message' => 'Ulasan berhasil diperbarui',
+            'data' => $ulasan->load('user') 
+        ]);
+    }
+
 }

@@ -24,7 +24,9 @@ class ProdukController extends Controller
             $query->where('nama_barang', 'like', '%' . $request->search . '%');
         }
 
-        $products = $query->with(['user', 'ulasan'])->latest()->get(); 
+        $products = $query->with(['user', 'ulasan'])
+                          ->latest()
+                          ->paginate(12); 
 
         return response()->json([
             'success' => true,

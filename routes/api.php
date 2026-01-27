@@ -87,6 +87,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Review
     Route::post('/riview', [RiviewController::class, 'store']);
     Route::post('/reviews', [RiviewController::class, 'store']);
+    Route::put('/ulasan/{id}', [RiviewController::class, 'update']);
 
     Route::delete('/seller/orders/{id}', [OrderController::class, 'destroy']); 
     Route::delete('/orders/{id}', [OrderController::class, 'destroy']);

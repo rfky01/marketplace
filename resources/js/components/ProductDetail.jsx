@@ -45,6 +45,9 @@ export default function ProductDetail() {
         metode_pembayaran: 'COD'
     });
 
+    const [editingReviewId, setEditingReviewId] = useState(null);
+    const [editForm, setEditForm] = useState({ rating: 0, comment: '' });
+
     // --- EFFECT: AUTO-CLOSE TOAST ---
     useEffect(() => {
         let timer;
@@ -149,7 +152,7 @@ export default function ProductDetail() {
 
     const fetchProduct = async () => {
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/produk/${id}`);
+            const response = await fetch(`http://127.0.0.1:8000/api/produk/${slug}`);
             const data = await response.json();
             if (data.success) {
                 setProduct(data.data);
@@ -161,6 +164,43 @@ export default function ProductDetail() {
             console.error("Error:", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleEditClick = (review) => {
+        setEditingReviewId(review.id);
+        setEditForm({ rating: review.rating, comment: review.comment });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingReviewId(null);
+        setEditForm({ rating: 0, comment: '' });
+    };
+
+    const handleSaveEdit = async (reviewId) => {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`http://127.0.0.1:8000/api/ulasan/${reviewId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(editForm)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setCustomAlert({ isOpen: true, message: "Ulasan berhasil diedit!", type: 'success' });
+                setEditingReviewId(null);
+                fetchProduct(); // Refresh data produk untuk update ulasan di layar
+            } else {
+                setCustomAlert({ isOpen: true, message: data.message || "Gagal edit ulasan", type: 'error' });
+            }
+        } catch (error) {
+            console.error(error);
+            setCustomAlert({ isOpen: true, message: "Terjadi kesalahan koneksi", type: 'error' });
         }
     };
 
@@ -510,26 +550,94 @@ export default function ProductDetail() {
                     </div>
                     <div className="space-y-8">
                         {ulasanList.length > 0 ? (
-                            ulasanList.map((review, index) => (
-                                <div key={index} className="flex gap-4">
-                                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold flex-shrink-0 text-lg border border-gray-200">
-                                        {review.user?.name?.charAt(0).toUpperCase() || 'U'}
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <p className="font-bold text-gray-800 text-sm">{review.user?.name || "Pembeli"}</p>
-                                            <span className="text-gray-300 text-xs">•</span>
-                                            <p className="text-xs text-gray-400">{formatDate(review.created_at)}</p>
+                            ulasanList.map((review, index) => {
+                                const isMyReview = String(review.user_id) === String(user.id);
+                                const isEditing = editingReviewId === review.id;
+
+                                return (
+                                    <div key={index} className="flex gap-4">
+                                        {/* AVATAR */}
+                                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold flex-shrink-0 text-lg border border-gray-200">
+                                            {review.user?.name?.charAt(0).toUpperCase() || 'U'}
                                         </div>
-                                        <div className="flex text-yellow-400 text-sm mb-2">
-                                            {[...Array(5)].map((_, i) => (
-                                                <span key={i} className={i < review.rating ? "text-yellow-400" : "text-gray-200"}>★</span>
-                                            ))}
+
+                                        <div className="flex-1">
+                                            {/* HEADER: NAMA & TANGGAL */}
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <p className="font-bold text-gray-800 text-sm">{review.user?.name || "Pembeli"}</p>
+                                                    <span className="text-gray-300 text-xs">•</span>
+                                                    <p className="text-xs text-gray-400">{formatDate(review.created_at)}</p>
+                                                </div>
+
+                                                {/* TOMBOL EDIT (Hanya muncul jika milik user & tidak sedang edit) */}
+                                                {isMyReview && !isEditing && (
+                                                    <button 
+                                                        onClick={() => handleEditClick(review)}
+                                                        className="text-xs font-bold text-blue-600 hover:underline"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                )}
+                                            </div>
+
+                                            {/* LOGIKA TAMPILAN: FORM EDIT vs TEXT BIASA */}
+                                            {isEditing ? (
+                                                // --- TAMPILAN FORM EDIT ---
+                                                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mt-2 animate-fade-in">
+                                                    {/* Edit Rating */}
+                                                    <div className="flex gap-1 mb-2">
+                                                        {[1, 2, 3, 4, 5].map((star) => (
+                                                            <button 
+                                                                key={star} 
+                                                                type="button" 
+                                                                onClick={() => setEditForm({ ...editForm, rating: star })}
+                                                                className={`text-xl focus:outline-none transition ${star <= editForm.rating ? 'text-yellow-400 scale-110' : 'text-gray-300'}`}
+                                                            >
+                                                                ★
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    
+                                                    {/* Edit Komentar */}
+                                                    <textarea 
+                                                        className="w-full p-2 border border-gray-300 rounded text-sm mb-2 focus:ring-1 focus:ring-blue-500 outline-none bg-white"
+                                                        rows="3"
+                                                        value={editForm.comment}
+                                                        onChange={(e) => setEditForm({ ...editForm, comment: e.target.value })}
+                                                    />
+                                                    
+                                                    {/* Tombol Aksi */}
+                                                    <div className="flex gap-2 justify-end">
+                                                        <button 
+                                                            onClick={handleCancelEdit} 
+                                                            className="px-3 py-1.5 text-xs font-bold text-gray-600 border border-gray-300 rounded hover:bg-gray-100"
+                                                        >
+                                                            Batal
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleSaveEdit(review.id)} 
+                                                            className="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 rounded hover:bg-blue-700"
+                                                        >
+                                                            Simpan
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                // --- TAMPILAN NORMAL ---
+                                                <>
+                                                    <div className="flex text-yellow-400 text-sm mb-2">
+                                                        {[...Array(5)].map((_, i) => (
+                                                            <span key={i} className={i < review.rating ? "text-yellow-400" : "text-gray-200"}>★</span>
+                                                        ))}
+                                                    </div>
+                                                    <p className="text-gray-600 text-sm leading-relaxed">{review.comment || "Tidak ada komentar."}</p>
+                                                </>
+                                            )}
                                         </div>
-                                        <p className="text-gray-600 text-sm leading-relaxed">{review.comment || "Tidak ada comment."}</p>
                                     </div>
-                                </div>
-                            ))
+                                );
+                            })
                         ) : (
                             <div className="bg-white p-12 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
                                 <img src={iconPesan} alt="pesan" className="w-20 h-20 object-contain opacity-60 group-hover:opacity-100 transition duration-200"/>

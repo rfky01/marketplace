@@ -182,6 +182,12 @@ class OrderController extends Controller
     // FITUR: Update Status (Penjual)
     // Fungsi untuk Penjual mengupdate status (Terima, Kirim, Tolak)
     // Pastikan Request diimport di bagian atas: use Illuminate\Http\Request;
+    // ==========================================
+    // FITUR: UPDATE STATUS (Terima / Tolak / Kirim)
+    // ==========================================
+    // ==========================================
+    // FITUR: UPDATE STATUS (Terima / Tolak / Kirim)
+    // ==========================================
     public function updateStatus(Request $request, $id)
     {
         try {
@@ -196,25 +202,54 @@ class OrderController extends Controller
                 'status' => 'required|string'
             ]);
 
-            $newStatus = $request->status;
+            // Ambil status & ubah ke huruf kecil semua biar aman
+            $inputStatus = strtolower($request->status); 
 
-            // Update status
-            $order->status = $newStatus;
+            // Mulai Transaksi Database
+            DB::beginTransaction();
+
+            // --- SKENARIO 1: JIKA PENJUAL MENOLAK / MEMBATALKAN ---
+            // Tambahkan 'tolak', 'batal', 'cancel' ke dalam pengecekan
+            if (in_array($inputStatus, ['ditolak', 'tolak', 'canceled', 'cancel', 'batal', 'canceled by seller'])) {
+                
+                // Cek agar tidak double refund stok
+                if (!in_array($order->status, ['selesai', 'ditolak', 'canceled by seller', 'canceled by buyer'])) {
+                    
+                    // 1. KEMBALIKAN STOK (Wajib dipanggil!)
+                    $this->restoreStock($order); 
+                    
+                    // 2. Ubah status jadi standar 'canceled by seller'
+                    $order->status = 'canceled by seller'; 
+                } 
+            }
             
-            // Jika ada input waktu pengiriman (saat terima pesanan)
-            if ($request->has('waktu_pengiriman')) {
-                $order->waktu_pengiriman = $request->waktu_pengiriman;
+            // --- SKENARIO 2: JIKA PENJUAL MENERIMA ---
+            else if (in_array($inputStatus, ['accepted', 'terima', 'diterima', 'process', 'proses'])) {
+                $order->status = 'accepted';
+
+                // Simpan waktu pengiriman jika ada
+                if ($request->has('waktu_pengiriman')) {
+                    $order->waktu_pengiriman = $request->waktu_pengiriman;
+                }
+            }
+
+            // --- SKENARIO 3: STATUS LAIN (Misal: dikirim) ---
+            else {
+                $order->status = $inputStatus; // Gunakan status apa adanya
             }
 
             $order->save();
+            
+            DB::commit(); 
 
             return response()->json([
                 'success' => true, 
-                'message' => 'Status pesanan berhasil diperbarui menjadi ' . $newStatus,
+                'message' => 'Status pesanan berhasil diperbarui',
                 'data' => $order
             ], 200);
 
         } catch (\Throwable $e) {
+            DB::rollBack();
             return response()->json(['success' => false, 'message' => 'Server Error: ' . $e->getMessage()], 500);
         }
     }
@@ -265,10 +300,16 @@ class OrderController extends Controller
                 ], 400);
             }
 
+            DB::beginTransaction();
+
+            $this->restoreStock($order);
+
             // --- PERBAIKAN UTAMA DI SINI ---
             // Menggunakan 'canceled by buyer' SESUAI FILE MIGRASI ANDA
-            $order->status = 'canceled by buyer'; 
+            $order->status = 'canceled by seller'; 
             $order->save();
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
