@@ -308,7 +308,7 @@ export default function Keranjang() {
     );
 
     return (
-        <div className="min-h-screen bg-gray-50 w-full font-sans pb-20">
+        <div className="min-h-screen bg-blue-50 w-full font-sans pb-20">
             
             {/* --- NAVBAR --- */}
             <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">

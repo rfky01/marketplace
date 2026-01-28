@@ -9,27 +9,46 @@ export default function SellerOrders() {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState({});
 
-    const [activeTab, setActiveTab] = useState('pending');
+    // --- STATE TAB MENU ---
+    const [activeTab, setActiveTab] = useState('all');
 
     // --- STATE CHAT ---
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [chatTarget, setChatTarget] = useState({ id: null, name: '' });
 
-    // Fungsi Buka Chat
     const openChat = (buyerId, buyerName) => {
         setChatTarget({ id: buyerId, name: buyerName });
         setIsChatOpen(true);
+    };
+
+    // --- FUNGSI BUKA MODAL KONFIRMASI (Ganti Alert Browser) ---
+    const openStatusModal = (item, action) => {
+        setActionToConfirm({ item, action });
+        setIsConfirmModalOpen(true);
     };
 
     // --- STATE NAVBAR ---
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
 
-    // --- STATE MODAL (POPUP) TERIMA PESANAN ---
+    // --- STATE MODAL: TERIMA PESANAN ---
     const [isAcceptModalOpen, setIsAcceptModalOpen] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [deliveryTime, setDeliveryTime] = useState('');
 
+    // --- STATE MODAL: TOLAK PESANAN ---
+    const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+    const [orderToReject, setOrderToReject] = useState(null);
+
+    // --- STATE MODAL: HAPUS RIWAYAT (BARU) ---
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [orderToDeleteId, setOrderToDeleteId] = useState(null);
+
+    // --- STATE MODAL: KONFIRMASI STATUS (BARU - UNTUK KIRIM/RETURN) ---
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [actionToConfirm, setActionToConfirm] = useState({ item: null, action: '' });
+
+    // --- STATE ALERT / NOTIFIKASI ---
     const [customAlert, setCustomAlert] = useState({
         isOpen: false,
         message: '',
@@ -39,16 +58,27 @@ export default function SellerOrders() {
 
     const navigate = useNavigate();
 
+    // --- KONFIGURASI TAB ---
     const tabs = [
         { id: 'all', label: 'Semua', statuses: [] },
-        { id: 'pending', label: 'Menunggu Konfirmasi', statuses: ['pending'] },
-        { id: 'proses', label: 'Diproses', statuses: ['accepted', 'proses', 'dikemas'] },
-        { id: 'dikirim', label: 'Dikirim', statuses: ['dikirim'] },
+        { id: 'pending', label: 'Pesanan Baru', statuses: ['pending'] },
+        { id: 'accepted', label: 'Siap Dikirim', statuses: ['accepted', 'proses'] },
+        { id: 'dikirim', label: 'Sedang Dikirim', statuses: ['dikirim'] },
         { id: 'selesai', label: 'Selesai', statuses: ['selesai'] },
-        { id: 'return', label: 'Pengembalian', statuses: ['return_requested', 'return_accepted', 'return_rejected'] },
-        { id: 'batal_pembeli', label: 'Dibatalkan Pembeli', statuses: ['canceled by buyer', 'canceled'] },
-        { id: 'batal_penjual', label: 'Dibatalkan Penjual', statuses: ['canceled by seller', 'ditolak'] },
+        { id: 'return', label: 'Komplain / Return', statuses: ['return_requested', 'return_accepted', 'return_rejected'] },
+        { id: 'batal', label: 'Dibatalkan', statuses: ['canceled by seller', 'canceled by buyer', 'ditolak', 'canceled'] },
     ];
+
+    // --- EFFECT: AUTO CLOSE NOTIFIKASI SUKSES ---
+    useEffect(() => {
+        let timer;
+        if (customAlert.isOpen && customAlert.type === 'success') {
+            timer = setTimeout(() => {
+                setCustomAlert(prev => ({ ...prev, isOpen: false }));
+            }, 3000); 
+        }
+        return () => clearTimeout(timer);
+    }, [customAlert]);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -63,7 +93,7 @@ export default function SellerOrders() {
 
         const fetchUserData = async () => {
             try {
-                const response = await fetch('http://127.0.0.1:8000/api/user', { // Pastikan endpoint ini benar di Laravel
+                const response = await fetch('http://127.0.0.1:8000/api/user', { 
                     headers: { 
                         Authorization: `Bearer ${token}`,
                         'Accept': 'application/json'
@@ -72,8 +102,8 @@ export default function SellerOrders() {
                 const data = await response.json();
                 
                 if (response.ok) {
-                    setUser(data); // Update state dengan data terbaru (termasuk foto)
-                    localStorage.setItem('user', JSON.stringify(data)); // Update simpanan di browser
+                    setUser(data); 
+                    localStorage.setItem('user', JSON.stringify(data)); 
                 }
             } catch (error) {
                 console.error("Gagal refresh data user:", error);
@@ -113,13 +143,13 @@ export default function SellerOrders() {
 
     const filteredOrders = sellerOrders.filter(item => {
         if (activeTab === 'all') return true;
+        
         const rawStatus = item.pesanan?.status || 'pending';
         const currentStatus = rawStatus.toLowerCase().trim();
         const targetStatuses = tabs.find(t => t.id === activeTab)?.statuses || [];
         return targetStatuses.includes(currentStatus);
     });
 
-    // --- FUNGSI FORMAT TANGGAL ---
     const formatDateTimeIndo = (dateString) => {
         if (!dateString) return '-';
         const options = { 
@@ -134,23 +164,16 @@ export default function SellerOrders() {
         return new Date(dateString).toLocaleDateString('id-ID', options);
     };
 
-    // --- FUNGSI KIRIM WA (SUDAH DIPERBAIKI) ---
     const sendWhatsappFonnte = async (targetPhone, customerName, invoice, estimasiKirim, alamatPenerima, totalHarga, metodeBayar) => {
         const token = "PzkJf4FzoSnZy5ATt9gN"; 
-
-        if (!targetPhone) {
-            console.log("Nomor telepon tidak tersedia untuk Fonnte.");
-            return;
-        }
+        if (!targetPhone) return;
 
         const waktuCantik = formatDateTimeIndo(estimasiKirim);
-        
-        // Format harga jadi Rupiah jika belum
         const hargaCantik = typeof totalHarga === 'number' ? formatRupiah(totalHarga) : totalHarga;
 
         const message = `Halo Kak ${customerName},\n\n` +
             `Pesanan Anda dengan invoice *${invoice}* telah kami *TERIMA* dan sedang dalam proses pengemasan.\n\n` +
-            `💰 *Total Pesanan:* ${hargaCantik}\n` +  // <--- TOTAL HARGA DITAMBAHKAN
+            `💰 *Total Pesanan:* ${hargaCantik}\n` + 
             `💳 *Metode Pembayaran:* ${metodeBayar}\n` +
             `⏰ *Estimasi Tiba:*\n ${waktuCantik}\n\n` +
             `📍 *Alamat Tujuan:*\n${alamatPenerima}\n\n` + 
@@ -163,32 +186,22 @@ export default function SellerOrders() {
 
         try {
             await fetch("https://api.fonnte.com/send", {
-                method: "POST",
-                headers: {
-                    Authorization: token,
-                },
-                body: formData,
+                method: "POST", headers: { Authorization: token }, body: formData,
             });
-            console.log("Notifikasi WhatsApp terkirim via Fonnte");
-        } catch (error) {
-            console.error("Gagal kirim WA Fonnte (CORS/Network Error):", error);
-        }
+        } catch (error) { console.error("Gagal kirim WA Fonnte:", error); }
     };
 
-    // --- FUNGSI UPDATE STATUS (DIPERBAIKI UNTUK MENANGANI PEMBATALAN) ---
-    const handleUpdateStatus = async (item, action) => {
-        let confirmMsg = "Update status pesanan?";
-        
-        if (action === 'dibatalkan') confirmMsg = "Yakin ingin menolak pesanan ini?";
-        if (action === 'return_accepted') confirmMsg = "Yakin ingin MENERIMA pengajuan return? Dana akan dikembalikan ke pembeli.";
-        if (action === 'return_rejected') confirmMsg = "Yakin ingin MENOLAK pengajuan return? Status akan kembali Selesai.";
-
-        if (!confirm(confirmMsg)) return;
+    // --- FUNGSI EKSEKUSI API (Dipanggil saat klik "Ya" di Modal) ---
+    const executeStatusUpdate = async () => {
+        // Ambil data dari state sementara
+        const { item, action } = actionToConfirm;
+        if (!item) return;
 
         const token = localStorage.getItem('token');
         const url = `http://127.0.0.1:8000/api/seller/orders/${item.id}`; 
         
         let statusToSend = action;
+        // Khusus jika action 'dibatalkan', ubah stringnya (jika logika ini dipakai di modal lain)
         if (action === 'dibatalkan') statusToSend = 'canceled by seller';
         
         try {
@@ -201,44 +214,52 @@ export default function SellerOrders() {
                 },
                 body: JSON.stringify({ status: statusToSend })
             });
-            
             const data = await response.json();
 
             if(response.ok) {
                 let successMsg = "Status berhasil diperbarui.";
-                if (action === 'return_accepted') successMsg = "Return DITERIMA. Silakan hubungi pembeli untuk proses pengembalian barang.";
-                if (action === 'return_rejected') successMsg = "Return DITOLAK. Pesanan dianggap selesai.";
+                if (action === 'dikirim') successMsg = "Status diperbarui: Sedang Dikirim.";
+                if (action === 'return_accepted') successMsg = "Return DITERIMA.";
+                if (action === 'return_rejected') successMsg = "Return DITOLAK.";
 
-                setCustomAlert({
-                    isOpen: true,
-                    message: successMsg,
-                    type: 'success',
-                    onConfirm: null 
-                });
-
+                setCustomAlert({ isOpen: true, message: successMsg, type: 'success', onConfirm: null });
                 fetchSellerOrders();
             } else {
-                alert("Gagal: " + (data.message || "Terjadi kesalahan"));
+                setCustomAlert({ isOpen: true, message: "Gagal: " + (data.message || "Kesalahan"), type: 'error' });
             }
-        } catch (error) {
-            console.error(error);
-            alert("Terjadi kesalahan koneksi");
+        } catch (error) { 
+            console.error(error); 
+            setCustomAlert({ isOpen: true, message: "Koneksi Error", type: 'error' }); 
+        } finally {
+            // TUTUP MODAL SETELAH SELESAI
+            setIsConfirmModalOpen(false);
+            setActionToConfirm({ item: null, action: '' });
         }
     };
 
-    // --- FUNGSI BUKA MODAL ---
+    // --- LOGIKA MODAL TOLAK ---
+    const openRejectModal = (item) => {
+        setOrderToReject(item);
+        setIsRejectModalOpen(true);
+    };
+
+    const handleConfirmReject = () => {
+        if (orderToReject) {
+            handleUpdateStatus(orderToReject, 'dibatalkan', true);
+            setIsRejectModalOpen(false);
+            setOrderToReject(null);
+        }
+    };
+
+    // --- LOGIKA MODAL TERIMA ---
     const openAcceptModal = (item) => {
         setSelectedOrder(item);
         setDeliveryTime('');
         setIsAcceptModalOpen(true);
     };
 
-    // --- FUNGSI KONFIRMASI TERIMA DENGAN WAKTU ---
     const handleConfirmAccept = async () => {
-        if (!deliveryTime) {
-            alert("Harap tentukan estimasi waktu kirim!");
-            return;
-        }
+        if (!deliveryTime) { alert("Harap tentukan estimasi waktu kirim!"); return; }
 
         const token = localStorage.getItem('token');
         try {
@@ -249,54 +270,42 @@ export default function SellerOrders() {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify({ 
-                    status: 'accepted',
-                    waktu_pengiriman: deliveryTime 
-                })
+                body: JSON.stringify({ status: 'accepted', waktu_pengiriman: deliveryTime })
             });
-            
             const data = await response.json();
 
             if(response.ok) {
-                setIsAcceptModalOpen(false); // Tutup modal jadwal (Merah)
-                
-                setCustomAlert({ // Buka modal sukses (Kuning)
-                    isOpen: true,
-                    message: "Pesanan diterima! Segera siapkan paket.",
-                    type: 'success',
-                    onConfirm: null 
-                });
+                setIsAcceptModalOpen(false); 
+                setCustomAlert({ isOpen: true, message: "Pesanan diterima! Segera siapkan paket.", type: 'success', onConfirm: null });
 
                 const buyerProfile = selectedOrder.pesanan?.user;
                 const phone = buyerProfile?.telepon || buyerProfile?.phone || buyerProfile?.no_hp || selectedOrder.pesanan?.telepon_penerima;
-                
-                // --- PANGGIL FUNGSI FONNTE SETELAH SUKSES ---
                 const name = selectedOrder.pesanan?.nama_penerima || "Pembeli";
                 const inv = selectedOrder.pesanan?.invoice_code || "-";
                 const address = selectedOrder.pesanan?.alamat_pengiriman || "Alamat tidak tersedia";
                 const total = selectedOrder.pesanan?.grand_total || (selectedOrder.jumlah * selectedOrder.harga_satuan);
                 const paymentMethod = selectedOrder.pesanan?.metode_pembayaran || "-";
 
-                // Panggil fungsi kirim WA
                 sendWhatsappFonnte(phone, name, inv, deliveryTime, address, total, paymentMethod); 
-                // -------------------------------------------------------------
-
                 fetchSellerOrders();
             } else {
                 alert("Gagal: " + (data.message || "Terjadi kesalahan"));
             }
-        } catch (error) {
-            console.error(error);
-            alert("Terjadi kesalahan koneksi");
-        }
+        } catch (error) { console.error(error); alert("Terjadi kesalahan koneksi"); }
     };
 
-    const handleDeleteOrder = async (id) => {
-        if (!confirm("Hapus riwayat pesanan ini selamanya?")) return;
+    // --- LOGIKA MODAL HAPUS RIWAYAT (BARU) ---
+    const openDeleteModal = (id) => {
+        setOrderToDeleteId(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!orderToDeleteId) return;
 
         const token = localStorage.getItem('token');
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/seller/orders/${id}`, {
+            const response = await fetch(`http://127.0.0.1:8000/api/seller/orders/${orderToDeleteId}`, {
                 method: 'DELETE',
                 headers: { 
                     'Authorization': `Bearer ${token}`,
@@ -304,17 +313,18 @@ export default function SellerOrders() {
                 }
             });
 
-            const data = await response.json(); 
-
             if (response.ok) {
-                setSellerOrders(prev => prev.filter(order => order.id !== id));
-                alert("Berhasil dihapus!");
+                setSellerOrders(prev => prev.filter(order => order.id !== orderToDeleteId));
+                setCustomAlert({ isOpen: true, message: "Riwayat pesanan berhasil dihapus.", type: 'success' });
             } else {
-                alert("Gagal: " + (data.message || "Terjadi kesalahan sistem"));
+                setCustomAlert({ isOpen: true, message: "Gagal menghapus data.", type: 'error' });
             }
         } catch (error) {
             console.error("Fetch Error:", error);
-            alert("Gagal koneksi ke server.");
+            setCustomAlert({ isOpen: true, message: "Gagal koneksi ke server.", type: 'error' });
+        } finally {
+            setIsDeleteModalOpen(false);
+            setOrderToDeleteId(null);
         }
     };
 
@@ -326,39 +336,25 @@ export default function SellerOrders() {
 
     const getProfilePhoto = () => {
         if (user.profile_photo) {
-            // Cek apakah sudah full URL atau masih path relative
-            if (user.profile_photo.startsWith('http')) {
-                return user.profile_photo;
-            }
+            if (user.profile_photo.startsWith('http')) return user.profile_photo;
             return `http://127.0.0.1:8000/storage/${user.profile_photo}`;
         }
         return null;
     };
 
-    // --- (FUNGSI INI YANG SEBELUMNYA HILANG) ---
     const getBuyerPhoto = (buyerData) => {
         if (buyerData && buyerData.profile_photo) {
-            if (buyerData.profile_photo.startsWith('http')) {
-                return buyerData.profile_photo;
-            }
+            if (buyerData.profile_photo.startsWith('http')) return buyerData.profile_photo;
             return `http://127.0.0.1:8000/storage/${buyerData.profile_photo}`;
         }
         return null;
     };
-    // ---------------------------------------------
 
-    // --- HELPER GAMBAR (INI SAYA TAMBAHKAN AGAR GAMBAR MUNCUL) ---
     const getProductImage = (product) => {
         if (!product) return "https://via.placeholder.com/150";
-        // 1. Cek Array (Banyak Foto)
-        if (Array.isArray(product.foto_barang) && product.foto_barang.length > 0) {
-            return `http://127.0.0.1:8000/storage/${product.foto_barang[0]}`;
-        }
-        // 2. Cek String (Satu Foto)
+        if (Array.isArray(product.foto_barang) && product.foto_barang.length > 0) return `http://127.0.0.1:8000/storage/${product.foto_barang[0]}`;
         if (typeof product.foto_barang === 'string' && product.foto_barang) {
-            return product.foto_barang.startsWith('http') 
-                ? product.foto_barang 
-                : `http://127.0.0.1:8000/storage/${product.foto_barang}`;
+            return product.foto_barang.startsWith('http') ? product.foto_barang : `http://127.0.0.1:8000/storage/${product.foto_barang}`;
         }
         return "https://via.placeholder.com/150?text=No+Image";
     };
@@ -376,16 +372,7 @@ export default function SellerOrders() {
 
     const formatDateTime = (dateString) => {
         if (!dateString) return '-';
-        const options = { 
-            weekday: 'short', 
-            day: 'numeric', 
-            month: 'short', 
-            year: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit',
-            hour12: false 
-        };
-        return new Date(dateString).toLocaleDateString('id-ID', options);
+        return new Date(dateString).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
     };
 
     if (loading) return (
@@ -395,7 +382,7 @@ export default function SellerOrders() {
     );
 
     return (
-        <div className="min-h-screen bg-gray-50 w-full font-sans pb-20">
+        <div className="min-h-screen bg-blue-50 w-full font-sans pb-20">
             
             {/* --- NAVBAR --- */}
             <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
@@ -412,47 +399,28 @@ export default function SellerOrders() {
                         <Link to="/" className="text-gray-500 hover:text-blue-600 font-medium px-4 py-2 transition decoration-none">
                             Dashboard
                         </Link>
-                        {/* --- PROFILE DROPDOWN --- */}
                         <div className="relative" ref={dropdownRef}>
                             <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition border border-transparent hover:border-gray-200">
-                                {/* FOTO PROFIL (NAVBAR) */}
                                 <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-200 bg-gray-200">
                                     {getProfilePhoto() ? (
-                                        <img 
-                                            src={getProfilePhoto()} 
-                                            alt="Profile" 
-                                            className="w-full h-full object-cover"
-                                        />
+                                        <img src={getProfilePhoto()} alt="Profile" className="w-full h-full object-cover"/>
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-sm font-bold text-gray-600">
-                                            {user.name?.charAt(0).toUpperCase()}
-                                        </div>
+                                        <div className="w-full h-full flex items-center justify-center text-sm font-bold text-gray-600">{user.name?.charAt(0).toUpperCase()}</div>
                                     )}
                                 </div>
-                                
                                 <div className="text-left hidden sm:block">
                                     <p className="text-xs text-gray-500">Halo,</p>
                                     <p className="text-sm font-bold text-gray-800 max-w-[100px] truncate">{user.name}</p>
                                 </div>
                             </button>
-
-                            {/* DROPDOWN MENU */}
                             {isDropdownOpen && (
-                                <div className="absolute right-0 top-full mt-3 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden animate-fade-in-down">
-                                    
-                                    {/* HEADER DROPDOWN (FOTO BESAR + NAMA) */}
+                                <div className="absolute right-0 top-full mt-3 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden">
                                     <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-white">
                                             {getProfilePhoto() ? (
-                                                <img 
-                                                    src={getProfilePhoto()} 
-                                                    alt="Profile" 
-                                                    className="w-full h-full object-cover"
-                                                />
+                                                <img src={getProfilePhoto()} alt="Profile" className="w-full h-full object-cover"/>
                                             ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-blue-600 font-bold bg-blue-50">
-                                                    {user.name?.charAt(0).toUpperCase()}
-                                                </div>
+                                                <div className="w-full h-full flex items-center justify-center text-blue-600 font-bold bg-blue-50">{user.name?.charAt(0).toUpperCase()}</div>
                                             )}
                                         </div>
                                         <div className="overflow-hidden">
@@ -460,21 +428,12 @@ export default function SellerOrders() {
                                             <p className="text-xs text-blue-600 font-medium bg-blue-100 px-2 py-0.5 rounded-full inline-block">Penjual</p>
                                         </div>
                                     </div>
-
-                                    {/* MENU ITEMS */}
                                     <div className="py-2">
-                                        <Link to="/my-products" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">
-                                            Toko Saya
-                                        </Link>
-                                        <Link to="/seller-orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">
-                                            Daftar Pesanan
-                                        </Link>
+                                        <Link to="/my-products" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">Toko Saya</Link>
+                                        <Link to="/seller-orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">Daftar Pesanan</Link>
                                     </div>
-
                                     <div className="border-t border-gray-100 mt-1 pt-1">
-                                        <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition">
-                                            Keluar
-                                        </button>
+                                        <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition">Keluar</button>
                                     </div>
                                 </div>
                             )}
@@ -486,27 +445,21 @@ export default function SellerOrders() {
             {/* --- CONTAINER UTAMA --- */}
             <div className="max-w-7xl mx-auto px-4 py-6">
                 
-                {/* 1. WRAPPER FLEXBOX UNTUK SIDEBAR + KONTEN */}
                 <div className="flex flex-col lg:flex-row gap-6 items-start">
                     
                     {/* --- BAGIAN KIRI: SIDEBAR MENU --- */}
                     <div className="w-full lg:w-64 flex-shrink-0 sticky top-24 z-30">
-                        
-                        {/* Judul Halaman di dalam Sticky agar tidak tertutup */}
                         <div className="flex items-center justify-between mb-4 px-1">
                             <h1 className="text-2xl font-bold text-gray-800">Pesanan Masuk</h1>
-                            {/* Mobile Total Badge */}
                             <span className="lg:hidden bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-bold">{sellerOrders.length}</span>
                         </div>
 
                         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                            {/* Header Sidebar (Desktop) */}
                             <div className="p-4 border-b border-gray-100 bg-gray-50 hidden lg:flex justify-between items-center">
                                 <h3 className="font-bold text-gray-700 text-sm">Status Pesanan</h3>
                                 <span className="bg-blue-100 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-bold">{sellerOrders.length}</span>
                             </div>
                             
-                            {/* List Menu Vertical (Desktop) */}
                             <div className="hidden lg:flex flex-col p-2">
                                 {tabs.map(tab => (
                                     <button
@@ -524,7 +477,6 @@ export default function SellerOrders() {
                                 ))}
                             </div>
 
-                            {/* List Menu Horizontal (Mobile) */}
                             <div className="lg:hidden flex overflow-x-auto no-scrollbar p-2 gap-2 border-b border-gray-100">
                                 {tabs.map(tab => (
                                     <button
@@ -547,11 +499,7 @@ export default function SellerOrders() {
                     <div className="flex-1 w-full min-w-0">
                         {filteredOrders.length === 0 ? (
                             <div className="bg-white p-12 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center animate-fade-in">
-                                <img 
-                                src={iconPesananKosong} 
-                                alt="belumadapesanan" 
-                                className="w-25 h-20 object-contain opacity-60 group-hover:opacity-100 transition duration-200"
-                                />
+                                <img src={iconPesananKosong} alt="belumadapesanan" className="w-25 h-20 object-contain opacity-60 group-hover:opacity-100 transition duration-200"/>
                                 {activeTab === 'all' || sellerOrders.length === 0 ? (
                                     <>
                                         <h2 className="text-xl font-bold text-gray-800 mb-2">Belum ada pesanan masuk</h2>
@@ -575,8 +523,7 @@ export default function SellerOrders() {
                                     return (
                                         <div key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition animate-slide-in">
                                             
-                                            {/* Header Card */}
-                                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                                            <div className="bg-white px-4 py-3 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                                                 <div className="flex items-center gap-3">
                                                     <Link to={`/profile/${buyerData?.id}`} className="group relative">
                                                         <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-50 flex-shrink-0 group-hover:ring-2 ring-blue-400 transition">
@@ -602,16 +549,15 @@ export default function SellerOrders() {
                                                 
                                                 <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border
                                                     ${currentStatus === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
-                                                    currentStatus === 'accepted' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                                    currentStatus === 'dikirim' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                                                    currentStatus === 'selesai' ? 'bg-green-50 text-green-700 border-green-200' :
-                                                    currentStatus.includes('return') ? 'bg-orange-50 text-orange-700 border-orange-200' :
-                                                    'bg-red-50 text-red-700 border-red-200'}`}>
+                                                      currentStatus === 'accepted' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                      currentStatus === 'dikirim' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                                      currentStatus === 'selesai' ? 'bg-green-50 text-green-700 border-green-200' :
+                                                      currentStatus.includes('return') ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                                                      'bg-red-50 text-red-700 border-red-200'}`}>
                                                     {currentStatus === 'return_requested' ? 'Return' : currentStatus}
                                                 </span>
                                             </div>
 
-                                            {/* --- BODY GRID --- */}
                                             <div className="p-4 grid grid-cols-1 md:grid-cols-[1.5fr_1.2fr_auto] gap-4 items-start">
                                                 
                                                 <div className="flex gap-3">
@@ -646,13 +592,13 @@ export default function SellerOrders() {
                                                     
                                                     {currentStatus === 'pending' && (
                                                         <div className="flex gap-2 w-full">
-                                                            <button onClick={() => handleUpdateStatus(item, 'dibatalkan')} className="flex-1 py-1.5 text-xs font-bold text-red-600 border border-red-200 rounded hover:bg-red-50 transition">Tolak</button>
+                                                            <button onClick={() => openRejectModal(item)} className="flex-1 py-1.5 text-xs font-bold text-red-600 border border-red-200 rounded hover:bg-red-50 transition">Tolak</button>
                                                             <button onClick={() => openAcceptModal(item)} className="flex-1 py-1.5 text-xs font-bold text-white bg-blue-600 rounded hover:bg-blue-700 shadow-sm transition">Terima</button>
                                                         </div>
                                                     )}
                                                     
                                                     {currentStatus === 'accepted' && (
-                                                        <button onClick={() => handleUpdateStatus(item, 'dikirim')} className="w-full py-1.5 text-xs font-bold text-white bg-yellow-500 rounded hover:bg-yellow-600 shadow-sm transition">Kirim Barang</button>
+                                                        <button onClick={() => openStatusModal(item, 'dikirim')} className="w-full py-1.5 text-xs font-bold text-white bg-yellow-500 rounded hover:bg-yellow-600 shadow-sm transition">Kirim Barang</button>
                                                     )}
 
                                                     {currentStatus === 'dikirim' && (
@@ -663,14 +609,21 @@ export default function SellerOrders() {
                                                         <div className="flex flex-col gap-1 w-full">
                                                             <div className="text-[10px] text-orange-600 font-bold text-center bg-orange-50 py-0.5 rounded">Ajukan Return</div>
                                                             <div className="flex gap-2">
-                                                                <button onClick={() => handleUpdateStatus(item, 'return_rejected')} className="flex-1 py-1.5 text-xs font-bold text-red-600 border border-red-200 rounded hover:bg-red-50">Tolak</button>
-                                                                <button onClick={() => handleUpdateStatus(item, 'return_accepted')} className="flex-1 py-1.5 text-xs font-bold text-white bg-green-600 rounded hover:bg-green-700 shadow-sm">Terima</button>
+                                                                <button onClick={() => openStatusModal(item, 'return_rejected')} className="flex-1 py-1.5 text-xs font-bold text-red-600 border border-red-200 rounded hover:bg-red-50">Tolak</button>
+                                                                <button onClick={() => openStatusModal(item, 'return_accepted')} className="flex-1 py-1.5 text-xs font-bold text-white bg-green-600 rounded hover:bg-green-700 shadow-sm">Terima</button>
                                                             </div>
                                                         </div>
                                                     )}
 
                                                     {(currentStatus === 'selesai' || isCancelled || currentStatus === 'return_accepted' || currentStatus === 'return_rejected') && (
-                                                        <button onClick={() => handleDeleteOrder(item.id)} className="w-full py-1.5 text-xs font-bold text-gray-500 bg-white border border-gray-300 rounded hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition">Hapus Riwayat</button>
+                                                        // --- TOMBOL HAPUS RIWAYAT DENGAN POPUP BARU ---
+                                                        <button 
+                                                            onClick={() => openDeleteModal(item.id)} 
+                                                            className="w-full py-1.5 text-xs font-bold text-gray-500 bg-white border border-gray-300 rounded hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition"
+                                                        >
+                                                            Hapus Riwayat
+                                                        </button>
+                                                        // ----------------------------------------------
                                                     )}
                                                     
                                                     <button 
@@ -693,7 +646,47 @@ export default function SellerOrders() {
                 </div>
             </div>
 
-            {/* --- POPUP MODAL ATUR JADWAL PENGIRIMAN --- */}
+            {/* --- MODAL KONFIRMASI TOLAK --- */}
+            {isRejectModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center transform scale-100 transition-all">
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-100 text-red-600">
+                            <span className="text-3xl font-bold">!</span>
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-800 mb-2">Tolak Pesanan?</h3>
+                        <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+                            Apakah Anda yakin ingin menolak pesanan ini? <br/>
+                            <span className="font-bold text-red-500">Stok barang akan dikembalikan otomatis.</span>
+                        </p>
+                        <div className="flex gap-3">
+                            <button onClick={() => setIsRejectModalOpen(false)} className="flex-1 py-2.5 rounded-xl font-bold text-gray-600 border border-gray-300 hover:bg-gray-100 transition">Batal</button>
+                            <button onClick={handleConfirmReject} className="flex-1 py-2.5 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg transition">Ya, Tolak</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* --- MODAL KONFIRMASI HAPUS RIWAYAT (BARU) --- */}
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center transform scale-100 transition-all">
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-100 text-red-600">
+                            <span className="text-3xl font-bold">🗑️</span>
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-800 mb-2">Hapus Riwayat?</h3>
+                        <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+                            Hapus riwayat pesanan ini selamanya? <br/>
+                            <span className="font-bold text-red-500">Tindakan ini tidak dapat dibatalkan.</span>
+                        </p>
+                        <div className="flex gap-3">
+                            <button onClick={() => setIsDeleteModalOpen(false)} className="flex-1 py-2.5 rounded-xl font-bold text-gray-600 border border-gray-300 hover:bg-gray-100 transition">Batal</button>
+                            <button onClick={confirmDelete} className="flex-1 py-2.5 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 shadow-lg transition">Ya, Hapus</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* --- MODAL ATUR JADWAL --- */}
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 animate-fade-in" style={{ display: isAcceptModalOpen ? 'flex' : 'none' }}>
                 <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
                     <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
@@ -709,49 +702,71 @@ export default function SellerOrders() {
                                 value={deliveryTime}
                                 onChange={(e) => setDeliveryTime(e.target.value)}
                             />
-                            <p className="text-xs text-gray-500 mt-2">
-                                Masukkan estimasi waktu Anda mengirim barang ke kurir/pembeli.
-                            </p>
+                            <p className="text-xs text-gray-500 mt-2">Masukkan estimasi waktu Anda mengirim barang.</p>
                         </div>
                         <div className="flex gap-3 mt-6">
-                            <button 
-                                onClick={() => setIsAcceptModalOpen(false)} 
-                                className="flex-1 py-2 border border-gray-300 text-gray-600 font-bold rounded-lg hover:bg-gray-50"
-                            >
-                                Batal
-                            </button>
-                            <button 
-                                onClick={handleConfirmAccept} 
-                                className="flex-1 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-lg"
-                            >
-                                Konfirmasi
-                            </button>
+                            <button onClick={() => setIsAcceptModalOpen(false)} className="flex-1 py-2 border border-gray-300 text-gray-600 font-bold rounded-lg hover:bg-gray-50">Batal</button>
+                            <button onClick={handleConfirmAccept} className="flex-1 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-lg">Konfirmasi</button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* --- MODAL POPUP SUKSES (TENGAH) --- */}
+            {/* --- TOAST NOTIFICATION --- */}
             {customAlert.isOpen && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4 animate-fade-in">
+                <>
+                    {customAlert.type === 'success' ? (
+                        <div className="fixed top-24 right-4 z-[200] animate-slide-in">
+                            <div className="bg-white shadow-xl rounded-lg border-l-4 border-green-500 p-4 flex items-center gap-3 min-w-[300px]">
+                                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 flex-shrink-0"><span className="font-bold text-lg">✓</span></div>
+                                <div className="flex-1"><h4 className="font-bold text-gray-800 text-sm">Berhasil!</h4><p className="text-gray-600 text-xs">{customAlert.message}</p></div>
+                                <button onClick={() => setCustomAlert({ ...customAlert, isOpen: false })} className="text-gray-400 hover:text-gray-600 font-bold text-sm">✕</button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4 animate-fade-in">
+                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center transform scale-100 transition-all">
+                                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-100 text-red-600"><span className="text-3xl font-bold">!</span></div>
+                                <h3 className="text-lg font-bold text-gray-800 mb-2">Perhatian</h3>
+                                <p className="text-gray-600 text-sm mb-6 leading-relaxed">{customAlert.message}</p>
+                                <button onClick={() => setCustomAlert({...customAlert, isOpen: false})} className="w-full py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition shadow-lg">OK</button>
+                            </div>
+                        </div>
+                    )}
+                </>
+            )}
+
+            {/* --- MODAL KONFIRMASI STATUS (BARU) --- */}
+            {isConfirmModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4 animate-fade-in">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center transform scale-100 transition-all">
                         
-                        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-green-100 text-green-600">
-                            <span className="text-3xl font-bold">✓</span>
+                        {/* Ikon Tanya Biru */}
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-blue-100 text-blue-600">
+                            <span className="text-3xl font-bold">?</span>
                         </div>
 
-                        <h3 className="text-lg font-bold text-gray-800 mb-2">Berhasil!</h3>
+                        <h3 className="text-lg font-bold text-gray-800 mb-2">Konfirmasi</h3>
                         <p className="text-gray-600 text-sm mb-6 leading-relaxed">
-                            {customAlert.message}
+                            {actionToConfirm.action === 'dikirim' && "Apakah Anda yakin barang sudah dikirim?"}
+                            {actionToConfirm.action === 'return_accepted' && "Terima pengajuan return ini? Dana akan dikembalikan ke pembeli."}
+                            {actionToConfirm.action === 'return_rejected' && "Tolak pengajuan return ini?"}
                         </p>
 
-                        <button 
-                            onClick={() => setCustomAlert({...customAlert, isOpen: false})} 
-                            className="w-full py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition shadow-lg"
-                        >
-                            OK
-                        </button>
-
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setIsConfirmModalOpen(false)} 
+                                className="flex-1 py-2.5 rounded-xl font-bold text-gray-600 border border-gray-300 hover:bg-gray-100 transition"
+                            >
+                                Batal
+                            </button>
+                            <button 
+                                onClick={executeStatusUpdate} 
+                                className="flex-1 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg transition"
+                            >
+                                Ya, Lanjutkan
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

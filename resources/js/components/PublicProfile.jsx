@@ -95,14 +95,35 @@ export default function PublicProfile() {
                             </p>
                         </div>
 
+                        {/* --- BAGIAN FOTO KTM (PENGGANTI FAKULTAS & PRODI) --- */}
                         <div className="space-y-4">
                             <div>
-                                <h3 className="text-xs font-bold text-gray-400 uppercase mb-1">Fakultas</h3>
-                                <p className="font-medium text-gray-800">{profile.fakultas || "-"}</p>
-                            </div>
-                            <div>
-                                <h3 className="text-xs font-bold text-gray-400 uppercase mb-1">Program Studi</h3>
-                                <p className="font-medium text-gray-800">{profile.prodi || "-"}</p>
+                                <h3 className="text-xs font-bold text-gray-400 uppercase mb-2">Kartu Tanda Mahasiswa (KTM)</h3>
+                                
+                                {profile.ktm_image ? (
+                                    <div 
+                                        className="w-full max-w-[280px] h-44 bg-gray-100 rounded-xl overflow-hidden border border-gray-200 relative group cursor-pointer shadow-sm hover:shadow-md transition-all"
+                                        onClick={() => window.open(getPhotoUrl(profile.ktm_image), '_blank')}
+                                        title="Klik untuk memperbesar"
+                                    >
+                                        <img 
+                                            src={getPhotoUrl(profile.ktm_image)} 
+                                            alt="Foto KTM" 
+                                            className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                                        />
+                                        {/* Overlay Hover */}
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                            <span className="opacity-0 group-hover:opacity-100 bg-black/60 text-white text-[10px] px-2 py-1 rounded-full font-medium transition-opacity">
+                                                🔍 Perbesar
+                                            </span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="w-full max-w-[280px] h-32 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400">
+                                        <span className="text-2xl mb-1">🆔</span>
+                                        <p className="text-xs font-medium">Belum upload KTM</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

@@ -463,6 +463,23 @@ export default function Orders() {
         return new Date(dateString).toLocaleDateString('id-ID', options);
     };
 
+    // --- HELPER: CEK APAKAH MASIH BISA RETURN (BATAS 24 JAM) ---
+    const isReturnEligible = (dateString) => {
+        if (!dateString) return false;
+        
+        const finishedDate = new Date(dateString);
+        const now = new Date();
+        
+        // Hitung selisih waktu dalam milidetik
+        const diffInMs = now - finishedDate;
+        
+        // Konversi ke jam (1 jam = 1000ms * 60detik * 60menit)
+        const diffInHours = diffInMs / (1000 * 60 * 60);
+        
+        // Return TRUE jika kurang dari 24 jam
+        return diffInHours <= 24;
+    };
+
     if (loading) return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -470,7 +487,7 @@ export default function Orders() {
     );
 
     return (
-        <div className="min-h-screen bg-gray-50 w-full font-sans pb-20">
+        <div className="min-h-screen bg-blue-50 w-full font-sans pb-20">
             
             {/* 1. NAVBAR */}
             <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
@@ -621,7 +638,7 @@ export default function Orders() {
                                                     {order.invoice_code || `INV-${order.id}`}
                                                 </div>
                                                 <p className="text-[11px] text-gray-500 flex items-center gap-1">
-                                                    📅 {formatDate(order.created_at)}
+                                                     {formatDate(order.created_at)}
                                                 </p>
                                             </div>
                                             <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border
@@ -656,11 +673,11 @@ export default function Orders() {
                                                                 <div className="mb-3">
                                                                     <p className="font-bold text-gray-400 uppercase text-[10px] mb-0.5">Penjual</p>
                                                                     <div className="flex items-center gap-1 font-semibold text-gray-700">
-                                                                        <span>🛒</span> {detail.produk?.user?.name || "Official Store"}
+                                                                        <span></span> {detail.produk?.user?.name || "Official Store"}
                                                                     </div>
                                                                     {/* --- BAGIAN INI SAYA KEMBALIKAN (TELEPON) --- */}
                                                                     <div className="flex items-center gap-1 text-gray-500 mt-1">
-                                                                        <span>📞</span> {detail.produk?.user?.phone || detail.produk?.user?.telepon || detail.produk?.user?.no_hp || "-"}
+                                                                        <span></span> {detail.produk?.user?.phone || detail.produk?.user?.telepon || detail.produk?.user?.no_hp || "-"}
                                                                     </div>
                                                                     {/* ------------------------------------------- */}
                                                                 </div>
@@ -680,12 +697,26 @@ export default function Orders() {
                                                             <p className="font-bold text-gray-800 text-sm">{formatRupiah((detail.produk?.harga_barang || 0) * detail.jumlah)}</p>
                                                         </div>
                                                         
-                                                        {index === 0 && order.status === 'selesai' && (
-                                                            <button onClick={() => handleReturnClick(order.id)} className="px-3 py-1.5 bg-orange-50 text-orange-600 border border-orange-200 rounded text-[10px] font-bold hover:bg-orange-100 transition shadow-sm w-full">Ajukan Return</button>
+                                                        {/* Logika: Hanya muncul jika status 'selesai' DAN belum lewat 24 jam dari waktu update terakhir */}
+                                                        {index === 0 && order.status === 'selesai' && isReturnEligible(order.updated_at) && (
+                                                            <button 
+                                                                onClick={() => handleReturnClick(order.id)} 
+                                                                className="px-3 py-1.5 bg-orange-50 text-orange-600 border border-orange-200 rounded text-[10px] font-bold hover:bg-orange-100 transition shadow-sm w-full"
+                                                            >
+                                                                Ajukan Return
+                                                            </button>
                                                         )}
 
-                                                        {index === 0 && isTimePassed(order.waktu_pengiriman) && order.status !== 'selesai' && order.status !== 'pending' && !order.status.toLowerCase().includes('cancel') && !order.status.toLowerCase().includes('dibatalkan') && (
-                                                            <button onClick={() => handleCancelClick(order.id)} className="px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded text-[10px] font-bold hover:bg-red-100 transition shadow-sm w-full">Batalkan Pesanan</button>
+                                                        {index === 0 && isTimePassed(order.waktu_pengiriman) && 
+                                                        order.status !== 'selesai' && 
+                                                        order.status !== 'pending' && 
+                                                        !order.status.toLowerCase().includes('cancel') && 
+                                                        !order.status.toLowerCase().includes('dibatalkan') && 
+                                                        !order.status.toLowerCase().includes('return') && /* <--- TAMBAHAN INI */
+                                                        (
+                                                            <button onClick={() => handleCancelClick(order.id)} className="px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded text-[10px] font-bold hover:bg-red-100 transition shadow-sm w-full">
+                                                                Batalkan Pesanan
+                                                            </button>
                                                         )}
                                                     </div>
                                                 </div>
@@ -712,11 +743,14 @@ export default function Orders() {
                                                 )}
 
                                                 {order.status === 'dikirim' && (
-                                                    <button onClick={() => handleReceiveOrder(order.id)} className="px-4 py-2 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition shadow-sm shadow-green-200">📦 Pesanan Diterima</button>
+                                                    <button onClick={() => handleReceiveOrder(order.id)} className="px-4 py-2 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 transition shadow-sm shadow-green-200">Pesanan Diterima</button>
                                                 )}
 
-                                                {order.status === 'selesai' && (
-                                                    <button onClick={() => openRatingModal(order)} className="px-4 py-2 bg-yellow-400 text-white rounded-lg text-xs font-bold hover:bg-yellow-500 transition shadow-sm flex items-center gap-1 shadow-yellow-200">★ Beri Ulasan</button>
+                                                {/* Logika Baru: Muncul jika Selesai ATAU mengandung kata 'return' */}
+                                                {(order.status === 'selesai' || order.status.toLowerCase().includes('return')) && (
+                                                    <button onClick={() => openRatingModal(order)} className="px-4 py-2 bg-yellow-400 text-white rounded-lg text-xs font-bold hover:bg-yellow-500 transition shadow-sm flex items-center gap-1 shadow-yellow-200">
+                                                        ★ Beri Ulasan
+                                                    </button>
                                                 )}
                                             </div>
                                         </div>

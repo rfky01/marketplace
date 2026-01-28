@@ -183,7 +183,7 @@ export default function MyProducts() {
     );
 
     return (
-        <div className="min-h-screen bg-gray-50 w-full font-sans pb-20">
+        <div className="min-h-screen bg-blue-50 w-full font-sans pb-20">
             
             <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
                 <div className="max-w-7xl mx-auto h-16 flex items-center justify-between px-4 lg:px-8">

@@ -85,6 +85,7 @@ class ProfileController extends Controller
                 'bio' => $user->bio,
                 'jenis_kelamin' => $user->jenis_kelamin,
                 'created_at' => $user->created_at,
+                'ktm_image' => $user->ktm_image,
             ]
         ]);
     }

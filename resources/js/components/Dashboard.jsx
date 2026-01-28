@@ -199,17 +199,17 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 w-full font-sans">
+        <div className="min-h-screen bg-blue-50 w-full font-sans pb-20">
             
             <nav className="bg-white shadow-md sticky top-0 z-50 w-full">
                 <div className="w-[90%] mx-auto h-16 flex items-center justify-between px-4">
                     
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-4 lg:gap-6 flex-1">
                         <Link to="/" className="text-2xl font-bold text-blue-900 tracking-tight">
                             Marketplace<span className="text-gray-700">Plus</span>
                         </Link>
                         
-                        <div className="hidden md:flex items-center bg-gray-100 rounded-lg px-3 py-2 w-[400px] border border-gray-200 focus-within:border-blue-900 transition">
+                        <div className="hidden md:flex items-center bg-gray-100 rounded-lg px-3 py-2 w-full max-w-[400px] border border-gray-200 focus-within:border-blue-900 transition">
                             <img src={iconSearch} alt="Search" className="w-8 h-8 object-contain opacity-50 mr-2" />
                             <input 
                                 type="text" 
@@ -247,7 +247,7 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-6 flex-shrink-0 ml-6">
                         {user.role === 'pembeli' ? (
                             <button 
                                 onClick={() => setShowShopModal(true)} 
@@ -256,7 +256,12 @@ export default function Dashboard() {
                                 Buka Toko
                             </button>
                         ) : user.role === 'penjual' ? (
-                            <Link to="/add-product" className="text-sm font-bold text-white bg-blue-900 hover:bg-blue-800 px-4 py-2 rounded-lg transition shadow-sm flex items-center gap-1 decoration-none">+ Upload</Link>
+                            <Link 
+                                to="/add-product" 
+                                className="text-sm font-bold text-white bg-blue-900 hover:bg-blue-800 px-4 py-2 rounded-lg transition shadow-sm flex items-center gap-1 decoration-none whitespace-nowrap flex-shrink-0"
+                            >
+                                + Upload
+                            </Link>
                         ) : null}
 
                         <Link to="/keranjang" className="relative group flex items-center">
