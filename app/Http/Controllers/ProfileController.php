@@ -80,12 +80,11 @@ class ProfileController extends Controller
                 'email' => $user->email, // Opsional
                 'profile_photo' => $user->profile_photo,
                 'role' => $user->role,
-                'fakultas' => $user->fakultas,
-                'prodi' => $user->prodi,
                 'bio' => $user->bio,
                 'jenis_kelamin' => $user->jenis_kelamin,
                 'created_at' => $user->created_at,
                 'ktm_image' => $user->ktm_image,
+                'address' => $user->address,
             ]
         ]);
     }

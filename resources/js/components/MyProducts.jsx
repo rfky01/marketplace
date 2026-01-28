@@ -198,8 +198,11 @@ export default function MyProducts() {
                            Pesanan Masuk
                         </Link>
 
-                        <Link to="/add-product" className="bg-blue-600 text-white px-5 py-2 rounded-full font-bold hover:bg-blue-700 transition shadow-md flex items-center gap-2 decoration-none mr-2">
-                            <span>+</span> Upload
+                        <Link 
+                            to="/add-product" 
+                            className="hidden sm:flex items-center gap-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg transition shadow-sm decoration-none whitespace-nowrap"
+                        >
+                            + Upload Produk
                         </Link>
 
                         <div className="h-6 w-px bg-gray-300 mx-1"></div>
@@ -252,7 +255,7 @@ export default function MyProducts() {
                                         </div>
 
                                         <div className="py-2">
-                                            <Link to="/seller-orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">
+                                            <Link to="/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">
                                                 Daftar Pesanan
                                             </Link>
                                         </div>

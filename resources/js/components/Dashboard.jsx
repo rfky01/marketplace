@@ -330,7 +330,13 @@ export default function Dashboard() {
                                                         Toko Saya <span className="text-blue-900 text-xs bg-blue-100 px-2 py-0.5 rounded">Penjual</span>
                                                     </Link>
                                                 )}
+                                                {user.role === 'penjual' && (
+                                                    <Link to="/seller-orders" className="px-3 py-2 hover:bg-gray-50 rounded-md text-gray-700 text-sm font-medium flex justify-between items-center">
+                                                        Pesanan Masuk <span className="text-blue-900 text-xs bg-blue-100 px-2 py-0.5 rounded">Penjual</span>
+                                                    </Link>
+                                                )}
                                                 <Link to="/orders" className="px-3 py-2 hover:bg-gray-50 rounded-md text-gray-700 text-sm font-medium">Daftar Pesanan</Link>
+
                                             </div>
                                             <hr className="border-gray-100 my-2"/>
                                             <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-red-500 hover:bg-red-50 rounded-md text-sm font-bold flex items-center gap-2">Keluar</button>

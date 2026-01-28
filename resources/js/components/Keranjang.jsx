@@ -201,6 +201,16 @@ export default function Keranjang() {
         }
     };
 
+    const getProfilePhoto = () => {
+        if (user.profile_photo) {
+            if (user.profile_photo.startsWith('http')) {
+                return user.profile_photo;
+            }
+            return `http://127.0.0.1:8000/storage/${user.profile_photo}`;
+        }
+        return null;
+    };
+
     const handleLogout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -326,30 +336,58 @@ export default function Keranjang() {
                             <span className="mr-1 text-lg"></span> Kembali Belanja
                         </Link>
                         <div className="relative" ref={dropdownRef}>
-                            <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition">
-                                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold text-gray-600">{user.name?.charAt(0).toUpperCase()}</div>
-                                <div className="text-left hidden sm:block">
-                                    <p className="text-xs text-gray-500">Halo,</p>
-                                    <p className="text-sm font-bold text-gray-800 max-w-[100px] truncate">{user.name}</p>
-                                </div>
-                            </button>
-                            {isDropdownOpen && (
-                                <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-lg shadow-2xl border border-gray-100 p-4 transform transition-all duration-200 origin-top-right">
-                                    <div className="flex items-center gap-3 mb-4 p-3 bg-blue-50 rounded-lg">
-                                        <div className="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center text-blue-900 font-bold text-lg">{user.name.charAt(0).toUpperCase()}</div>
-                                        <div><p className="font-bold text-gray-800">{user.name}</p><p className="text-xs text-blue-800 font-semibold"></p></div>
-                                    </div>
-                                    <hr className="border-gray-100 mb-2"/>
-                                    <div className="flex flex-col gap-1">
-                                        {user.role === 'penjual' && (
-                                        <Link to="/my-products" className="px-3 py-2 hover:bg-gray-50 rounded-md text-gray-700 text-sm font-medium flex justify-between items-center">
-                                            Toko Saya <span className="text-blue-900 text-xs bg-blue-100 px-2 py-0.5 rounded">Penjual</span>
-                                        </Link>
+                                <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition border border-transparent hover:border-gray-200">
+                                    <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-200 bg-gray-200">
+                                        {getProfilePhoto() ? (
+                                            <img 
+                                                src={getProfilePhoto()} 
+                                                alt="Profile" 
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-sm font-bold text-gray-600">
+                                                {user.name?.charAt(0).toUpperCase()}
+                                            </div>
                                         )}
-                                        <Link to="/orders" className="px-3 py-2 hover:bg-gray-50 rounded-md text-gray-700 text-sm font-medium">Daftar Pesanan</Link>
                                     </div>
-                                    <hr className="border-gray-100 my-2"/>
-                                    <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-red-500 hover:bg-red-50 rounded-md text-sm font-bold flex items-center gap-2">Keluar</button>
+                                    <div className="text-left hidden sm:block">
+                                        <p className="text-xs text-gray-500">Halo,</p>
+                                        <p className="text-sm font-bold text-gray-800 max-w-[100px] truncate">{user.name}</p>
+                                    </div>
+                                </button>
+                            {isDropdownOpen && (
+                                <div className="absolute right-0 top-full mt-3 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden animate-fade-in-down">
+                                    <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-white">
+                                            {getProfilePhoto() ? (
+                                                <img 
+                                                    src={getProfilePhoto()} 
+                                                    alt="Profile" 
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-blue-600 font-bold bg-blue-50">
+                                                    {user.name?.charAt(0).toUpperCase()}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="overflow-hidden">
+                                            <p className="text-sm font-bold text-gray-800 truncate">{user.name}</p>
+                                            <p className="text-xs text-blue-600 font-medium bg-blue-100 px-2 py-0.5 rounded-full inline-block">Penjual</p>
+                                        </div>
+                                    </div>
+                            
+                                    <div className="py-2">
+                                        <Link to="/seller-orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">
+                                            Daftar Pesanan
+                                        </Link>
+                                    </div>
+                            
+                                    <div className="border-t border-gray-100 mt-1 pt-1">
+                                        <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition">
+                                            Keluar
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
