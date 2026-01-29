@@ -31,33 +31,53 @@ export default function Login() {
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: JSON.stringify(formData)
             });
+            
             const data = await response.json();
+            
+            // --- DEBUGGING: LIHAT ISI RESPON DI CONSOLE ---
+            console.log("Respon Login Server:", data); 
 
             if (response.ok) {
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.user));
+                // Ambil token dari berbagai kemungkinan key
+                const token = data.token || data.access_token;
+                const userData = data.user || data.data;
 
-                if (data.user) {
-                    setUserName(data.user.name);
+                if (token) {
+                    // --- PAKSA SIMPAN LOCAL STORAGE ---
+                    console.log("Menyimpan Token:", token);
+                    localStorage.setItem('token', token);
+                    
+                    if (userData) {
+                        localStorage.setItem('user', JSON.stringify(userData));
+                        setUserName(userData.name);
+                    }
+
+                    // --- CEK ULANG APAKAH TERSIMPAN ---
+                    const savedToken = localStorage.getItem('token');
+                    if (!savedToken) {
+                        alert("Browser memblokir LocalStorage! Cek pengaturan browser Anda.");
+                        setIsLoading(false);
+                        return;
+                    }
+                    
+                    setIsLoading(false); 
+                    setShowWelcomeModal(true); 
+
+                    // Tunggu sebentar sebelum redirect
+                    setTimeout(() => {
+                        window.location.href = '/'; // Gunakan full reload agar state bersih
+                    }, 1500);
+                } else {
+                    setIsLoading(false);
+                    setErrorMessage("Respon server sukses, tapi Token kosong.");
+                    setShowErrorModal(true);
                 }
-                
-                setIsLoading(false); 
-                setShowWelcomeModal(true); 
-
-                setTimeout(() => {
-                    navigate('/'); 
-                }, 2000);
-
-            } else {
-                setIsLoading(false);
-                setErrorMessage(data.message || "Email atau password salah.");
-                setShowErrorModal(true);
             }
         } catch (error) {
             setIsLoading(false); 
             setErrorMessage("Terjadi kesalahan koneksi ke server.");
             setShowErrorModal(true);
-            console.error('Error:', error);
+            console.error('Error Fetch:', error);
         }
     };
 

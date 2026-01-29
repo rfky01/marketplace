@@ -29,6 +29,10 @@ Route::middleware('auth')->group(function () {
     Route::view('/{any}', 'welcome')->where('any', '.*');
 });
 
+Route::get('/{any}', function () {
+    return view('welcome'); // Sesuaikan dengan nama file view tempat React di-mount (bisa 'app', 'index', atau 'welcome')
+})->where('any', '.*');
+
 Route::get('/kirim-wa', function () {
     $token = env('AL6yaCjsccosjGvVMPpA'); // Mengambil token dari .env
     $target = '085609688462'; // GANTI dengan nomor HP Anda sendiri untuk tes

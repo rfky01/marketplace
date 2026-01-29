@@ -66,40 +66,71 @@ export default function Orders() {
         return () => clearTimeout(timer);
     }, [customAlert]);
 
+    // --- EFFECT UTAMA: VALIDASI TOKEN & LOAD DATA ---
     useEffect(() => {
+        // Ambil token langsung saat komponen di-mount
         const token = localStorage.getItem('token');
-        
         const userData = localStorage.getItem('user');
 
+        // 1. Cek Token di LocalStorage
         if (!token) {
+            console.warn("Token tidak ditemukan di LocalStorage. Redirecting...");
             navigate('/login');
             return;
         }
 
-        if (userData) setUser(JSON.parse(userData));
+        // 2. Load User Sementara
+        if (userData) {
+            try {
+                setUser(JSON.parse(userData));
+            } catch (e) {
+                console.error("Error parsing user data", e);
+            }
+        }
 
-        const fetchUserData = async () => {
+        // 3. Validasi ke Server
+        const validateAndFetch = async () => {
             try {
                 const response = await fetch('http://127.0.0.1:8000/api/user', {
                     headers: { 
-                        Authorization: `Bearer ${token}`,
-                        'Accept': 'application/json'
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json' // Header Wajib
                     }
                 });
+
+                // Cek apakah responnya HTML (Tanda Error 302/Redirect dari Backend)
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.includes("text/html")) {
+                    console.error("Server mengirim HTML, bukan JSON. Cek konfigurasi Backend.");
+                    setLoading(false);
+                    return; // Jangan logout, biarkan user tetap di halaman (mungkin error server sementara)
+                }
+
+                if (response.status === 401) {
+                    console.warn("Token Kadaluarsa dari Server.");
+                    // Hapus token dan logout HANYA jika benar-benar 401 JSON
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    navigate('/login');
+                    return;
+                }
+
                 const data = await response.json();
                 
                 if (response.ok) {
                     setUser(data);
                     localStorage.setItem('user', JSON.stringify(data));
+                    fetchOrders(); // Token valid, ambil order
                 }
             } catch (error) {
-                console.error("Gagal refresh user:", error);
+                console.error("Network Error saat validasi:", error);
+                setLoading(false); // Jangan logout jika internet mati
             }
         };
 
-        fetchOrders(); 
-        fetchUserData();
+        validateAndFetch();
 
+        // Listener dropdown (tetap sama)
         function handleClickOutside(event) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
                 setIsDropdownOpen(false);
@@ -113,9 +144,14 @@ export default function Orders() {
 
     const fetchOrders = async () => {
         const token = localStorage.getItem('token');
+        if (!token) return; // Cegah fetch tanpa token
+
         try {
             const response = await fetch('http://127.0.0.1:8000/api/orders', {
-                headers: { Authorization: `Bearer ${token}` }
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json' // TAMBAHKAN INI
+                }
             });
             const data = await response.json();
             if (data.success) {
