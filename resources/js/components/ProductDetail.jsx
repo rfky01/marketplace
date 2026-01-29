@@ -26,6 +26,21 @@ export default function ProductDetail() {
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [chatTarget, setChatTarget] = useState({ id: null, name: '' });
 
+    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+
+    const [zoom, setZoom] = useState(1);
+    const [pan, setPan] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+    // Reset zoom saat modal ditutup
+    useEffect(() => {
+        if (!isImageModalOpen) {
+            setZoom(1);
+            setPan({ x: 0, y: 0 });
+        }
+    }, [isImageModalOpen]);
+
     const [isDescExpanded, setIsDescExpanded] = useState(false);
 
     // STATE POPUP NOTIFIKASI
@@ -149,6 +164,22 @@ export default function ProductDetail() {
             }
         }
     }, [isCheckoutModalOpen]);
+
+    // --- MENCEGAH SCROLL BACKGROUND SAAT MODAL TERBUKA ---
+    useEffect(() => {
+        if (isImageModalOpen) {
+            // Saat modal terbuka: Matikan scroll body
+            document.body.style.overflow = 'hidden';
+        } else {
+            // Saat modal tertutup: Hidupkan kembali scroll body
+            document.body.style.overflow = 'auto';
+        }
+
+        // Cleanup function: Pastikan scroll hidup kembali saat komponen di-unmount
+        return () => {
+            document.body.style.overflow = 'auto';
+        };
+    }, [isImageModalOpen]);
 
     const fetchProduct = async () => {
         try {
@@ -410,6 +441,61 @@ export default function ProductDetail() {
     const images = Array.isArray(product.foto_barang) ? product.foto_barang : [];
     const isOwner = String(user.id) === String(product.user?.id);
 
+    
+        // --- LOGIC ZOOM & DRAG ---
+    const handleZoomIn = (e) => {
+        e.stopPropagation();
+        // Ubah step dari 0.5 jadi 0.25 agar lebih halus
+        setZoom(prev => Math.min(prev + 0.25, 4)); 
+    };
+
+    const handleZoomOut = (e) => {
+        e.stopPropagation();
+        setZoom(prev => {
+            // Ubah step dari 0.5 jadi 0.25
+            const newZoom = Math.max(prev - 0.25, 1);
+            if (newZoom === 1) setPan({ x: 0, y: 0 });
+            return newZoom;
+        });
+    };
+    const handleWheel = (e) => {
+        e.stopPropagation(); 
+        // Tidak perlu e.preventDefault() disini karena React Synthetic Event,
+        // tapi kuncian body overflow di atas sudah menangani masalah scroll belakang.
+        
+        if (e.deltaY < 0) {
+            // Scroll ke atas (Zoom In)
+            setZoom(prev => Math.min(prev + 0.25, 4));
+        } else {
+            // Scroll ke bawah (Zoom Out)
+            setZoom(prev => {
+                const newZoom = Math.max(prev - 0.25, 1);
+                if (newZoom === 1) setPan({ x: 0, y: 0 });
+                return newZoom;
+            });
+        }
+    };
+
+    const handleMouseDown = (e) => {
+        if (zoom > 1) {
+            e.preventDefault();
+            setIsDragging(true);
+            setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+        }
+    };
+
+    const handleMouseMove = (e) => {
+        if (isDragging && zoom > 1) {
+            e.preventDefault();
+            setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+        }
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+
     return (
         <div className="min-h-screen bg-blue-50 w-full font-sans pb-20">
             
@@ -460,16 +546,35 @@ export default function ProductDetail() {
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-8">
                     <div className="flex flex-col md:flex-row items-start relative">
                         <div className="w-full md:w-5/12 lg:w-4/12 bg-gray-50 p-4 sticky top-28 self-start z-10 rounded-l-2xl flex flex-col items-center">
-                            <div className="relative w-full max-w-xs aspect-square bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 mb-4">
-                                <img src={`http://127.0.0.1:8000/storage/${mainImage}`} alt={product.nama_barang} className="w-full h-full object-cover transition duration-500" onError={(e)=>{e.target.src="https://via.placeholder.com/400"}}/>
+                            <div 
+                                onClick={() => setIsImageModalOpen(true)} // 1. Fungsi Buka Modal
+                                className="relative w-full max-w-xs aspect-square bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200 mb-4 cursor-zoom-in group" // 2. Tambah cursor-zoom-in
+                            >
+                                <img 
+                                    src={`http://127.0.0.1:8000/storage/${mainImage}`} 
+                                    alt={product.nama_barang} 
+                                    className="w-full h-full object-cover transition duration-500 group-hover:scale-105" // 3. Efek zoom sedikit saat hover
+                                    onError={(e)=>{e.target.src="https://via.placeholder.com/400"}}
+                                />                                               
                             </div>
                             {images.length > 1 && (
-                                <div className="flex gap-2 overflow-x-auto pb-4 w-full max-w-xs justify-center">
-                                    {images.map((img, index) => (
-                                        <div key={index} onClick={() => setMainImage(img)} className={`w-14 h-14 rounded-lg overflow-hidden border-2 cursor-pointer transition flex-shrink-0 ${mainImage === img ? 'border-blue-600 opacity-100' : 'border-gray-200 opacity-60 hover:opacity-100'}`}>
-                                            <img src={`http://127.0.0.1:8000/storage/${img}`} alt={`Thumb ${index}`} className="w-full h-full object-cover"/>
-                                        </div>
-                                    ))}
+                                <div className="w-full max-w-xs mt-4 mx-auto"> {/* Wrapper luar untuk membatasi lebar */}
+                                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide px-1">                                         
+                                        {images.map((img, index) => (
+                                            <div 
+                                                key={index} 
+                                                onClick={() => setMainImage(img)} 
+                                                className={`
+                                                    w-16 h-16 rounded-lg overflow-hidden border-2 cursor-pointer transition flex-shrink-0 
+                                                    ${mainImage === img ? 'border-blue-600 opacity-100 ring-2 ring-blue-100' : 'border-gray-200 opacity-60 hover:opacity-100'}`}>
+                                                <img 
+                                                    src={`http://127.0.0.1:8000/storage/${img}`} 
+                                                    alt={`Thumb ${index}`} 
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                             {isOwner ? (
@@ -804,9 +909,81 @@ export default function ProductDetail() {
                                     </button>
                                 </div>
                             </div>
+                            
                         </div>
                     )}
                 </>
+            )}
+
+            {/* --- MODAL GAMBAR BESAR (LIGHTBOX + ZOOM) --- */}
+            {isImageModalOpen && (
+                <div 
+                    className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/95 backdrop-blur-sm overflow-hidden"
+                    onMouseUp={handleMouseUp} // Stop drag saat lepas klik dimanapun
+                    onWheel={handleWheel}     // Support scroll mouse
+                >
+                    {/* Tombol Close */}
+                    <button 
+                        onClick={() => setIsImageModalOpen(false)}
+                        className="absolute top-6 right-6 text-white/80 hover:text-white z-50 p-2 bg-black/20 rounded-full transition"
+                    >
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+
+                    {/* Container Gambar (Draggable Area) */}
+                    <div 
+                        className="relative w-full h-full flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing"
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onClick={(e) => e.stopPropagation()} // Mencegah tutup modal saat klik area drag
+                    >
+                        <img 
+                            src={`http://127.0.0.1:8000/storage/${mainImage}`} 
+                            className="max-w-none max-h-none transition-transform duration-100 ease-out select-none" // select-none penting agar gambar tidak ter-blok saat drag
+                            alt="Detail Produk Full"
+                            style={{ 
+                                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                                cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
+                                maxHeight: zoom === 1 ? '90vh' : 'none', // Batasi tinggi hanya saat tidak di-zoom
+                                maxWidth: zoom === 1 ? '90vw' : 'none'
+                            }}
+                            draggable="false" // Matikan native drag browser
+                        />
+                    </div>
+
+                    {/* --- KONTROL ZOOM (Floating Bottom) --- */}
+                    <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center gap-4 bg-white/10 backdrop-blur-md px-6 py-3 rounded-full border border-white/20 shadow-2xl z-50" onClick={(e) => e.stopPropagation()}>
+                        <button 
+                            onClick={handleZoomOut}
+                            disabled={zoom <= 1}
+                            className="text-white hover:text-blue-400 disabled:text-gray-500 transition disabled:cursor-not-allowed"
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4"></path></svg>
+                        </button>
+                        
+                        <span className="text-white font-bold text-sm min-w-[3rem] text-center">
+                            {Math.round(zoom * 100)}%
+                        </span>
+
+                        <button 
+                            onClick={handleZoomIn}
+                            disabled={zoom >= 4}
+                            className="text-white hover:text-blue-400 disabled:text-gray-500 transition disabled:cursor-not-allowed"
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                        </button>
+
+                        {/* Reset Button */}
+                        {zoom > 1 && (
+                            <button 
+                                onClick={() => { setZoom(1); setPan({x:0, y:0}); }}
+                                className="ml-2 text-xs font-bold text-gray-300 hover:text-white border border-gray-500 px-2 py-1 rounded hover:border-white transition"
+                            >
+                                Reset
+                            </button>
+                        )}
+                    </div>
+                </div>
             )}
 
             <div className="relative z-[9999]"> 

@@ -68,6 +68,7 @@ export default function Orders() {
 
     useEffect(() => {
         const token = localStorage.getItem('token');
+        
         const userData = localStorage.getItem('user');
 
         if (!token) {
