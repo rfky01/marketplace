@@ -26,7 +26,7 @@ export default function Login() {
         setIsLoading(true); 
 
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/login', {
+            const response = await fetch('http://127.0.0.1:8000/login-session', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: JSON.stringify(formData)
@@ -34,17 +34,16 @@ export default function Login() {
             
             const data = await response.json();
             
-            // --- DEBUGGING: LIHAT ISI RESPON DI CONSOLE ---
-            console.log("Respon Login Server:", data); 
-
+            // --- CEK STATUS RESPON ---
             if (response.ok) {
-                // Ambil token dari berbagai kemungkinan key
+                // ===========================
+                // JIKA LOGIN SUKSES (Code 200)
+                // ===========================
                 const token = data.token || data.access_token;
                 const userData = data.user || data.data;
 
                 if (token) {
-                    // --- PAKSA SIMPAN LOCAL STORAGE ---
-                    console.log("Menyimpan Token:", token);
+                    console.log("Login Sukses, Token:", token);
                     localStorage.setItem('token', token);
                     
                     if (userData) {
@@ -52,28 +51,46 @@ export default function Login() {
                         setUserName(userData.name);
                     }
 
-                    // --- CEK ULANG APAKAH TERSIMPAN ---
-                    const savedToken = localStorage.getItem('token');
-                    if (!savedToken) {
-                        alert("Browser memblokir LocalStorage! Cek pengaturan browser Anda.");
-                        setIsLoading(false);
-                        return;
-                    }
-                    
+                    // 1. Matikan Loading
                     setIsLoading(false); 
-                    setShowWelcomeModal(true); 
+                    // 2. Tampilkan Modal Sukses (Hijau)
+                    setShowWelcomeModal(true);
+                    // 3. Pastikan Modal Error (Merah) Tertutup
+                    setShowErrorModal(false); 
 
-                    // Tunggu sebentar sebelum redirect
+                    // 4. Redirect
                     setTimeout(() => {
-                        window.location.href = '/'; // Gunakan full reload agar state bersih
+                        console.log("Mengecek tujuan redirect...", data);
+                        if (data.redirect_url) {
+                            window.location.href = data.redirect_url;
+                        } else if (userData && userData.role === 'admin') {
+                            window.location.href = '/admin/dashboard';
+                        } else {
+                            window.location.href = '/';
+                        }
                     }, 1500);
                 } else {
+                    // Kasus aneh: Sukses tapi tidak ada token
                     setIsLoading(false);
                     setErrorMessage("Respon server sukses, tapi Token kosong.");
                     setShowErrorModal(true);
                 }
+
+            } else {
+                // ===========================
+                // JIKA LOGIN GAGAL (Code 401/404)
+                // ===========================
+                // Kode ini yang sebelumnya HILANG di kode Anda
+                
+                setIsLoading(false); // <--- PENTING: Matikan loading!
+                setErrorMessage(data.message || "Login gagal."); 
+                setShowErrorModal(true); // Tampilkan Modal Merah
             }
+
         } catch (error) {
+            // ===========================
+            // JIKA ERROR KONEKSI / SERVER MATI
+            // ===========================
             setIsLoading(false); 
             setErrorMessage("Terjadi kesalahan koneksi ke server.");
             setShowErrorModal(true);

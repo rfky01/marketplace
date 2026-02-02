@@ -102,4 +102,18 @@ class ChatController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    public function showChat($id)
+    {
+        $myId = Auth::id();
+        
+        // Ambil chat antara Saya dan Dia
+        $chats = Chat::where(function($q) use ($myId, $id) {
+            $q->where('sender_id', $myId)->where('receiver_id', $id);
+        })->orWhere(function($q) use ($myId, $id) {
+            $q->where('sender_id', $id)->where('receiver_id', $myId);
+        })->orderBy('created_at', 'asc')->get();
+
+        return response()->json($chats);
+    }
 }

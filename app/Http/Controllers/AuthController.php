@@ -191,6 +191,13 @@ class AuthController extends Controller
     // --- FITUR LOGIN ---
     public function login(Request $request)
     {
+        $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            return response()->json([
+                'message' => 'Akun tidak ditemukan atau telah dihapus. Silakan Daftar akun baru.'
+            ], 404); // 404 = Not Found
+        }
+
         if (!Auth::attempt($request->only('email', 'password'))) {
             return response()->json([
                 'message' => 'Login gagal, email atau password salah'
@@ -200,10 +207,19 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->firstOrFail();
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        // --- LOGIKA PENENTU ARAH (REDIRECT) ---
+        $tujuan = '/'; // Default user biasa ke Home
+        
+        if ($user->role === 'admin') {
+            $tujuan = '/admin/dashboard'; // Admin ke Dashboard
+        }
+        // -------------------------------------
+
         return response()->json([
             'message' => 'Login sukses',
             'user'    => $user,
             'token'   => $token,
+            'redirect_url' => $tujuan, // <--- KITA KIRIM INI KE REACT
         ]);
     }
 

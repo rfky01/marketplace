@@ -73,4 +73,25 @@ class User extends Authenticatable
     {
         return $this->belongsTo(User::class, 'updated_by', 'id');
     }
+
+    public function shop()
+    {
+        // Asumsi: 1 User hanya punya 1 Toko
+        // Pastikan Anda sudah punya model Shop
+        return $this->hasOne(Shop::class); 
+    }
+
+    // app/Models/User.php
+
+    // ... code lain ...
+
+    // Tambahkan fungsi relasi ini:
+    public function products()
+    {
+        // Asumsi tabel produk Anda bernama 'produk' (sesuai screenshot database)
+        // dan foreign key di tabel produk adalah 'users_id' atau 'user_id'
+        // Cek migration create_produk_table untuk memastikan nama kolomnya.
+        // Jika kolomnya 'users_id', kodenya:
+        return $this->hasMany(\App\Models\Produk::class, 'user_id'); 
+    }
 }

@@ -97,6 +97,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/chat/{userId}', [ChatController::class, 'getMessages']); // Ambil pesan
     Route::post('/chat', [ChatController::class, 'sendMessage']);   // Kirim pesan
     Route::put('/chat/read/{senderId}', [App\Http\Controllers\ChatController::class, 'markAsRead']);
+    Route::get('/chat/{id}', [ChatController::class, 'showChat']);
+    Route::post('/chat/send', [ChatController::class, 'sendMessage']);
 
     Route::get('/profile', [App\Http\Controllers\AuthController::class, 'getUserProfile']);
     Route::put('/profile', [App\Http\Controllers\AuthController::class, 'updateUserProfile']);

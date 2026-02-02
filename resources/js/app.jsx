@@ -16,6 +16,7 @@ import ProductDetail from './components/ProductDetail';
 import Keranjang from './components/Keranjang';
 import SellerOrders from './components/SellerOrders';
 import PublicProfile from "./components/PublicProfile";
+import AdminHelpChat from './components/AdminHelpChat';
 
 function App() {
     return (
@@ -37,6 +38,7 @@ function App() {
                     <Route path="/seller-orders" element={<SellerOrders />} />
                     <Route path="/profile/:id" element={<PublicProfile />} />
                 </Routes>
+                <AdminHelpChat />
             </div>
         </BrowserRouter>
     );
