@@ -86,6 +86,7 @@ class AuthController extends Controller
     }
 
     // --- FITUR OTP ---
+    // --- FITUR OTP (VERSI BARU) ---
     public function sendOtp(Request $request)
     {
         $request->validate([
@@ -94,45 +95,50 @@ class AuthController extends Controller
 
         $phone = $request->phone;
         
-        // Format nomor HP: Ubah 08xx jadi 628xx (Fonnte lebih suka 62)
+        // 1. Format Nomor HP: Go Server butuh 628xxx (bukan 08xxx)
         if (substr($phone, 0, 1) == '0') {
             $phone = '62' . substr($phone, 1);
         }
 
+        // Generate OTP
         $otp = rand(100000, 999999);
-        \Illuminate\Support\Facades\Cache::put('otp_' . $request->phone, $otp, 300); // Simpan cache pakai input asli (08xx)
+        
+        // Simpan cache (tetap pakai input asli request->phone untuk key-nya)
+        \Illuminate\Support\Facades\Cache::put('otp_' . $request->phone, $otp, 300); 
 
         try {
-            // Tambahkan withoutVerifying() untuk localhost
-            $response = \Illuminate\Support\Facades\Http::withoutVerifying()
+            // 2. KIRIM KE SERVER GO LOKAL (Ganti Bagian Fonnte Disini)
+            // Endpoint repo aldinokemal biasanya: /send/message
+            
+            $response = \Illuminate\Support\Facades\Http::timeout(10) // Beri waktu 10 detik
                 ->withHeaders([
-                    'Authorization' => env('FONNTE_TOKEN'),
-                ])->post('https://api.fonnte.com/send', [
-                    'target' => $phone,
-                    'message' => "Kode OTP Marketplace: *$otp*",
+                    // Masukkan nama device yang Anda buat di dashboard tadi
+                    'X-Device-ID' => 'my-wa', 
+                ])
+                ->post('http://localhost:3000/send/message', [
+                    'phone'   => $phone,
+                    'message' => "Kode OTP MarketplacePlus: *" . $otp . "*",
                 ]);
 
-            // Cek respon asli dari Fonnte
-            $resBody = json_decode($response->body(), true);
-            
-            // Jika Fonnte bilang gagal (misal: device disconnected)
-            if (isset($resBody['status']) && !$resBody['status']) {
+            // Cek apakah Server Go berhasil menerima request
+            if ($response->successful()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Kode OTP berhasil dikirim via Server Lokal.'
+                ]);
+            } else {
+                // Jika Server Go merespon error (misal belum scan QR)
                 return response()->json([
                     'success' => false,
-                    'message' => 'Fonnte Error: ' . ($resBody['reason'] ?? 'Unknown error')
+                    'message' => 'Gagal kirim WA: ' . $response->body()
                 ], 500);
             }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Kode OTP berhasil dikirim.'
-            ]);
-
         } catch (\Exception $e) {
-            // TAMPILKAN ERROR ASLI AGAR KITA TAHU PENYEBABNYA
+            // Jika Server Go mati atau tidak bisa dihubungi
             return response()->json([
                 'success' => false,
-                'message' => 'System Error: ' . $e->getMessage() 
+                'message' => 'Server WA Mati/Error: ' . $e->getMessage() 
             ], 500);
         }
     }

@@ -99,7 +99,7 @@
                         <tr class="hover:bg-gray-50 transition duration-150 group">
                             
                             <td class="px-6 py-4">
-                                <div class="flex items-center gap-3">
+                                <a href="{{ route('admin.users.shop', $user->id) }}" class="inline-flex items-center gap-1.5 bg-white hover:bg-indigo-50 text-gray-700 hover:text-indigo-700 px-3 py-1.5 rounded-lg border border-gray-300 hover:border-indigo-300 transition text-xs font-bold shadow-sm">
                                     @if($user->profile_photo)
                                         <img src="{{ asset('storage/' . $user->profile_photo) }}" class="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm">
                                     @else
@@ -111,7 +111,7 @@
                                         <p class="font-bold text-gray-800">{{ $user->name }}</p>
                                         <p class="text-xs text-gray-500">{{ $user->email }}</p>
                                     </div>
-                                </div>
+                                </a>    
                             </td>
 
                             <td class="px-6 py-4 text-center">

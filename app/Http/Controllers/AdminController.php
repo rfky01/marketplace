@@ -91,24 +91,51 @@ class AdminController extends Controller // <--- INI JUGA WAJIB
     }
 
     // 2. Fitur Hapus User
-    public function destroyUser($id) // Atau nama fungsi delete Anda
+    public function destroyUser($id)
     {
+        // 1. Cari User
         $user = \App\Models\User::findOrFail($id);
 
-        // --- TAMBAHKAN PROTEKSI INI ---
+        // 2. Proteksi Admin Utama
         if ($user->email === 'admin@marketplace.com') {
             return back()->with('error', 'GAGAL: Akun Super Admin Utama dilindungi dan tidak bisa dihapus!');
         }
-        // ------------------------------
 
-        // Lanjut proses hapus...
-        if ($user->profile_photo) {
-            \Illuminate\Support\Facades\Storage::delete('public/' . $user->profile_photo);
-        }
+        // 3. LOGIKA BARU: Cek Pesanan Aktif
+        // Daftar status yang dianggap "Aktif" (Belum selesai)
+        $statusAktif = ['panding', 'dibayar', 'diproses', 'dikirim']; 
         
-        $user->delete();
+        // Cek apakah user punya pesanan dengan status di atas
+        $pesananAktif = \Illuminate\Support\Facades\DB::table('pesanan')
+            ->where('user_id', $user->id)
+            ->whereIn('status', $statusAktif) // Sesuaikan nama kolom status di database Anda
+            ->exists();
 
-        return back()->with('success', 'Pengguna berhasil dihapus.');
+        if ($pesananAktif) {
+            return back()->with('error', 'GAGAL: User ini sedang memiliki pesanan yang AKTIF (Pending/Dikirim). Selesaikan dulu transaksinya.');
+        }
+
+        // 4. Jika Tidak Ada Pesanan Aktif, Lanjutkan Penghapusan
+        // Gunakan DB transaction agar bersih
+        \Illuminate\Support\Facades\DB::transaction(function () use ($user) {
+            
+            // Hapus semua Produk milik user (jika dia penjual)
+            \App\Models\Produk::where('user_id', $user->id)->delete();
+
+            // Hapus Riwayat Pesanan (yang statusnya sudah Selesai/Batal)
+            // Ini aman dihapus karena user-nya juga dihapus
+            \Illuminate\Support\Facades\DB::table('pesanan')->where('user_id', $user->id)->delete();
+
+            // Hapus Foto Profil
+            if ($user->profile_photo) {
+                \Illuminate\Support\Facades\Storage::delete('public/' . $user->profile_photo);
+            }
+
+            // Akhirnya, Hapus User
+            $user->delete();
+        });
+
+        return back()->with('success', 'Pengguna berhasil dihapus (Riwayat pesanan lama ikut terhapus).');
     }
 
     public function chats($userId = null)
