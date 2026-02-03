@@ -16,23 +16,41 @@ use App\Http\Controllers\AdminController;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
-Route::post('/login-session', [AuthController::class, 'login']);
+    Route::post('/login-session', [AuthController::class, 'login']);
+
 Route::middleware(['auth', IsAdmin::class])->prefix('admin')->group(function () {
+    
+    Route::get('/admins', [AdminController::class, 'manageAdmins'])->name('admin.list');
+    Route::post('/admins', [AdminController::class, 'storeAdmin'])->name('admin.store');
+    
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
-    // Tambahkan tanda tanya {id?} agar bisa dibuka tanpa memilih user dulu
+    
+    // Chat
     Route::get('/chats/{id?}', [AdminController::class, 'chats'])->name('admin.chats');
-    // Route untuk Admin membalas pesan (POST)
     Route::post('/chats/reply/{id}', [AdminController::class, 'sendReply'])->name('admin.chats.reply');
-    // Admin melihat daftar user & toko mereka
+    
+    // User Management
     Route::get('/users', [AdminController::class, 'manageUsers'])->name('admin.users');   
-    // Admin menghapus user (Banned)
     Route::delete('/users/{id}', [AdminController::class, 'destroyUser'])->name('admin.users.delete');
     Route::get('/users/{id}/profile', [AdminController::class, 'showUserProfile'])->name('admin.users.profile');
-    // Route untuk melihat daftar produk user (Toko)
+    
+    // Shop & Product
     Route::get('/users/{id}/shop', [AdminController::class, 'showShop'])->name('admin.users.shop');
-    // Route untuk melihat detail satu produk
     Route::get('/products/{id}', [AdminController::class, 'showProduct'])->name('admin.products.show');
-    Route::get('/admin/users/{id}/shop/orders', [App\Http\Controllers\AdminController::class, 'showShopOrders'])->name('admin.users.shop.orders');
+    
+    // PERBAIKAN 1: Hapus '/admin' disini
+    // Aslinya: /admin/users/{id}/shop/orders
+    Route::get('/users/{id}/shop/orders', [App\Http\Controllers\AdminController::class, 'showShopOrders'])->name('admin.users.shop.orders');
+
+    // PERBAIKAN 2: Hapus '/admin' di semua route kategori ini
+    // Aslinya: /categories (Otomatis jadi /admin/categories karena prefix grup)
+    Route::get('/categories', [App\Http\Controllers\AdminCategoryController::class, 'index'])->name('admin.categories.index');
+    Route::post('/categories', [App\Http\Controllers\AdminCategoryController::class, 'store'])->name('admin.categories.store');
+    Route::put('/categories/{id}', [App\Http\Controllers\AdminCategoryController::class, 'update'])->name('admin.categories.update');
+    Route::delete('/categories/{id}', [App\Http\Controllers\AdminCategoryController::class, 'destroy'])->name('admin.categories.destroy');
+
+    // ... route kategori lainnya ...
+Route::post('/categories/reorder', [App\Http\Controllers\AdminCategoryController::class, 'reorder'])->name('admin.categories.reorder');
 });
 
 Route::get('/', function () {

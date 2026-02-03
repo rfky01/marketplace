@@ -7,50 +7,108 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 use Illuminate\Support\Facades\Auth;
 
 class AdminController extends Controller // <--- INI JUGA WAJIB
 {
-    // 1. Halaman Dashboard Utama
-    public function dashboard(Request $request)
+    public function storeAdmin(Request $request)
     {
-        // 1. Siapkan Query Dasar (Semua user kecuali admin)
-        $query = User::where('role', '!=', 'admin')
-                     ->withCount('products') // Hitung jumlah produk
-                     ->with('products');     // Ambil data produk
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed', // Harus ada field password_confirmation
+        ]);
 
-        // 2. Cek apakah ada Filter yang diklik?
-        if ($request->filter == 'penjual') {
-            // Tampilkan HANYA yang punya produk (has products)
-            $query->has('products'); 
-        } elseif ($request->filter == 'pembeli') {
-            // Tampilkan HANYA yang TIDAK punya produk (doesntHave products)
-            $query->doesntHave('products');
+        \App\Models\User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password), // Enkripsi password
+            'role' => 'admin', // WAJIB: Set role sebagai admin
+            'email_verified_at' => now(), // Opsional: Langsung verifikasi email
+        ]);
+
+        return redirect()->back()->with('success', 'Admin baru berhasil direkrut!');
+    }
+
+    // --- FUNGSI BARU: HALAMAN LIST ADMIN ---
+    // --- FUNGSI BARU: HALAMAN LIST ADMIN ---
+    public function manageAdmins()
+    {
+        // Ambil hanya user yang role-nya 'admin'
+        $admins = \App\Models\User::where('role', 'admin')->latest()->get();
+        
+        return view('admin.admins', compact('admins'));
+    }
+
+    // 1. Halaman Dashboard Utama
+    // 1. DASHBOARD: Hanya Menampilkan Statistik Angka
+    public function dashboard()
+    {
+        // Hitung Total Pengguna
+        $totalUsers = \App\Models\User::count();
+        
+        // Hitung Total Penjual (User yang punya minimal 1 produk)
+        // Atau jika Anda punya kolom 'role', sesuaikan kodenya. 
+        // Disini saya pakai logika: jika punya produk = penjual.
+        $totalPenjual = \App\Models\User::has('products')->count(); 
+        
+        // Hitung Total Pembeli (Sisanya)
+        $totalPembeli = $totalUsers - $totalPenjual;
+
+        // Statistik Lainnya
+        $totalProduk = \App\Models\Produk::count();
+        $totalKategori = \App\Models\Kategori::count();
+        $totalPesanan = \Illuminate\Support\Facades\DB::table('pesanan')->count();
+
+        return view('admin.dashboard', compact(
+            'totalUsers', 'totalPenjual', 'totalPembeli', 
+            'totalProduk', 'totalKategori', 'totalPesanan'
+        ));
+    }
+
+    // 2. MANAGE USERS: Khusus Menampilkan Tabel Pengguna
+    // 2. MANAGE USERS: Halaman Khusus Tabel User (DENGAN FILTER)
+    public function manageUsers()
+    {
+        // Siapkan Query Dasar
+        $query = \App\Models\User::withCount('products')->latest();
+
+        // Cek apakah ada request filter dari tombol
+        if (request('filter') == 'penjual') {
+            $query->has('products'); // Hanya yang punya produk
+        } elseif (request('filter') == 'pembeli') {
+            $query->doesntHave('products'); // Hanya yang TIDAK punya produk
         }
 
-        // 3. Eksekusi Query
-        $users = $query->latest()->paginate(10);
+        $users = $query->get();
+        
+        // Kirim variabel 'currentFilter' agar tombol bisa berubah warna
+        $currentFilter = request('filter') ?? 'semua';
 
-        // Simpan status filter saat ini agar tombolnya bisa "menyala"
-        $currentFilter = $request->filter ?? 'all';
-
-        return view('admin.dashboard', compact('users', 'currentFilter'));
+        return view('admin.users', compact('users', 'currentFilter'));
     }
 
     // 2. Fitur Hapus User
-    public function destroyUser($id)
+    public function destroyUser($id) // Atau nama fungsi delete Anda
     {
-        $user = User::findOrFail($id);
+        $user = \App\Models\User::findOrFail($id);
+
+        // --- TAMBAHKAN PROTEKSI INI ---
+        if ($user->email === 'admin@marketplace.com') {
+            return back()->with('error', 'GAGAL: Akun Super Admin Utama dilindungi dan tidak bisa dihapus!');
+        }
+        // ------------------------------
+
+        // Lanjut proses hapus...
+        if ($user->profile_photo) {
+            \Illuminate\Support\Facades\Storage::delete('public/' . $user->profile_photo);
+        }
+        
         $user->delete();
 
-        return back()->with('success', 'User berhasil dihapus.');
-    }
-    
-    // 4. Manage Users (Redirect ke dashboard saja)
-    public function manageUsers()
-    {
-        return $this->dashboard();
+        return back()->with('success', 'Pengguna berhasil dihapus.');
     }
 
     public function chats($userId = null)
@@ -183,7 +241,7 @@ class AdminController extends Controller // <--- INI JUGA WAJIB
                 ->join('pesanan', 'detail_pesanan.pesanan_id', '=', 'pesanan.id')
                 ->join('produk', 'detail_pesanan.produk_id', '=', 'produk.id')
                 ->join('users', 'pesanan.user_id', '=', 'users.id')
-                ->where('produk.user_id', $id); // <--- Pastikan ada titik koma (;)
+                ->where('produk.user_id', $id);
 
             // 2. FILTER STATUS (Cek jika user memilih status)
             if (request()->filled('status')) {
@@ -203,7 +261,7 @@ class AdminController extends Controller // <--- INI JUGA WAJIB
                     'detail_pesanan.total_harga'
                 )
                 ->orderBy('pesanan.created_at', 'desc')
-                ->get(); // <--- Ambil datanya di sini
+                ->get();
 
         } catch (\Exception $e) {
             $riwayatPesanan = [];

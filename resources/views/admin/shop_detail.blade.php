@@ -21,8 +21,11 @@
 
     <nav class="bg-indigo-900 text-white p-4 shadow-lg sticky top-0 z-50">
         <div class="container mx-auto flex items-center gap-4">
-            <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded-lg transition">
-                ⬅ Kembali
+            <a href="{{ route('admin.users') }}" class="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded-lg transition">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Kembali
             </a>
             <h1 class="text-xl font-bold">Etalase Toko: {{ $user->name }}</h1>
         </div>
@@ -58,7 +61,10 @@
                         
                         <div class="mt-1">
                             <a href="{{ route('admin.chats', $user->id) }}" class="bg-green-100 text-green-700 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-green-200 transition cursor-pointer inline-flex items-center gap-1">
-                                <span>💬</span> Chat Penjual
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                </svg>
+                                Chat Penjual
                             </a>
                         </div>
                     </div>
@@ -118,7 +124,9 @@
             <form method="GET" action="{{ route('admin.users.shop', $user->id) }}" class="flex flex-col md:flex-row justify-between items-center gap-4">
                 
                 <div class="flex items-center bg-white rounded-lg px-3 py-2 w-full md:max-w-[500px] border border-gray-200 focus-within:border-blue-900 shadow-sm transition">
-                    <img src="https://cdn-icons-png.flaticon.com/512/54/54481.png" alt="Search" class="w-5 h-5 object-contain opacity-40 mr-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
                     
                     <input 
                         type="text" name="search" placeholder="Cari di Toko ini" 
@@ -270,7 +278,9 @@
                         </p>
                         
                         <div class="flex items-center gap-1 mb-2">
-                            <span class="text-yellow-400 text-xs">★</span>
+                            <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                            </svg>
                             <span class="text-xs font-bold text-gray-600">{{ $rataRata }}</span>
                             <span class="text-[10px] text-gray-400">({{ $jumlahUlasan }})</span>
                         </div>

@@ -10,6 +10,7 @@ export default function AddProduct() {
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
     const [stock, setStock] = useState('');
+    const [dbCategories, setDbCategories] = useState([]);
     const [category, setCategory] = useState('Elektronik');
     const [description, setDescription] = useState('');
     
@@ -180,6 +181,20 @@ export default function AddProduct() {
         }
     };
 
+    useEffect(() => {
+    // Panggil API Laravel yang baru kita buat
+    fetch('http://127.0.0.1:8000/api/categories')
+        .then(response => response.json())
+        .then(data => {
+            setDbCategories(data); // Simpan data ke state
+            // Jika user belum pilih kategori, set default ke item pertama
+            if (data.length > 0) {
+                // Opsional: setCategory(data[0].nama_kategori); 
+            }
+        })
+        .catch(error => console.error('Error fetching categories:', error));
+}, []);
+
     return (
         <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6 relative">
             <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl">
@@ -218,14 +233,15 @@ export default function AddProduct() {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-                        <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border p-2 rounded bg-white focus:ring-2 focus:ring-blue-500">
-                            <option value="Buku">Buku</option>
-                            <option value="Pakaian">Pakaian</option>
-                            <option value="Makanan">Makanan</option>
-                            <option value="Perlengkapan">Perlengkapan</option>
-                            <option value="Elektronik">Elektronik</option>
-                            <option value="Kecantikan">Kecantikan</option>
-                            <option value="Lainnya">Lainnya...</option>
+                        <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 bg-white">
+                            <option value="">-- Pilih Kategori --</option>
+
+                            {/* Looping data dari database */}
+                            {dbCategories.map((item) => (
+                                <option key={item.id} value={item.nama_kategori}>
+                                    {item.nama_kategori}
+                                </option>
+                            ))}
                         </select>
                     </div>
 

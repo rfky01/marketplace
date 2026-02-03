@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Produk; // Pastikan nama Model diawali Huruf Besar (Standar Laravel)
+use App\Models\Produk; 
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;

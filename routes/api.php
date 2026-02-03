@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Models\Kategori;
 use App\Http\Controllers\produkController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\AuthController;
@@ -31,6 +32,12 @@ Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 // Produk (Melihat katalog tidak perlu login)
 Route::get('/produk', [produkController::class, 'index']);     // List Barang
 Route::get('/produk/{id}', [produkController::class, 'show']); // Detail Barang
+
+    // React akan memanggil link ini untuk minta daftar kategori
+    Route::get('/categories', function () {
+    return response()->json(\App\Models\Kategori::orderBy('urutan', 'asc')->get());
+});
+
 
 
 // ==========================================

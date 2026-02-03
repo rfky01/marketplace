@@ -5,23 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-gray-50 min-h-screen">
 
-    <nav class="bg-indigo-900 text-white p-4 shadow-lg">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold flex items-center gap-2">
-                🛡️ Admin Panel
-            </h1>
-            
-            <div class="flex items-center gap-4">
-                <a href="{{ route('admin.chats') }}" class="flex items-center gap-2 bg-indigo-700 hover:bg-indigo-600 px-4 py-2 rounded text-sm font-bold transition">
-                    💬 Chat
+    <nav class="bg-indigo-900 text-white p-4 shadow-xl sticky top-0 z-50">
+        <div class="container mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                </div>
+                <h1 class="text-xl font-bold tracking-tight">Admin Panel</h1>
+            </div>
+
+            <div class="flex items-center gap-3">
+
+                <a href="{{ route('admin.list') }}" class="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow-md border border-purple-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    Admin
                 </a>
 
-                <form action="{{ route('logout') }}" method="POST">
+                <a href="{{ route('admin.chats') }}" class="flex items-center gap-2 bg-indigo-800/50 hover:bg-indigo-700 text-indigo-100 hover:text-white px-4 py-2 rounded-lg text-sm font-semibold transition border border-indigo-700/50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    Chat
+                </a>
+
+                <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded text-sm font-bold transition">
+                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition shadow-sm flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
                         Keluar
                     </button>
                 </form>
@@ -29,151 +50,144 @@
         </div>
     </nav>
 
-    <div class="container mx-auto mt-8 px-4">
-        <div class="bg-white rounded-xl shadow-md overflow-hidden p-6">
+    <div class="container mx-auto px-4 mt-8 pb-20">
+        
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 012 2h2a2 2 0 012-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Ringkasan Statistik
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
             
-            <div class="flex flex-col md:flex-row justify-between items-center mb-6 border-b pb-4 gap-4">
-                <h2 class="text-2xl font-bold text-gray-800">Daftar Pengguna</h2>
-                
-                <div class="flex bg-gray-100 p-1 rounded-lg">
-                    <a href="{{ route('admin.dashboard') }}" 
-                       class="px-4 py-2 rounded-md text-sm font-bold transition duration-200 
-                       {{ $currentFilter == 'all' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700' }}">
-                        Semua
-                    </a>
+            <a href="{{ route('admin.users') }}" class="bg-white p-6 rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 hover:border-blue-200 transition group cursor-pointer relative overflow-hidden">
+                <div class="absolute right-2 top-2 opacity-10 transform translate-x-2 -translate-y-2 group-hover:scale-110 transition duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                </div>
+                <div class="relative z-10">
+                    <div class="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center mb-4 text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                    </div>
+                    <p class="text-gray-500 text-sm font-semibold uppercase tracking-wider">Total Pengguna</p>
+                    <h3 class="text-3xl font-extrabold text-gray-800 mt-1">{{ $totalUsers }}</h3>
+                    <p class="text-xs text-blue-500 font-medium mt-2 flex items-center gap-1">
+                        Lihat Detail <span>→</span>
+                    </p>
+                </div>
+            </a>
 
-                    <a href="{{ route('admin.dashboard', ['filter' => 'penjual']) }}" 
-                       class="px-4 py-2 rounded-md text-sm font-bold transition duration-200 flex items-center gap-2
-                       {{ $currentFilter == 'penjual' ? 'bg-green-100 text-green-700 shadow-sm' : 'text-gray-500 hover:text-green-600' }}">
-                        <span>🏪</span> Penjual
-                    </a>
-
-                    <a href="{{ route('admin.dashboard', ['filter' => 'pembeli']) }}" 
-                       class="px-4 py-2 rounded-md text-sm font-bold transition duration-200 flex items-center gap-2
-                       {{ $currentFilter == 'pembeli' ? 'bg-blue-100 text-blue-700 shadow-sm' : 'text-gray-500 hover:text-blue-600' }}">
-                        <span>🛒</span> Pembeli
-                    </a>
+            <div class="bg-white p-6 rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 transition group relative overflow-hidden">
+                <div class="absolute right-2 top-2 opacity-10 transform translate-x-2 -translate-y-2 group-hover:scale-110 transition duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                </div>
+                <div class="relative z-10">
+                    <div class="w-12 h-12 rounded-lg bg-purple-50 flex items-center justify-center mb-4 text-purple-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                        </svg>
+                    </div>
+                    <p class="text-gray-500 text-sm font-semibold uppercase tracking-wider">Total Produk</p>
+                    <h3 class="text-3xl font-extrabold text-gray-800 mt-1">{{ $totalProduk }}</h3>
+                    <p class="text-xs text-purple-500 font-medium mt-2">Item Aktif</p>
                 </div>
             </div>
-            
-            @if(session('success'))
-                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4" role="alert">
-                    <p>{{ session('success') }}</p>
+
+            <div class="bg-white p-6 rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 transition group relative overflow-hidden">
+                <div class="absolute right-2 top-2 opacity-10 transform translate-x-2 -translate-y-2 group-hover:scale-110 transition duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                 </div>
-            @endif
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-100 text-gray-600 uppercase text-sm leading-normal">
-                            <th class="py-3 px-6 text-left">Nama / Email</th>
-                            <th class="py-3 px-6 text-center">Status</th>
-                            <th class="py-3 px-6 text-center">Produk</th> 
-                            <th class="py-3 px-6 text-center">Bergabung</th> 
-                            <th class="py-3 px-6 text-center">Mulai Jualan</th> 
-                            <th class="py-3 px-6 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="text-gray-600 text-sm font-light">
-                        @foreach($users as $user)
-                        <tr class="border-b border-gray-200 hover:bg-gray-50">
-                            
-                            <td class="py-3 px-6 text-left">
-                                <a href="{{ route('admin.users.shop', $user->id) }}" class="flex items-center gap-3 group cursor-pointer p-2 rounded-lg transition hover:bg-gray-100 -ml-2">
-                                    <div class="flex-shrink-0 w-10 h-10 group-hover:scale-105 transition duration-300">
-                                        @if($user->profile_photo)
-                                            <img class="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm"
-                                                 src="{{ asset('storage/' . $user->profile_photo) }}" alt="{{ $user->name }}">
-                                        @else
-                                            <img class="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm"
-                                                 src="https://ui-avatars.com/api/?name={{ urlencode($user->name) }}&background=random&color=fff&size=128" alt="{{ $user->name }}">
-                                        @endif
-                                    </div>
-                                    <div class="flex flex-col">
-                                        <span class="font-bold text-gray-800 text-sm group-hover:text-indigo-600 transition">{{ $user->name }}</span>
-                                        <span class="text-xs text-gray-500">{{ $user->email }}</span>
-                                    </div>
-                                </a>
-                            </td>
-
-                            <td class="py-3 px-6 text-center">
-                                @if($user->products_count > 0)
-                                    <span class="bg-green-100 text-green-800 py-1 px-3 rounded-full text-xs font-bold inline-flex items-center gap-1 border border-green-200 shadow-sm">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                            <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
-                                            <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd" />
-                                        </svg>
-                                        Penjual
-                                    </span>
-                                @else
-                                    <span class="bg-blue-100 text-blue-800 py-1 px-3 rounded-full text-xs font-bold inline-flex items-center gap-1 border border-blue-200 shadow-sm">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                                            <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
-                                        </svg>
-                                        Pembeli
-                                    </span>
-                                @endif
-                            </td>
-
-                            <td class="py-3 px-6 text-center">
-                                @if($user->products_count > 0)
-                                    <a href="{{ route('admin.users.shop', $user->id) }}" 
-                                       class="bg-white text-gray-800 font-bold py-1 px-3 rounded-md text-xs border border-gray-300 shadow-sm hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 transition duration-200 inline-flex items-center gap-1 group">
-                                        
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-gray-400 group-hover:text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
-                                            <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z" />
-                                            <path fill-rule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clip-rule="evenodd" />
-                                        </svg>
-                                        
-                                        {{ $user->products_count }} Produk
-                                    </a>
-                                @else
-                                    <span class="text-gray-300 text-xs italic">Kosong</span>
-                                @endif
-                            </td>
-
-                            <td class="py-3 px-6 text-center">
-                                <span class="bg-gray-100 text-gray-600 py-1 px-2 rounded text-xs font-medium border border-gray-200">
-                                    📅 {{ $user->created_at->format('d M Y') }}
-                                </span>
-                            </td>
-
-                            <td class="py-3 px-6 text-center">
-                                @if($user->products_count > 0 && $user->products->count() > 0)
-                                    <span class="text-green-600 font-bold text-xs flex items-center justify-center gap-1">
-                                        🚀 {{ $user->products->sortBy('created_at')->first()->created_at->format('d M Y') }}
-                                    </span>
-                                @else
-                                    <span class="text-gray-300">-</span>
-                                @endif
-                            </td>
-
-                            <td class="py-3 px-6 text-center">
-                                <div class="flex item-center justify-center gap-2">
-                                    <a href="{{ route('admin.chats', $user->id) }}" 
-                                       class="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1 rounded-md text-xs font-bold transition duration-200 border border-blue-200 flex items-center gap-1">
-                                        💬 Chat
-                                    </a>
-
-                                    <form action="{{ route('admin.users.delete', $user->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus user ini?');">
-                                        @csrf @method('DELETE')
-                                        <button class="bg-red-50 text-red-500 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-bold transition duration-200 border border-red-200">
-                                            Hapus
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                <div class="relative z-10">
+                    <div class="w-12 h-12 rounded-lg bg-green-50 flex items-center justify-center mb-4 text-green-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                    </div>
+                    <p class="text-gray-500 text-sm font-semibold uppercase tracking-wider">Total Transaksi</p>
+                    <h3 class="text-3xl font-extrabold text-gray-800 mt-1">{{ $totalPesanan }}</h3>
+                    <p class="text-xs text-green-500 font-medium mt-2">Pesanan Masuk</p>
+                </div>
             </div>
+
+            <a href="{{ route('admin.categories.index') }}" class="bg-white p-6 rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 hover:border-orange-200 transition group cursor-pointer relative overflow-hidden">
+                <div class="absolute right-2 top-2 opacity-10 transform translate-x-2 -translate-y-2 group-hover:scale-110 transition duration-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                </div>
+                <div class="relative z-10">
+                    <div class="w-12 h-12 rounded-lg bg-orange-50 flex items-center justify-center mb-4 text-orange-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
+                    </div>
+                    <p class="text-gray-500 text-sm font-semibold uppercase tracking-wider">Kategori</p>
+                    <h3 class="text-3xl font-extrabold text-gray-800 mt-1">{{ $totalKategori }}</h3>
+                    <p class="text-xs text-orange-500 font-medium mt-2 flex items-center gap-1">
+                        Kelola Kategori <span>→</span>
+                    </p>
+                </div>
+            </a>
+
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            <div class="mt-6">
-                {{ $users->links() }}
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h4 class="font-bold text-gray-800 mb-6 flex items-center gap-3">
+                    <div class="p-2 bg-blue-100 rounded-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                    </div>
+                    Statistik Penjual
+                </h4>
+                <div class="flex items-center justify-between bg-blue-50/50 p-5 rounded-xl border border-blue-100">
+                    <div>
+                        <p class="text-3xl font-extrabold text-blue-700">{{ $totalPenjual }}</p>
+                        <p class="text-xs text-blue-600 font-bold uppercase tracking-wider mt-1">Akun Toko Aktif</p>
+                    </div>
+                    <div class="h-12 w-12 bg-white rounded-full flex items-center justify-center text-blue-600 shadow-sm border border-blue-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-4 px-1">User yang telah mengupload minimal 1 produk ke etalase.</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h4 class="font-bold text-gray-800 mb-6 flex items-center gap-3">
+                    <div class="p-2 bg-gray-100 rounded-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                    Statistik Pembeli
+                </h4>
+                <div class="flex items-center justify-between bg-gray-50 p-5 rounded-xl border border-gray-100">
+                    <div>
+                        <p class="text-3xl font-extrabold text-gray-700">{{ $totalPembeli }}</p>
+                        <p class="text-xs text-gray-600 font-bold uppercase tracking-wider mt-1">Akun Pembeli</p>
+                    </div>
+                    <div class="h-12 w-12 bg-white rounded-full flex items-center justify-center text-gray-600 shadow-sm border border-gray-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-4 px-1">User yang terdaftar namun belum membuka toko.</p>
             </div>
         </div>
+
     </div>
 
 </body>

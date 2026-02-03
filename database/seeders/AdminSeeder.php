@@ -14,7 +14,7 @@ class AdminSeeder extends Seeder  // <-- Kode Anda error karena baris ini hilang
     public function run(): void
     {
         User::create([
-            'name' => 'Super Admin',
+            'name' => 'ADMIN',
             'email' => 'admin@marketplace.com', 
             'password' => Hash::make('password123'),
             'role' => 'admin',
