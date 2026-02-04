@@ -579,13 +579,24 @@ export default function SellerOrders() {
                                                         <p className="text-[10px] font-bold text-gray-400 uppercase mb-0.5">Alamat</p>
                                                         <p className="leading-tight text-gray-800 line-clamp-2">{item.pesanan?.alamat_pengiriman || "-"}</p>
                                                     </div>
+
                                                     {item.pesanan?.waktu_pengiriman && (
                                                         <div className="flex items-center gap-1.5 mt-1">
-                                                            <span className="text-blue-500 text-[10px]">⏰</span>
+                                                            {/* ICON JAM / WAKTU */}
+                                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
                                                             <span className="font-medium text-gray-700">{formatDateTime(item.pesanan?.waktu_pengiriman)}</span>
                                                         </div>
                                                     )}
-                                                    <div className="mt-1 text-gray-500">📞 {item.pesanan?.telepon_penerima || "-"}</div>
+
+                                                    <div className="mt-1.5 flex items-center gap-1.5 text-gray-500">
+                                                        {/* ICON TELEPON */}
+                                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                                        </svg>
+                                                        {item.pesanan?.telepon_penerima || "-"}
+                                                    </div>
                                                 </div>
 
                                                 <div className="flex flex-col gap-2 w-full md:w-auto min-w-[140px] items-end justify-center h-full">

@@ -373,15 +373,19 @@ export default function Keranjang() {
                                         </div>
                                         <div className="overflow-hidden">
                                             <p className="text-sm font-bold text-gray-800 truncate">{user.name}</p>
-                                            <p className="text-xs text-blue-600 font-medium bg-blue-100 px-2 py-0.5 rounded-full inline-block">Penjual</p>
+                                            <p className={`text-xs font-medium px-2 py-0.5 rounded-full inline-block ${user.products_count > 0 ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'}`}>
+                                                {user.products_count > 0 ? 'Penjual' : 'Pembeli'}
+                                            </p>
                                         </div>
                                     </div>
-                            
-                                    <div className="py-2">
-                                        <Link to="/seller-orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">
-                                            Daftar Pesanan
-                                        </Link>
-                                    </div>
+                                    
+                                    {user.products_count > 0 && (
+                                        <div className="py-2">
+                                            <Link to="/seller-orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">
+                                                Daftar Pesanan
+                                            </Link>
+                                        </div>
+                                    )}
                             
                                     <div className="border-t border-gray-100 mt-1 pt-1">
                                         <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition">

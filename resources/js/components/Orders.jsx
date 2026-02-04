@@ -538,8 +538,14 @@ export default function Orders() {
                         <Link to="/keranjang" className="text-2xl text-gray-500 hover:text-blue-900">
                             <img src={iconKeranjang} alt="keranjang" className="w-10 h-10 object-contain opacity-60 group-hover:opacity-100 transition duration-200"/>
                         </Link>
-                        <Link to="/" className="hidden md:inline-flex items-center text-gray-500 hover:text-blue-600 font-medium transition no-underline text-sm border-r border-gray-300 pr-6">
-                            <span className="mr-1 text-lg"></span>Dashboard
+                        <Link 
+                            to="/" 
+                            className="text-gray-500 hover:text-blue-900 transition p-1" 
+                            title="Dashboard">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                                <path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z" />
+                                <path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.43z" />
+                            </svg>
                         </Link>
                         <div className="relative" ref={dropdownRef}>
                             <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-3 hover:bg-gray-100 p-2 rounded-lg transition border border-transparent hover:border-gray-200">
@@ -576,7 +582,6 @@ export default function Orders() {
                                     </div>
                                     <div className="py-2">
                                         <Link to="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">Edit Profil</Link>
-                                        <Link to="/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">Riwayat Pesanan</Link>
                                     </div>
                                     <div className="border-t border-gray-100 mt-1 pt-1">
                                         <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition">Keluar</button>

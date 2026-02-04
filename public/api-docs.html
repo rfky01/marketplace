@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dokumentasi API Marketplace</title>
+  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.css" />
+  <style>
+    body { margin: 0; padding: 0; background: #fafafa; }
+    #swagger-ui { max-width: 1200px; margin: 0 auto; background: white; padding-bottom: 50px; }
+    .topbar { background-color: #1f2937 !important; padding: 10px 0; }
+    .topbar-wrapper img { content: url('https://static1.smartbear.co/swagger/media/assets/swagger_light.svg'); height: 30px;}
+  </style>
+</head>
+<body>
+  
+  <div id="swagger-ui"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-standalone-preset.js"></script>
+
+  <script>
+    window.onload = function() {
+      
+      // --- DI BAWAH INI ADALAH ISI BUKU (SPESIFIKASI API) ---
+      const spec = {
+        "swagger": "2.0",
+        "info": {
+          "description": "Dokumentasi API untuk WhatsApp Gateway sistem Marketplace Magang. Digunakan untuk mengirim OTP dan notifikasi.",
+          "version": "1.0.0",
+          "title": "WhatsApp Gateway API",
+          "contact": {
+            "email": "rifki@marketplace-magang.com"
+          }
+        },
+        "host": "127.0.0.1:3000",
+        "basePath": "/",
+        "schemes": ["http"],
+        "tags": [
+          { "name": "Pesan", "description": "Fitur pengiriman pesan" },
+          { "name": "Perangkat", "description": "Manajemen koneksi WhatsApp" }
+        ],
+        "paths": {
+          "/send/message": {
+            "post": {
+              "tags": ["Pesan"],
+              "summary": "Kirim Pesan Teks (OTP)",
+              "description": "Endpoint ini dipanggil oleh Laravel untuk mengirim kode OTP ke user.",
+              "consumes": ["application/x-www-form-urlencoded", "application/json"],
+              "produces": ["application/json"],
+              "parameters": [
+                {
+                  "name": "X-Device-ID",
+                  "in": "header",
+                  "description": "ID Device (lihat di dashboard)",
+                  "required": true,
+                  "type": "string",
+                  "default": "my-wa"
+                },
+                {
+                  "name": "phone",
+                  "in": "formData",
+                  "description": "Nomor HP Tujuan (Format: 628xxx)",
+                  "required": true,
+                  "type": "string",
+                  "default": "6285609688462"
+                },
+                {
+                  "name": "message",
+                  "in": "formData",
+                  "description": "Isi Pesan",
+                  "required": true,
+                  "type": "string",
+                  "default": "Halo, Kode OTP Marketplace Anda: 123456"
+                }
+              ],
+              "responses": {
+                "200": {
+                  "description": "Berhasil Terkirim",
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "status": { "type": "boolean", "example": true },
+                      "message": { "type": "string", "example": "Send message success" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "/app/devices": {
+            "get": {
+              "tags": ["Perangkat"],
+              "summary": "Lihat Daftar Device",
+              "responses": {
+                "200": { "description": "List data device" }
+              }
+            }
+          },
+          "/app/login": {
+            "get": {
+              "tags": ["Perangkat"],
+              "summary": "Ambil QR Code",
+              "description": "Mendapatkan string QR Code untuk login baru.",
+              "responses": {
+                "200": { "description": "QR Code String" }
+              }
+            }
+          }
+        }
+      };
+      // --- AKHIR ISI BUKU ---
+
+      // Perintah untuk menampilkan buku ke layar
+      const ui = SwaggerUIBundle({
+        spec: spec,
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        layout: "BaseLayout"
+      });
+    };
+  </script>
+</body>
+</html>
