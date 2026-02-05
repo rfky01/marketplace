@@ -243,11 +243,40 @@ export default function SellerOrders() {
         setIsRejectModalOpen(true);
     };
 
-    const handleConfirmReject = () => {
-        if (orderToReject) {
-            handleUpdateStatus(orderToReject, 'dibatalkan', true);
-            setIsRejectModalOpen(false);
-            setOrderToReject(null);
+    // --- PERBAIKAN LOGIKA TOLAK PESANAN ---
+    const handleConfirmReject = async () => {
+        if (!orderToReject) return;
+
+        const token = localStorage.getItem('token');
+        try {
+            // Kita panggil API update yang sama, tapi statusnya 'canceled by seller'
+            const response = await fetch(`http://127.0.0.1:8000/api/seller/orders/${orderToReject.id}`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
+                },
+                // Kirim status 'canceled by seller' agar backend tahu ini pembatalan
+                body: JSON.stringify({ status: 'canceled by seller' })
+            });
+
+            const data = await response.json();
+
+            if(response.ok) {
+                // Tutup modal & Beri notifikasi sukses
+                setIsRejectModalOpen(false);
+                setCustomAlert({ isOpen: true, message: "Pesanan berhasil ditolak & Stok dikembalikan.", type: 'success' });
+                
+                // Refresh data agar pesanan hilang dari list 'Pending'
+                fetchSellerOrders(); 
+                setOrderToReject(null);
+            } else {
+                alert("Gagal: " + (data.message || "Terjadi kesalahan"));
+            }
+        } catch (error) { 
+            console.error(error); 
+            alert("Terjadi kesalahan koneksi"); 
         }
     };
 

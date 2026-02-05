@@ -15,7 +15,6 @@ class SellerOrderController extends Controller
         $userId = Auth::id();
 
         $sellerItems = DetailPesanan::with(['produk', 'pesanan.user'])
-            // Filter 1: Pastikan produknya milik penjual yang login
             ->whereHas('produk', function($query) use ($userId) {
                 $query->where('user_id', $userId);
             })
@@ -23,8 +22,6 @@ class SellerOrderController extends Controller
             ->whereHas('pesanan', function($q) {
                 $q->whereNotNull('id'); 
                 
-                // --- PERBAIKAN DISINI ---
-                // Filter ini HARUS di dalam whereHas('pesanan'), karena kolomnya ada di tabel pesanan
                 // Kita gunakan logic OR NULL agar data lama tetap muncul
                 $q->where(function($sub) {
                     $sub->where('hidden_for_seller', 0)
@@ -41,71 +38,93 @@ class SellerOrderController extends Controller
     }
 
     // Opsional: Update Status per item (Misal: Sedang Dikemas, Dikirim)
-    // ... code sebelumnya ...
-
     public function update(Request $request, $id)
     {
-        // Validasi input status
+        // 1. Validasi
         $request->validate([
             'status' => 'required|string'
         ]);
 
-        // 1. Cari Detail Pesanan berdasarkan ID
+        // 2. Cari Detail Pesanan
         $detail = DetailPesanan::with('pesanan', 'produk')->find($id);
 
         if (!$detail) {
             return response()->json(['message' => 'Pesanan tidak ditemukan'], 404);
         }
         
-        // 2. Keamanan: Pastikan yang mengubah adalah Penjual asli barang tersebut
+        // 3. Keamanan
         if($detail->produk->user_id != Auth::id()) {
             return response()->json(['message' => 'Anda tidak berhak mengubah pesanan ini'], 403);
         }
 
-        // 3. Update Status pada Tabel PESANAN Induk
-        // Catatan: Ini akan mengubah status invoice utama.
-        $pesanan = $detail->pesanan;
-        $pesanan->status = $request->status;
-        $pesanan->save();
-
-        if ($request->has('waktu_pengiriman')) {
-            $order->waktu_pengiriman = $request->waktu_pengiriman;
+        $pesanan = $detail->pesanan; 
+        
+        // --- LOGIKA PENGEMBALIAN STOK (BARU) ---
+        // Jika status yang dikirim adalah 'canceled by seller' (Ditolak Penjual)
+        if ($request->status == 'canceled by seller' || $request->status == 'dibatalkan') {
+            
+            // Cek dulu, jangan sampai stok dikembalikan 2x jika sudah batal sebelumnya
+            if (!in_array($pesanan->status, ['canceled by seller', 'canceled by buyer', 'ditolak'])) {
+                
+                // Kembalikan Stok Barang
+                $produk = $detail->produk;
+                $produk->stok_barang = $produk->stok_barang + $detail->jumlah;
+                $produk->save();
+            }
+            
+            // Set status jadi 'canceled by seller'
+            $pesanan->status = 'canceled by seller';
+        } 
+        // --- LOGIKA TERIMA / KIRIM ---
+        else {
+            $pesanan->status = $request->status;
+            
+            if ($request->has('waktu_pengiriman')) {
+                $pesanan->waktu_pengiriman = $request->waktu_pengiriman;
+            }
         }
         
-        $order->save();
+        $pesanan->save(); 
 
-        // --- TAMBAHAN: KIRIM WA VIA FONNTE (HANYA JIKA STATUS 'ACCEPTED') ---
+        // --- KIRIM WA (FONNTE) ---
         if ($request->status == 'accepted') {
-            $targetPhone = $order->telepon_penerima; // Pastikan kolom ini ada di tabel orders
-            $customerName = $order->nama_penerima;
-            $invoice = $order->invoice_code;
+            $targetPhone = $pesanan->telepon_penerima; 
+            $customerName = $pesanan->nama_penerima;
+            $invoice = $pesanan->invoice_code;
             
-            $message = "Halo Kak {$customerName},\n\nPesanan Anda dengan invoice *{$invoice}* telah kami *TERIMA* dan sedang dalam proses pengemasan.\nEstimasi dikirim: {$order->waktu_pengiriman}\n\nTerima kasih telah berbelanja di MarketplacePlus!";
+            $message = "Halo Kak {$customerName},\n\nPesanan Anda dengan invoice *{$invoice}* telah kami *TERIMA* dan sedang dalam proses pengemasan.\n";
+            if($pesanan->waktu_pengiriman){
+                 $message .= "Estimasi dikirim: {$pesanan->waktu_pengiriman}\n";
+            }
+            $message .= "\nTerima kasih telah berbelanja di MarketplacePlus!";
 
             $curl = curl_init();
-
             curl_setopt_array($curl, array(
-            CURLOPT_URL => 'https://api.fonnte.com/send',
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 0,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => array(
-                'target' => $targetPhone,
-                'message' => $message,
-                'countryCode' => '62', // Optional
-            ),
-            CURLOPT_HTTPHEADER => array(
-                'Authorization: GANTI_DENGAN_TOKEN_FONNTE_ASLI_ANDA' // <--- GANTI INI
-            ),
+                CURLOPT_URL => 'https://api.fonnte.com/send',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 30, 
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'POST',
+                CURLOPT_POSTFIELDS => array(
+                    'target' => $targetPhone,
+                    'message' => $message,
+                    'countryCode' => '62', 
+                ),
+                CURLOPT_HTTPHEADER => array(
+                    'Authorization: PzkJf4FzoSnZy5ATt9gN' 
+                ),
             ));
-
             $response = curl_exec($curl);
             curl_close($curl);
         }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status berhasil diperbarui'
+        ]);
     }
 
     public function destroy($id)
@@ -123,7 +142,6 @@ class SellerOrderController extends Controller
         }
 
         // 3. Cek Status (Hanya boleh hapus jika statusnya batal/selesai)
-        // Gunakan strtolower agar huruf besar/kecil tidak masalah
         $status = strtolower($detail->pesanan->status);
         $allowedStatuses = ['dibatalkan', 'dibatalkan oleh pembeli', 'dikirim', 'selesai'];
 
@@ -144,7 +162,7 @@ class SellerOrderController extends Controller
             $sisaItem = DetailPesanan::where('pesanan_id', $pesananId)->count();
             
             if ($sisaItem == 0) {
-                // Hapus pesanan induk via Model (pastikan import App\Models\Pesanan di atas)
+                // Hapus pesanan induk via Model 
                 Pesanan::where('id', $pesananId)->delete();
             }
 
