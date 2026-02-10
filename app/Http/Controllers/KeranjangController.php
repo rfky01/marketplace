@@ -8,6 +8,16 @@ use App\Models\produk;
 
 class keranjangController extends Controller
 {
+
+    /**
+     * @OA\Get(
+     * path="/api/keranjang",
+     * tags={"Keranjang"},
+     * summary="Lihat Keranjang Belanja",
+     * security={{"bearerAuth":{}}},
+     * @OA\Response(response=200, description="List Keranjang")
+     * )
+     */
     //--- Tampilkan Isi Keranjang ---
     public function index(Request $request)
     {
@@ -22,6 +32,23 @@ class keranjangController extends Controller
         ]);
     }
 
+    /**
+     * @OA\Post(
+     * path="/api/keranjang",
+     * tags={"Keranjang"},
+     * summary="Tambah Barang ke Keranjang",
+     * security={{"bearerAuth":{}}},
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"produk_id", "jumlah"},
+     * @OA\Property(property="produk_id", type="integer", example=1),
+     * @OA\Property(property="jumlah", type="integer", example=2)
+     * )
+     * ),
+     * @OA\Response(response=201, description="Berhasil masuk keranjang")
+     * )
+     */
     //--- Memasukkan Barang ke Keranjang ---
     public function store(Request $request)
     {

@@ -9,6 +9,176 @@
         "version": "1.0.0"
     },
     "paths": {
+        "/api/kategori": {
+            "get": {
+                "tags": [
+                    "Admin - Kategori"
+                ],
+                "summary": "List Semua Kategori",
+                "operationId": "ed89769bf040dadda68f262175d5abce",
+                "responses": {
+                    "200": {
+                        "description": "Sukses"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Admin - Kategori"
+                ],
+                "summary": "Buat Kategori Baru (Admin Only)",
+                "operationId": "d7cab933c4dbdd8d3401e6052f05df70",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "nama_kategori"
+                                ],
+                                "properties": {
+                                    "nama_kategori": {
+                                        "type": "string",
+                                        "example": "Fashion Pria"
+                                    },
+                                    "icon": {
+                                        "description": "Upload icon kategori",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Kategori dibuat"
+                    },
+                    "403": {
+                        "description": "Forbidden (Bukan Admin)"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/register": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Register User Baru",
+                "operationId": "8a56853624e025573120a09a4c75d468",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "email",
+                                    "password",
+                                    "role"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Budi Pembeli"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "budi@gmail.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password123"
+                                    },
+                                    "role": {
+                                        "description": "Pilih: buyer atau seller",
+                                        "type": "string",
+                                        "example": "buyer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Berhasil Register"
+                    }
+                }
+            }
+        },
+        "/api/login": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Login User (Seller/Buyer/Admin)",
+                "description": "Masukkan email dan password untuk mendapatkan Token",
+                "operationId": "a3b306d14572d1f4bd6c064b3233e7b8",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "seller@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "password"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Berhasil Login",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "access_token": {
+                                            "type": "string",
+                                            "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                                        },
+                                        "token_type": {
+                                            "type": "string",
+                                            "example": "Bearer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Email atau Password Salah"
+                    }
+                }
+            }
+        },
         "/api/send-otp": {
             "post": {
                 "tags": [
@@ -81,12 +251,219 @@
                     }
                 }
             }
+        },
+        "/api/keranjang": {
+            "get": {
+                "tags": [
+                    "Keranjang"
+                ],
+                "summary": "Lihat Keranjang Belanja",
+                "operationId": "ab6ebf7ac21eeae1e6f5b70a36faf6e2",
+                "responses": {
+                    "200": {
+                        "description": "List Keranjang"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Keranjang"
+                ],
+                "summary": "Tambah Barang ke Keranjang",
+                "operationId": "cd1ab4c04c0b6a50414e992cca451d18",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "produk_id",
+                                    "jumlah"
+                                ],
+                                "properties": {
+                                    "produk_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "jumlah": {
+                                        "type": "integer",
+                                        "example": 2
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Berhasil masuk keranjang"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/orders": {
+            "post": {
+                "tags": [
+                    "Order"
+                ],
+                "summary": "Checkout / Buat Pesanan",
+                "operationId": "d690d6834318e9b064df441e854de8b9",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "alamat_pengiriman",
+                                    "metode_pembayaran"
+                                ],
+                                "properties": {
+                                    "alamat_pengiriman": {
+                                        "type": "string",
+                                        "example": "Jl. Mawar No 10"
+                                    },
+                                    "metode_pembayaran": {
+                                        "type": "string",
+                                        "example": "transfer_bank"
+                                    },
+                                    "catatan": {
+                                        "type": "string",
+                                        "example": "Tolong packing kayu"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Order Berhasil Dibuat"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/produk": {
+            "post": {
+                "tags": [
+                    "Produk"
+                ],
+                "summary": "Upload Produk Baru (Hanya Seller)",
+                "operationId": "90c4e4c017566a5c5afcae3f0490127b",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "nama_barang",
+                                    "harga_barang",
+                                    "kategori",
+                                    "foto_barang[]"
+                                ],
+                                "properties": {
+                                    "nama_barang": {
+                                        "type": "string",
+                                        "example": "Laptop Asus"
+                                    },
+                                    "harga_barang": {
+                                        "type": "integer",
+                                        "example": 5000000
+                                    },
+                                    "stok_barang": {
+                                        "type": "integer",
+                                        "example": 10
+                                    },
+                                    "kategori": {
+                                        "type": "string",
+                                        "example": "Elektronik"
+                                    },
+                                    "deskripsi": {
+                                        "type": "string",
+                                        "example": "Kondisi mulus like new"
+                                    },
+                                    "foto_barang[]": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "format": "binary"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Produk Berhasil Dibuat"
+                    },
+                    "403": {
+                        "description": "Forbidden (Bukan Seller)"
+                    },
+                    "422": {
+                        "description": "Error Validasi"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "description": "Masukkan Token Sanctum di sini",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
+            }
         }
     },
     "tags": [
         {
+            "name": "Admin - Kategori",
+            "description": "Admin - Kategori"
+        },
+        {
+            "name": "Auth",
+            "description": "Auth"
+        },
+        {
             "name": "Otentikasi",
             "description": "Otentikasi"
+        },
+        {
+            "name": "Keranjang",
+            "description": "Keranjang"
+        },
+        {
+            "name": "Order",
+            "description": "Order"
+        },
+        {
+            "name": "Produk",
+            "description": "Produk"
         }
     ]
 }

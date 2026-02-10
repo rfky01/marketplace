@@ -13,6 +13,7 @@ use App\Http\Controllers\ShopController;
 use App\Http\Controllers\Api\SellerOrderController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AdminCategoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,6 +39,23 @@ Route::get('/produk/{id}', [produkController::class, 'show']); // Detail Barang
     return response()->json(\App\Models\Kategori::orderBy('urutan', 'asc')->get());
 });
 
+Route::get('/kategori', [AdminCategoryController::class, 'index']);
+
+Route::get('/cek-saya', function (Illuminate\Http\Request $request) {
+    // Ambil user dari token yang dikirim
+    $user = $request->user();
+    
+    if (!$user) {
+        return 'Anda belum login / Token tidak terbaca';
+    }
+
+    return [
+        'nama' => $user->name,
+        'email' => $user->email,
+        'punya_role_admin' => $user->hasRole('admin'),       // Harus TRUE
+        'punya_izin_kategori' => $user->can('create category') // Harus TRUE
+    ];
+})->middleware('auth:sanctum');
 
 
 // ==========================================
@@ -45,6 +63,12 @@ Route::get('/produk/{id}', [produkController::class, 'show']); // Detail Barang
 // ==========================================
 
 Route::middleware('auth:sanctum')->group(function () {
+
+    
+    Route::post('/kategori', [AdminCategoryController::class, 'store'])
+        ->middleware('permission:create category');
+
+    
 
     // User Info
     Route::get('/user', function (Request $request) {
@@ -67,9 +91,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/produk/{id}', [ProdukController::class, 'destroy']);
 
     // Produk (Upload barang - Logic pengecekan "Penjual" ada di Controller)
-    Route::post('/produk', [produkController::class, 'store']); 
+    Route::post('/produk', [produkController::class, 'store'])
+        ->middleware('permission:create products');
 
     Route::put('/produk/{id}', [ProdukController::class, 'update']);
+
+    
 
     // Order (Transaksi)
     Route::post('/orders', [OrderController::class, 'store']);                    // Beli barang

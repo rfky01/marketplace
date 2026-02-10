@@ -141,6 +141,25 @@ class AuthController extends Controller
         }
     }
 
+    /**
+     * @OA\Post(
+     * path="/api/register",
+     * tags={"Auth"},
+     * summary="Register User Baru",
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"name","email","password", "role"},
+     * @OA\Property(property="name", type="string", example="Budi Pembeli"),
+     * @OA\Property(property="email", type="string", format="email", example="budi@gmail.com"),
+     * @OA\Property(property="password", type="string", format="password", example="password123"),
+     * @OA\Property(property="role", type="string", example="buyer", description="Pilih: buyer atau seller")
+     * )
+     * ),
+     * @OA\Response(response=201, description="Berhasil Register")
+     * )
+     */
+
     // --- FITUR REGISTER ---
     public function register(Request $request)
     {
@@ -177,6 +196,7 @@ class AuthController extends Controller
             'address' => $addressInput, 
             'role' => 'pembeli',
         ]);
+        $user->assignRole('pembeli');
 
         // buat token
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -193,6 +213,31 @@ class AuthController extends Controller
         ], 201);
     }
 
+    /**
+     * @OA\Post(
+     * path="/api/login",
+     * tags={"Auth"},
+     * summary="Login User (Seller/Buyer/Admin)",
+     * description="Masukkan email dan password untuk mendapatkan Token",
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"email","password"},
+     * @OA\Property(property="email", type="string", format="email", example="seller@example.com"),
+     * @OA\Property(property="password", type="string", format="password", example="password")
+     * )
+     * ),
+     * @OA\Response(
+     * response=200,
+     * description="Berhasil Login",
+     * @OA\JsonContent(
+     * @OA\Property(property="access_token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."),
+     * @OA\Property(property="token_type", type="string", example="Bearer")
+     * )
+     * ),
+     * @OA\Response(response=401, description="Email atau Password Salah")
+     * )
+     */
     // --- FITUR LOGIN ---
     public function login(Request $request)
     {
@@ -226,6 +271,8 @@ class AuthController extends Controller
             'user'    => $user,
             'token'   => $token,
             'redirect_url' => $tujuan, 
+            'roles' => $user->getRoleNames(), // <--- KIRIM INI KE REACT
+            'permissions' => $user->getAllPermissions()->pluck('name'),
         ]);
     }
 

@@ -10,6 +10,37 @@ use Illuminate\Support\Facades\Validator;
 
 class ProdukController extends Controller
 {
+    /**
+     * @OA\Post(
+     * path="/api/produk",
+     * tags={"Produk"},
+     * summary="Upload Produk Baru (Hanya Seller)",
+     * security={{"bearerAuth":{}}}, 
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\MediaType(
+     * mediaType="multipart/form-data",
+     * @OA\Schema(
+     * required={"nama_barang", "harga_barang", "kategori", "foto_barang[]"},
+     * @OA\Property(property="nama_barang", type="string", example="Laptop Asus"),
+     * @OA\Property(property="harga_barang", type="integer", example=5000000),
+     * @OA\Property(property="stok_barang", type="integer", example=10),
+     * @OA\Property(property="kategori", type="string", example="Elektronik"),
+     * @OA\Property(property="deskripsi", type="string", example="Kondisi mulus like new"),
+     * @OA\Property(
+     * property="foto_barang[]",
+     * type="array",
+     * @OA\Items(type="string", format="binary")
+     * )
+     * )
+     * )
+     * ),
+     * @OA\Response(response=201, description="Produk Berhasil Dibuat"),
+     * @OA\Response(response=403, description="Forbidden (Bukan Seller)"),
+     * @OA\Response(response=422, description="Error Validasi")
+     * )
+     */
+    
     // 1. MENAMPILKAN SEMUA PRODUK (Public)
     public function index(Request $request)
     {

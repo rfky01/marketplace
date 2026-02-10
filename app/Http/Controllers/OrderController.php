@@ -9,13 +9,33 @@ use App\Models\DetailPesanan;
 use Illuminate\Validation\Rule;
 use App\Models\produk;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class OrderController extends Controller
 {
+
+/**
+     * @OA\Post(
+     * path="/api/orders",
+     * tags={"Order"},
+     * summary="Checkout / Buat Pesanan",
+     * security={{"bearerAuth":{}}},
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"alamat_pengiriman", "metode_pembayaran"},
+     * @OA\Property(property="alamat_pengiriman", type="string", example="Jl. Mawar No 10"),
+     * @OA\Property(property="metode_pembayaran", type="string", example="transfer_bank"),
+     * @OA\Property(property="catatan", type="string", example="Tolong packing kayu")
+     * )
+     * ),
+     * @OA\Response(response=201, description="Order Berhasil Dibuat")
+     * )
+     */
     //===> Fitur Checkout (Membuat Pesanan) <===\\
     public function store(Request $request)
     {        
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'items' => 'required|array',
             'items.*.produk_id' => 'required|exists:produk,id',
             'items.*.jumlah' => 'required|integer|min:1',
@@ -26,6 +46,15 @@ class OrderController extends Controller
             'waktu_pengiriman' => 'required|date',
             'metode_pembayaran' => 'required|string',
         ]);
+
+        // Jika Validasi Gagal, Paksa Return JSON Error
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi Gagal',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
 
         $user = $request->user();
         $invoice_code = 'INV-' . time() . '-' . $user->id;

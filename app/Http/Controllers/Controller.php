@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Routing\Controller as BaseController;
-use Illuminate\Http\Request; // <--- PERBAIKAN 1: Wajib ada agar "Request $request" terbaca
+use Illuminate\Http\Request;
 
 /**
  * @OA\Info(
@@ -15,6 +15,14 @@ use Illuminate\Http\Request; // <--- PERBAIKAN 1: Wajib ada agar "Request $reque
  * @OA\Contact(
  * email="admin@marketplace.com"
  * )
+ * )
+ *
+ * @OA\SecurityScheme(
+ * securityScheme="bearerAuth",
+ * type="http",
+ * scheme="bearer",
+ * bearerFormat="JWT",
+ * description="Masukkan Token Sanctum di sini"
  * )
  */
 class Controller extends BaseController
@@ -62,7 +70,7 @@ class Controller extends BaseController
     public function sendOtp(Request $request) 
     {
         // ... logika kodingan backend Anda di sini ...
+        // Biasanya logic send OTP ditaruh di AuthController, tapi disini juga tidak apa-apa untuk dokumentasi base.
         return response()->json(['message' => 'Ini hanya contoh respon']);
     }
-
-} // <--- PERBAIKAN 2: Kurung kurawal penutup Class (Tadi ini hilang)
+}
