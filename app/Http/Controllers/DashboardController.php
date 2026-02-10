@@ -9,6 +9,7 @@ use App\Models\User;
 
 class DashboardController extends Controller
 {
+    //--- Menampilkan Halaman Awal ---
     public function index()
     {
         // 1. Total Uang Masuk
@@ -17,9 +18,8 @@ class DashboardController extends Controller
         // 2. Total Kali Transaksi
         $total_transaksi = Order::count();
 
-        // 3. Total Pcs Barang (KITA MATIKAN DULU KARENA KOLOM TIDAK ADA)
-        // Kita ganti jadi 0 dulu atau hapus baris ini
-        $total_barang_terjual = 0; // Order::sum('quantity'); <--- Ini yang bikin error
+        // 3. Total Pcs Barang 
+        $total_barang_terjual = 0; 
 
         // 4. Data 5 Transaksi Terakhir
         $pesanan_terbaru = Order::with('buyer') 
@@ -34,7 +34,7 @@ class DashboardController extends Controller
                 'statistik' => [
                     'omzet_bersih' => "Rp " . number_format($total_omzet, 0, ',', '.'),
                     'total_transaksi' => $total_transaksi . " Transaksi",
-                    // 'total_barang_laku' => $total_barang_terjual . " Pcs" // Hapus atau sembunyikan dulu
+                    // 'total_barang_laku' => $total_barang_terjual . " Pcs"
                 ],
                 'riwayat_order_terbaru' => $pesanan_terbaru
             ]

@@ -11,7 +11,7 @@ export default function AddProduct() {
     const [price, setPrice] = useState('');
     const [stock, setStock] = useState('');
     const [dbCategories, setDbCategories] = useState([]);
-    const [category, setCategory] = useState('Elektronik');
+    const [category, setCategory] = useState('');
     const [description, setDescription] = useState('');
     
     // State Khusus Upload & Loading (TETAP SAMA)
@@ -29,6 +29,35 @@ export default function AddProduct() {
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+
+    const handlePriceChange = (e) => {
+        // Hapus semua karakter selain angka
+        const rawValue = e.target.value.replace(/\D/g, ''); 
+        
+        // Tambahkan titik setiap 3 digit
+        const formattedValue = rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        
+        setPrice(formattedValue);
+    };
+
+    const handleStockChange = (e) => {
+        let val = e.target.value;
+
+        // Cegah input kosong atau tanda minus lewat paste
+        if (val === '' || parseInt(val) < 1) {
+             // Jika user mencoba menghapus semua, set kosong dulu biar bisa ngetik
+             // Tapi jika user mengetik '0', kita paksa jadi '1'
+             if (val !== '') {
+                 setStock('1');
+             } else {
+                 setStock('');
+             }
+             return;
+        }
+
+        // Pastikan hanya angka integer
+        setStock(parseInt(val).toString());
+    };
 
     // --- PENGECEKAN PROFIL LENGKAP (BARU) ---
     useEffect(() => {
@@ -139,12 +168,17 @@ export default function AddProduct() {
     // handleSubmit (TETAP SAMA PERSIS LOGIKANYA)
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!category) {
+            alert("Harap pilih Kategori Produk!");
+            return;
+        }
         setIsLoading(true); 
         setErrors([]);
 
+        const cleanPrice = price.replace(/\./g, '');
         const formData = new FormData();
         formData.append('nama_barang', name);
-        formData.append('harga_barang', price);
+        formData.append('harga_barang', cleanPrice);
         formData.append('stok_barang', stock);
         formData.append('kategori', category);
         formData.append('deskripsi', description);
@@ -223,20 +257,44 @@ export default function AddProduct() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Harga (Rp)</label>
-                            <input type="number" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="1000000" required />
+                            <input 
+                                type="text" // Ganti Number jadi Text supaya spinner hilang & bisa pakai titik
+                                inputMode="numeric" // Agar di HP muncul keyboard angka
+                                value={price} 
+                                onChange={handlePriceChange} // Pakai fungsi format baru
+                                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" 
+                                placeholder="Contoh: 10.000" 
+                                required 
+                            />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Stok</label>
-                            <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" placeholder="10" required />
+                            <input 
+                                type="number" 
+                                min="1" 
+                                value={stock} 
+                                onChange={handleStockChange} 
+                                onKeyDown={(e) => {
+                                    if (e.key === '-' || e.key === '.') {
+                                        e.preventDefault();
+                                    }
+                                }}
+                                className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500" 
+                                placeholder="Min. 1" 
+                                required 
+                            />
                         </div>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-                        <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 bg-white">
+                        <select 
+                            value={category} 
+                            onChange={(e) => setCategory(e.target.value)} 
+                            className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 bg-white"
+                            required
+                        >
                             <option value="">-- Pilih Kategori --</option>
-
-                            {/* Looping data dari database */}
                             {dbCategories.map((item) => (
                                 <option key={item.id} value={item.nama_kategori}>
                                     {item.nama_kategori}

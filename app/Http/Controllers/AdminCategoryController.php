@@ -7,30 +7,33 @@ use Illuminate\Http\Request;
 
 class AdminCategoryController extends Controller
 {
+    //---menampilkan daftar sesuai urutan---
     public function index()
     {
-        // UBAH: Urutkan berdasarkan kolom 'urutan' dari yang terkecil (ASC)
+        // Urutkan berdasarkan kolom 'urutan' dari yang terkecil (ASC)
         $categories = Kategori::orderBy('urutan', 'asc')->get();
         return view('admin.categories', compact('categories'));
     }
 
+    //---menambah kategori baru di urutan belakang---
     public function store(Request $request)
     {
         $request->validate([
             'nama_kategori' => 'required|string|max:255|unique:kategoris,nama_kategori'
         ]);
 
-        // Cari urutan terakhir
+        //Cari urutan terakhir
         $maxUrutan = Kategori::max('urutan');
 
         Kategori::create([
             'nama_kategori' => $request->nama_kategori,
-            'urutan' => $maxUrutan + 1 // Set urutan di paling bawah
+            'urutan' => $maxUrutan + 1 
         ]);
 
         return redirect()->back()->with('success', 'Kategori berhasil ditambahkan!');
     }
 
+    //---ganti nama kategori (Rename)---
     public function update(Request $request, $id)
     {
         $request->validate(['nama_kategori' => 'required|string|max:255']);
@@ -38,13 +41,14 @@ class AdminCategoryController extends Controller
         return redirect()->back()->with('success', 'Kategori berhasil diperbarui!');
     }
 
+    //---menghapus nama kategori---
     public function destroy($id)
     {
         Kategori::findOrFail($id)->delete();
         return redirect()->back()->with('success', 'Kategori berhasil dihapus!');
     }
 
-    // --- FUNGSI BARU UNTUK UPDATE POSISI ---
+    // --- mengatur ulang posisi (fitur utama)---
     public function reorder(Request $request)
     {
         $request->validate(['ids' => 'required|array']);

@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Riview;
 use App\Models\Pesanan;
-use App\Models\DetailPesanan; // Perlu import model ini
+use App\Models\DetailPesanan; 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -13,18 +13,16 @@ class RiviewController extends Controller
 {
     public function store(Request $request)
     {
-        // 1. VALIDASI (Disesuaikan dengan data dari React)
+        // 1. VALIDASI
         $request->validate([
-            'pesanan_id' => 'required', // Hapus 'exists' dulu biar aman jika nama tabel beda
+            'pesanan_id' => 'required', 
             'rating'     => 'required|integer|min:1|max:5',
-            'comment'   => 'required|string', // React mengirim 'comment', kita terima 'comment'
+            'comment'   => 'required|string',
         ]);
 
         $userId = Auth::id();
 
         // 2. CARI PESANAN
-        // Kita butuh relasi 'detail_pesanan' untuk tahu produk apa saja yang dibeli
-        // Pastikan model Pesanan punya method: public function detail_pesanan() { ... }
         $pesanan = Pesanan::with('detail_pesanan')->where('id', $request->pesanan_id)
                     ->where('user_id', $userId)
                     ->first();
@@ -33,10 +31,7 @@ class RiviewController extends Controller
             return response()->json(['message' => 'Pesanan tidak ditemukan'], 404);
         }
 
-        // 3. SIMPAN ULASAN
-        // Karena React mengirim ulasan per-pesanan, kita simpan ulasan yang sama
-        // untuk SETIAP produk yang ada di dalam pesanan tersebut.
-        
+        // 3. SIMPAN ULASAN        
         $jumlahTersimpan = 0;
 
         // Cek jika detail pesanan kosong
@@ -56,11 +51,8 @@ class RiviewController extends Controller
                 Riview::create([
                     'user_id'    => $userId,
                     'pesanan_id' => $pesanan->id,
-                    'produk_id'  => $detail->produk_id, // Ambil ID Produk otomatis dari sini
+                    'produk_id'  => $detail->produk_id, 
                     'rating'     => $request->rating,
-                    
-                    // MAPPING PENTING: 
-                    // Data dari React ('comment') dimasukkan ke kolom DB ('comment')
                     'comment'    => $request->comment, 
                 ]);
                 $jumlahTersimpan++;
@@ -74,7 +66,7 @@ class RiviewController extends Controller
             ], 201);
         } else {
             return response()->json([
-                'success' => false, // Ubah jadi false agar React tahu ini gagal logic (bukan koneksi)
+                'success' => false, 
                 'message' => 'Anda sudah mengulas pesanan ini.'
             ], 400);
         }
@@ -84,7 +76,7 @@ class RiviewController extends Controller
     public function update(Request $request, $id)
     {
         // 1. Cari Ulasan
-        $ulasan = \App\Models\Riview::find($id); // Sesuaikan nama Model Anda (Riview/Ulasan)
+        $ulasan = \App\Models\Riview::find($id); 
 
         if (!$ulasan) {
             return response()->json(['message' => 'Ulasan tidak ditemukan'], 404);

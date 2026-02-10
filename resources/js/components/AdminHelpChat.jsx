@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import EmojiPicker from 'emoji-picker-react';
 
 export default function AdminHelpChat() {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
+    const [showEmoji, setShowEmoji] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef(null);
 
     // --- PENTING: Ganti angka 1 ini dengan ID Admin di database Anda ---
-    const ADMIN_ID = 1; 
+    const ADMIN_ID = 6; 
     
     // Ambil Token User
     const token = localStorage.getItem('token');
@@ -37,6 +39,7 @@ export default function AdminHelpChat() {
     };
 
     // 2. Fungsi Kirim Pesan
+    // 2. Fungsi Kirim Pesan (REVISI)
     const handleSend = async (e) => {
         e.preventDefault();
         if (!newMessage.trim()) return;
@@ -49,18 +52,32 @@ export default function AdminHelpChat() {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    receiver_id: ADMIN_ID, // Kirim ke Admin
-                    message: newMessage    // Sesuaikan nama kolom (message/content)
+                    receiver_id: ADMIN_ID, 
+                    message: newMessage    
                 })
             });
 
+            const data = await response.json(); // Ambil respon JSON dari server
+
             if (response.ok) {
+                // JIKA SUKSES
                 setNewMessage('');
-                fetchMessages(); // Refresh chat setelah kirim
+                setShowEmoji(false);
+                fetchMessages(); 
+            } else {
+                // JIKA GAGAL (Tampilkan Alert!)
+                alert("Gagal Kirim: " + (data.message || "Error tidak diketahui"));
+                console.log("Error Detail:", data);
             }
         } catch (error) {
             console.error("Gagal kirim:", error);
+            alert("Terjadi kesalahan koneksi ke Server");
         }
+    };
+
+    const onEmojiClick = (emojiObject) => {
+        setNewMessage(prev => prev + emojiObject.emoji);
+        // Jangan tutup picker agar user bisa nambah banyak emoji sekaligus
     };
 
     // Auto scroll ke bawah saat ada pesan baru
@@ -68,7 +85,7 @@ export default function AdminHelpChat() {
         if(isOpen && messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
         }
-    }, [messages, isOpen]);
+    }, [messages, isOpen, showEmoji]);
 
     // Polling: Cek pesan baru setiap 5 detik saat chat dibuka
     useEffect(() => {
@@ -88,7 +105,7 @@ export default function AdminHelpChat() {
             
             {/* --- JENDELA CHAT (Hanya muncul jika isOpen = true) --- */}
             {isOpen && (
-                <div className="bg-white w-80 h-96 rounded-2xl shadow-2xl border border-gray-200 flex flex-col mb-4 overflow-hidden animate-fade-in-up">
+                <div className="bg-white w-80 h-[420px] rounded-2xl shadow-2xl border border-gray-200 flex flex-col mb-4 overflow-hidden animate-fade-in-up relative">
                     
                     {/* Header Chat */}
                     <div className="bg-indigo-600 p-4 text-white flex justify-between items-center shadow-md">
@@ -123,14 +140,57 @@ export default function AdminHelpChat() {
                         <div ref={messagesEndRef} />
                     </div>
 
+                    {showEmoji && (
+                        <div className="absolute bottom-[70px] left-2 right-2 z-40 animate-fade-in-up">
+                            <div className="bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
+                                {/* Header Kecil Emoji untuk Tutup */}
+                                <div className="bg-gray-100 px-3 py-2 flex justify-between items-center border-b border-gray-200">
+                                    <span className="text-xs font-bold text-gray-500">Pilih Emoji</span>
+                                    <button 
+                                        onClick={() => setShowEmoji(false)} 
+                                        className="text-gray-400 hover:text-red-500 transition"
+                                        title="Tutup Emoji"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                
+                                {/* Library Emoji */}
+                                <EmojiPicker 
+                                    onEmojiClick={onEmojiClick} 
+                                    width="100%" 
+                                    height="250px" // Tinggi pas agar tidak menutupi seluruh chat
+                                    searchDisabled={true} 
+                                    skinTonesDisabled={true}
+                                    previewConfig={{ showPreview: false }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     {/* Input Kirim */}
                     <form onSubmit={handleSend} className="p-3 bg-white border-t flex gap-2">
+
+                        <button 
+                            type="button"
+                            onClick={() => setShowEmoji(!showEmoji)}
+                            className={`transition p-2 rounded-full ${showEmoji ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400 hover:text-yellow-500 hover:bg-gray-100'}`}
+                            title="Buka Emoji"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm-.375 0h.008v.015h-.008V9.75zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.015h-.008V9.75z" />
+                            </svg>
+                        </button>
+
                         <input 
                             type="text" 
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
                             placeholder="Tulis kendala..." 
-                            className="flex-1 px-3 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="flex-1 px-3 py-2 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+                            onClick={() => setShowEmoji(false)}
                         />
                         <button type="submit" className="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 transition">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">

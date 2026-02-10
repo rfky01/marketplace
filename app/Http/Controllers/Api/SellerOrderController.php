@@ -18,11 +18,9 @@ class SellerOrderController extends Controller
             ->whereHas('produk', function($query) use ($userId) {
                 $query->where('user_id', $userId);
             })
-            // Filter 2: Cek status di tabel PESANAN (Induk)
+            // Filter 2: Cek status di tabel PESANAN
             ->whereHas('pesanan', function($q) {
-                $q->whereNotNull('id'); 
-                
-                // Kita gunakan logic OR NULL agar data lama tetap muncul
+                $q->whereNotNull('id');                 
                 $q->where(function($sub) {
                     $sub->where('hidden_for_seller', 0)
                         ->orWhereNull('hidden_for_seller');
@@ -37,7 +35,7 @@ class SellerOrderController extends Controller
         ]);
     }
 
-    // Opsional: Update Status per item (Misal: Sedang Dikemas, Dikirim)
+    // Update Status per item
     public function update(Request $request, $id)
     {
         // 1. Validasi
@@ -47,7 +45,6 @@ class SellerOrderController extends Controller
 
         // 2. Cari Detail Pesanan
         $detail = DetailPesanan::with('pesanan', 'produk')->find($id);
-
         if (!$detail) {
             return response()->json(['message' => 'Pesanan tidak ditemukan'], 404);
         }
@@ -56,11 +53,9 @@ class SellerOrderController extends Controller
         if($detail->produk->user_id != Auth::id()) {
             return response()->json(['message' => 'Anda tidak berhak mengubah pesanan ini'], 403);
         }
-
         $pesanan = $detail->pesanan; 
         
-        // --- LOGIKA PENGEMBALIAN STOK (BARU) ---
-        // Jika status yang dikirim adalah 'canceled by seller' (Ditolak Penjual)
+        // --- LOGIKA PENGEMBALIAN STOK
         if ($request->status == 'canceled by seller' || $request->status == 'dibatalkan') {
             
             // Cek dulu, jangan sampai stok dikembalikan 2x jika sudah batal sebelumnya
@@ -131,7 +126,6 @@ class SellerOrderController extends Controller
     {
         // 1. Cari detail pesanan
         $detail = DetailPesanan::with(['produk', 'pesanan'])->find($id);
-
         if (!$detail) {
             return response()->json(['message' => 'Data pesanan tidak ditemukan'], 404);
         }
@@ -162,7 +156,6 @@ class SellerOrderController extends Controller
             $sisaItem = DetailPesanan::where('pesanan_id', $pesananId)->count();
             
             if ($sisaItem == 0) {
-                // Hapus pesanan induk via Model 
                 Pesanan::where('id', $pesananId)->delete();
             }
 

@@ -28,6 +28,7 @@ Route::middleware(['auth', IsAdmin::class])->prefix('admin')->group(function () 
     // Chat
     Route::get('/chats/{id?}', [AdminController::class, 'chats'])->name('admin.chats');
     Route::post('/chats/reply/{id}', [AdminController::class, 'sendReply'])->name('admin.chats.reply');
+    Route::get('/chats/{id}/json', [App\Http\Controllers\ChatController::class, 'getMessages'])->name('admin.chats.json');
     
     // User Management
     Route::get('/users', [AdminController::class, 'manageUsers'])->name('admin.users');   
@@ -37,6 +38,7 @@ Route::middleware(['auth', IsAdmin::class])->prefix('admin')->group(function () 
     // Shop & Product
     Route::get('/users/{id}/shop', [AdminController::class, 'showShop'])->name('admin.users.shop');
     Route::get('/products/{id}', [AdminController::class, 'showProduct'])->name('admin.products.show');
+    
     
     // PERBAIKAN 1: Hapus '/admin' disini
     // Aslinya: /admin/users/{id}/shop/orders

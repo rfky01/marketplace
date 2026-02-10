@@ -1,0 +1,92 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Dokumentasi API Marketplace",
+        "description": "Dokumentasi lengkap untuk API Marketplace Magang",
+        "contact": {
+            "email": "admin@marketplace.com"
+        },
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/api/send-otp": {
+            "post": {
+                "tags": [
+                    "Otentikasi"
+                ],
+                "summary": "Kirim OTP WhatsApp",
+                "description": "Mengirim kode OTP ke nomor WhatsApp user sebelum registrasi",
+                "operationId": "sendOtp",
+                "requestBody": {
+                    "description": "Data nomor HP yang akan dikirimkan OTP",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "phone"
+                                ],
+                                "properties": {
+                                    "phone": {
+                                        "description": "Nomor WhatsApp aktif (format Indonesia)",
+                                        "type": "string",
+                                        "example": "081234567890"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP Berhasil Dikirim",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Kode OTP terkirim ke WhatsApp!"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Gagal Kirim OTP (Fonnte Error / Server Error)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Gagal kirim OTP"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Otentikasi",
+            "description": "Otentikasi"
+        }
+    ]
+}

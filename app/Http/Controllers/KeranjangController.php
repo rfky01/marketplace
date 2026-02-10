@@ -8,11 +8,11 @@ use App\Models\produk;
 
 class keranjangController extends Controller
 {
-    // 1. TAMPILKAN ISI keranjang
+    //--- Tampilkan Isi Keranjang ---
     public function index(Request $request)
     {
         $keranjangItems = keranjang::where('user_id', $request->user()->id)
-                    ->with('produk') // Load data produk (nama, harga, gambar)
+                    ->with('produk') 
                     ->latest()
                     ->get();
 
@@ -22,7 +22,7 @@ class keranjangController extends Controller
         ]);
     }
 
-    // 2. TAMBAH KE keranjang
+    //--- Memasukkan Barang ke Keranjang ---
     public function store(Request $request)
     {
         $request->validate([
@@ -48,6 +48,7 @@ class keranjangController extends Controller
             $existingItem->jumlah += $request->jumlah;
             $existingItem->save();
         } else {
+            
             // Jika belum ada, buat baru
             keranjang::create([
                 'user_id'   => $user->id,
@@ -59,10 +60,12 @@ class keranjangController extends Controller
         return response()->json(['success' => true, 'message' => 'Produk masuk keranjang']);
     }
 
-    // 3. UPDATE JUMLAH (Tambah/Kurang di halaman keranjang)
+    //--- Update Jumlah (Tambah/Kurang di Halaman Keranjang) ---
     public function update(Request $request, $id)
     {
+        // Cari Item id
         $item = keranjang::find($id);
+        //Check Kepemilikan
         if (!$item || $item->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Item tidak ditemukan'], 404);
         }
@@ -80,7 +83,7 @@ class keranjangController extends Controller
         return response()->json(['success' => true]);
     }
 
-    // 4. HAPUS DARI keranjang
+    //--- Hapus Dari Keranjang ---
     public function destroy(Request $request, $id)
     {
         $item = keranjang::where('id', $id)->where('user_id', $request->user()->id)->first();

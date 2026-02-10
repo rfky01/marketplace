@@ -38,11 +38,8 @@ class ProdukController extends Controller
     // 2. MENAMPILKAN DETAIL 1 PRODUK
     public function show($id)
     {
-        // --- PERBAIKAN UTAMA DISINI ---
-        // Cek apakah $id berisi angka (ID asli) atau teks (Slug)
-        // Ini MENCEGAH Error SQL "Invalid input syntax for integer"
-        
-        $query = Produk::with(['user', 'ulasan']); // Load User & Ulasan agar frontend tidak error
+        // Cek apakah $id berisi angka (ID asli) atau teks (Slug)        
+        $query = Produk::with(['user', 'ulasan']);
 
         if (is_numeric($id)) {
             // Jika angka, cari berdasarkan ID
@@ -52,7 +49,6 @@ class ProdukController extends Controller
             $produk = $query->where('slug', $id)->first();
         }
 
-        // JIKA TIDAK KETEMU
         if (!$produk) {
             return response()->json([
                 'success' => false,
@@ -60,7 +56,6 @@ class ProdukController extends Controller
             ], 404);
         }
 
-        // JIKA KETEMU
         return response()->json([
             'success' => true,
             'data'    => $produk
@@ -70,10 +65,10 @@ class ProdukController extends Controller
     // 3. UPLOAD BARANG BARU (Khusus Penjual)
     public function store(Request $request)
     {
-        // --- PERBAIKAN 1: Definisi Validator yang Benar ---
+        // --- Definisi Validator yang Benar ---
         $validator = Validator::make($request->all(), [
             'nama_barang'  => 'required|string',
-            'harga_barang' => 'required|numeric', // numeric lebih aman dari integer
+            'harga_barang' => 'required|numeric',
             'stok_barang'  => 'required|integer',
             'kategori'     => 'required|string',
             'deskripsi'    => 'required|string',
@@ -89,7 +84,6 @@ class ProdukController extends Controller
         $fotoPaths = [];
         if ($request->hasFile('foto_barang')) {
             foreach($request->file('foto_barang') as $file) {
-                // Simpan path relatif (tanpa http://...)
                 $fotoPaths[] = $file->store('produk_images', 'public'); 
             }
         }
@@ -145,14 +139,13 @@ class ProdukController extends Controller
             return response()->json(['message' => 'Anda dilarang mengedit barang orang lain'], 403);
         }
 
-        // --- PERBAIKAN 2: Validasi Update ---
+        // --- Validasi Update ---
         $validator = Validator::make($request->all(), [
             'nama_barang'  => 'required|string',
             'harga_barang' => 'required|numeric',
             'stok_barang'  => 'required|integer',
             'kategori'     => 'required|string',
             'deskripsi'    => 'required|string',
-            // Foto di update bersifat opsional (nullable)
             'foto_barang'  => 'nullable', 
             'foto_barang.*'=> 'image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
@@ -171,10 +164,9 @@ class ProdukController extends Controller
             'updated_by'   => $request->user()->id 
         ];
 
-        // --- PERBAIKAN 3: Logic Update Foto Multiple ---
+        // --- Logic Update Foto Multiple ---
         if ($request->hasFile('foto_barang')) {
-            // 1. Hapus foto lama (Optional - jika ingin hemat storage)
-            // Hati-hati: $produk->foto_barang sekarang adalah Array/JSON
+            // 1. Hapus foto lama
             if ($produk->foto_barang && is_array($produk->foto_barang)) {
                 foreach($produk->foto_barang as $oldPhoto) {
                     if(Storage::disk('public')->exists($oldPhoto)) {
@@ -228,7 +220,7 @@ class ProdukController extends Controller
             ], 400);
         }
 
-        $produk->delete(); // Soft Delete
+        $produk->delete();
 
         return response()->json([
             'success' => true,

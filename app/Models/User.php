@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -11,7 +10,6 @@ use Illuminate\Support\Facades\Auth;
 
 class User extends Authenticatable
 {
-    // <--- 2. TAMBAHKAN 'HasApiTokens' DI DALAM SINI
     use HasApiTokens, HasFactory, Notifiable; 
 
     /**
@@ -23,9 +21,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'phone',    // Jika tadi Anda menambahkan phone
-        'address',  // Jika tadi Anda menambahkan address
-        'role',     // Pastikan role juga ada di sini
+        'phone',    
+        'address',  
+        'role',     
         'profile_photo',
         'ktm_image',
         'npm', 
@@ -63,7 +61,6 @@ class User extends Authenticatable
         static::updating(function ($user) {
             // Cek apakah ada user yang sedang login
             if (Auth::check()) {
-                // Isi kolom 'updated_by' dengan ID user yang sedang login saat ini
                 $user->updated_by = Auth::id();
             }
         });
@@ -77,21 +74,11 @@ class User extends Authenticatable
     public function shop()
     {
         // Asumsi: 1 User hanya punya 1 Toko
-        // Pastikan Anda sudah punya model Shop
         return $this->hasOne(Shop::class); 
     }
 
-    // app/Models/User.php
-
-    // ... code lain ...
-
-    // Tambahkan fungsi relasi ini:
     public function products()
     {
-        // Asumsi tabel produk Anda bernama 'produk' (sesuai screenshot database)
-        // dan foreign key di tabel produk adalah 'users_id' atau 'user_id'
-        // Cek migration create_produk_table untuk memastikan nama kolomnya.
-        // Jika kolomnya 'users_id', kodenya:
         return $this->hasMany(\App\Models\Produk::class, 'user_id'); 
     }
 }

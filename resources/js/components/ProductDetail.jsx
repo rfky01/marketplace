@@ -157,7 +157,7 @@ export default function ProductDetail() {
                     setCheckoutForm(prev => ({
                         ...prev,
                         phone: userData.phone || userData.telepon || userData.no_hp || '',
-                        address: userData.address || userData.alamat || ''
+                        address: ''.address || ''.alamat || ''
                     }));
                 })
                 .catch(err => console.error("Gagal refresh user:", err));
@@ -594,8 +594,23 @@ export default function ProductDetail() {
                             ) : (
                                 // JIKA BUKAN PEMILIK: TAMPILKAN TOMBOL BELI
                                 <div className="w-full max-w-xs flex gap-3 mt-2">
-                                    <button onClick={handleOpenCartModal} className="flex-1 py-3 border-2 border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition">+ Keranjang</button>
-                                    <button onClick={handleBuyNow} disabled={product.stok_barang <= 0} className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed">Beli Sekarang</button>
+                                    <button 
+                                        onClick={handleOpenCartModal} 
+                                        // 1. Tambahkan logika disable ini
+                                        disabled={product.stok_barang <= 0} 
+                                        // 2. Tambahkan class disabled: (abu-abu) di bagian akhir className
+                                        className="flex-1 py-3 border-2 border-blue-600 text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                                    >
+                                        + Keranjang
+                                    </button>
+                                    
+                                    <button 
+                                        onClick={handleBuyNow} 
+                                        disabled={product.stok_barang <= 0} 
+                                        className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed"
+                                    >
+                                        Beli Sekarang
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -815,11 +830,32 @@ export default function ProductDetail() {
                                     <input type="tel" inputMode="numeric" readOnly className="w-full border border-gray-200 bg-gray-100 text-gray-500 rounded-lg px-3 py-2 cursor-not-allowed outline-none" placeholder="Nomor diambil dari profil..." value={checkoutForm.phone} onChange={(e) => setCheckoutForm({...checkoutForm, phone: e.target.value})}/>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Jumlah</label>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase">Jumlah</label>
+                                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                                            Stok: {product.stok_barang}
+                                        </span>
+                                    </div>
+                                    
                                     <div className="flex items-center border border-gray-300 rounded-lg bg-gray-50">
-                                        <button onClick={() => setQty(Math.max(1, qty - 1))} className="px-3 py-2 text-gray-600 hover:bg-gray-200 font-bold rounded-l-lg disabled:opacity-30" disabled={qty <= 1}>-</button>
-                                        <input type="number" value={qty} readOnly className="w-full text-center bg-transparent text-gray-800 font-bold border-x border-gray-300 py-2 outline-none" />
-                                        <button onClick={() => setQty(Math.min(product.stok_barang, qty + 1))} className="px-3 py-2 text-blue-600 hover:bg-blue-100 font-bold rounded-r-lg disabled:opacity-30" disabled={qty >= product.stok_barang}>+</button>
+                                        <button 
+                                            onClick={() => setQty(Math.max(1, qty - 1))} 
+                                            className="px-3 py-2 text-gray-600 hover:bg-gray-200 font-bold rounded-l-lg disabled:opacity-30" 
+                                            disabled={qty <= 1}
+                                        > - </button>
+                                        
+                                        <input 
+                                            type="number" 
+                                            value={qty} 
+                                            readOnly 
+                                            className="w-full text-center bg-transparent text-gray-800 font-bold border-x border-gray-300 py-2 outline-none" 
+                                        />
+                                        
+                                        <button 
+                                            onClick={() => setQty(Math.min(product.stok_barang, qty + 1))} 
+                                            className="px-3 py-2 text-blue-600 hover:bg-blue-100 font-bold rounded-r-lg disabled:opacity-30" 
+                                            disabled={qty >= product.stok_barang}
+                                        > + </button>
                                     </div>
                                 </div>
                             </div>

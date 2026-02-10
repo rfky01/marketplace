@@ -190,12 +190,20 @@ export default function Register() {
                             <label className="block text-sm font-medium text-gray-700">Nomor HP (WhatsApp)</label>
                             <div className="mt-1 flex rounded-md shadow-sm">
                                 <input
-                                    type="text"
+                                    type="tel" 
+                                    inputMode="numeric" 
                                     required
                                     className="flex-1 block w-full min-w-0 px-3 py-2 rounded-none rounded-l-md border border-gray-300 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                    placeholder="08xxxxxxxxxx"
+                                    placeholder="+628xxxxxxxxxx"
                                     value={phone}
-                                    onChange={(e) => setPhone(e.target.value)}
+                                    onChange={(e) => {
+                                        const value = e.target.value.replace(/[^0-9+]/g, '');
+                                        if ((value.match(/\+/g) || []).length > 1 || (value.includes('+') && value.indexOf('+') !== 0)) {
+                                            return; 
+                                        }
+
+                                        setPhone(value);
+                                    }}
                                 />
                                 <button
                                     type="button"
@@ -230,12 +238,12 @@ export default function Register() {
 
                     {/* address Email */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">address Email</label>
+                        <label className="block text-sm font-medium text-gray-700">Alamat Email</label>
                         <input
                             type="email"
                             required
                             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                            placeholder="nama@email.com"
+                            placeholder="nama@gemail.com"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                         />
@@ -243,7 +251,7 @@ export default function Register() {
 
                     {/* address Lengkap */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">address Lengkap</label>
+                        <label className="block text-sm font-medium text-gray-700">Alamat Lengkap</label>
                         <textarea
                             required
                             rows={3}
@@ -257,7 +265,7 @@ export default function Register() {
                     {/* Password */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Password</label>
+                            <label className="block text-sm font-medium text-gray-700">Kata Sandi</label>
                             <input
                                 type={showPassword ? "text" : "password"}
                                 required
@@ -268,7 +276,7 @@ export default function Register() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Konfirmasi Password</label>
+                            <label className="block text-sm font-medium text-gray-700">Konfirmasi Kata Sandi</label>
                             <input
                                 type={showPassword ? "text" : "password"}
                                 required
@@ -289,7 +297,7 @@ export default function Register() {
                             onChange={() => setShowPassword(!showPassword)}
                         />
                         <label htmlFor="show-password" class="ml-2 block text-sm text-gray-900">
-                            Tampilkan Password
+                            Tampilkan Kata Sandi
                         </label>
                     </div>
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers; // <--- INI WAJIB ADA DAN HARUS PERSIS
+namespace App\Http\Controllers;
 
 use App\Models\Chat;
 use App\Http\Controllers\Controller;
@@ -11,29 +11,29 @@ use Illuminate\Support\Facades\Hash;
 
 use Illuminate\Support\Facades\Auth;
 
-class AdminController extends Controller // <--- INI JUGA WAJIB
+class AdminController extends Controller
 {
+    //---menambahkan admin baru (rekrut)---
     public function storeAdmin(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed', // Harus ada field password_confirmation
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
         \App\Models\User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password), // Enkripsi password
-            'role' => 'admin', // WAJIB: Set role sebagai admin
-            'email_verified_at' => now(), // Opsional: Langsung verifikasi email
+            'password' => Hash::make($request->password),
+            'role' => 'admin',
+            'email_verified_at' => now(), 
         ]);
 
         return redirect()->back()->with('success', 'Admin baru berhasil direkrut!');
     }
 
-    // --- FUNGSI BARU: HALAMAN LIST ADMIN ---
-    // --- FUNGSI BARU: HALAMAN LIST ADMIN ---
+    // --- HALAMAN LIST ADMIN (absensi) ---
     public function manageAdmins()
     {
         // Ambil hanya user yang role-nya 'admin'
@@ -42,22 +42,18 @@ class AdminController extends Controller // <--- INI JUGA WAJIB
         return view('admin.admins', compact('admins'));
     }
 
-    // 1. Halaman Dashboard Utama
-    // 1. DASHBOARD: Hanya Menampilkan Statistik Angka
+    //---Halaman Dashboard Utama---
     public function dashboard()
     {
         // Hitung Total Pengguna
         $totalUsers = \App\Models\User::count();
         
         // Hitung Total Penjual (User yang punya minimal 1 produk)
-        // Atau jika Anda punya kolom 'role', sesuaikan kodenya. 
-        // Disini saya pakai logika: jika punya produk = penjual.
         $totalPenjual = \App\Models\User::has('products')->count(); 
         
         // Hitung Total Pembeli (Sisanya)
         $totalPembeli = $totalUsers - $totalPenjual;
 
-        // Statistik Lainnya
         $totalProduk = \App\Models\Produk::count();
         $totalKategori = \App\Models\Kategori::count();
         $totalPesanan = \Illuminate\Support\Facades\DB::table('pesanan')->count();
@@ -69,10 +65,8 @@ class AdminController extends Controller // <--- INI JUGA WAJIB
     }
 
     // 2. MANAGE USERS: Khusus Menampilkan Tabel Pengguna
-    // 2. MANAGE USERS: Halaman Khusus Tabel User (DENGAN FILTER)
     public function manageUsers()
     {
-        // Siapkan Query Dasar
         $query = \App\Models\User::withCount('products')->latest();
 
         // Cek apakah ada request filter dari tombol
@@ -84,7 +78,6 @@ class AdminController extends Controller // <--- INI JUGA WAJIB
 
         $users = $query->get();
         
-        // Kirim variabel 'currentFilter' agar tombol bisa berubah warna
         $currentFilter = request('filter') ?? 'semua';
 
         return view('admin.users', compact('users', 'currentFilter'));
@@ -101,14 +94,13 @@ class AdminController extends Controller // <--- INI JUGA WAJIB
             return back()->with('error', 'GAGAL: Akun Super Admin Utama dilindungi dan tidak bisa dihapus!');
         }
 
-        // 3. LOGIKA BARU: Cek Pesanan Aktif
         // Daftar status yang dianggap "Aktif" (Belum selesai)
         $statusAktif = ['panding', 'dibayar', 'diproses', 'dikirim']; 
         
         // Cek apakah user punya pesanan dengan status di atas
         $pesananAktif = \Illuminate\Support\Facades\DB::table('pesanan')
             ->where('user_id', $user->id)
-            ->whereIn('status', $statusAktif) // Sesuaikan nama kolom status di database Anda
+            ->whereIn('status', $statusAktif) 
             ->exists();
 
         if ($pesananAktif) {
@@ -116,14 +108,12 @@ class AdminController extends Controller // <--- INI JUGA WAJIB
         }
 
         // 4. Jika Tidak Ada Pesanan Aktif, Lanjutkan Penghapusan
-        // Gunakan DB transaction agar bersih
         \Illuminate\Support\Facades\DB::transaction(function () use ($user) {
             
             // Hapus semua Produk milik user (jika dia penjual)
             \App\Models\Produk::where('user_id', $user->id)->delete();
 
             // Hapus Riwayat Pesanan (yang statusnya sudah Selesai/Batal)
-            // Ini aman dihapus karena user-nya juga dihapus
             \Illuminate\Support\Facades\DB::table('pesanan')->where('user_id', $user->id)->delete();
 
             // Hapus Foto Profil
@@ -138,9 +128,10 @@ class AdminController extends Controller // <--- INI JUGA WAJIB
         return back()->with('success', 'Pengguna berhasil dihapus (Riwayat pesanan lama ikut terhapus).');
     }
 
+    //---ambil semua chat dan saya adalah pengirim atau penerima---
     public function chats($userId = null)
     {
-        $myId = Auth::id(); // ID Admin
+        $myId = Auth::id(); 
 
         // 1. Ambil daftar user yang pernah chat dengan Admin
         $chatIds = Chat::where('sender_id', $myId)
@@ -170,7 +161,7 @@ class AdminController extends Controller // <--- INI JUGA WAJIB
         return view('admin.chats', compact('users', 'messages', 'activeChat'));
     }
 
-    // TAMBAHKAN FUNCTION REPLY INI:
+    //---FUNCTION REPLY---
     public function sendReply(Request $request, $userId)
     {
         $request->validate(['message' => 'required']);
@@ -184,7 +175,7 @@ class AdminController extends Controller // <--- INI JUGA WAJIB
         return back();
     }
 
-    // Function untuk menampilkan halaman detail profil
+    //---menampilkan halaman detail profil user---
     public function showUserProfile($id)
     {
         // Ambil data user beserta produknya (jika ada)
@@ -193,13 +184,12 @@ class AdminController extends Controller // <--- INI JUGA WAJIB
         return view('admin.user_profile', compact('user'));
     }
 
-    // Function untuk menampilkan halaman Toko / Produk User
+    //---menampilkan halaman Toko / Produk User---
     public function showShop($id)
     {
         // Ambil Kategori
         $categories = \App\Models\Produk::where('user_id', $id)->select('kategori')->distinct()->pluck('kategori');
 
-        // Query Utama Produk
         $user = \App\Models\User::with(['products' => function($query) {
             $query->with('ulasan'); 
             if (request('search')) $query->where('nama_barang', 'like', '%' . request('search') . '%');
@@ -214,6 +204,7 @@ class AdminController extends Controller // <--- INI JUGA WAJIB
         $totalUlasanToko = 0;
         $totalTerjual = 0;
 
+        //menghitung rating
         foreach($user->products as $p) {
             if($p->ulasan) {
                 foreach($p->ulasan as $u) {
@@ -222,7 +213,7 @@ class AdminController extends Controller // <--- INI JUGA WAJIB
                 }
             }
             
-            // PERBAIKAN: Menggunakan tabel 'detail_pesanan'
+            // Menggunakan tabel 'detail_pesanan'
             try {
                 $terjual = \Illuminate\Support\Facades\DB::table('detail_pesanan')
                     ->where('produk_id', $p->id)
@@ -234,14 +225,14 @@ class AdminController extends Controller // <--- INI JUGA WAJIB
         $rataRataToko = $totalUlasanToko > 0 ? number_format($totalRatingToko / $totalUlasanToko, 1) : '0.0';
         $persentase = $totalUlasanToko > 0 ? round(($totalRatingToko / ($totalUlasanToko * 5)) * 100) : 0;
 
-        // PERBAIKAN: Mengambil data dari 'detail_pesanan' dan 'pesanan'
+        // Mengambil data dari 'detail_pesanan' dan 'pesanan'
         $riwayatPesanan = [];
         try {
             $riwayatPesanan = \Illuminate\Support\Facades\DB::table('detail_pesanan')
-                ->join('pesanan', 'detail_pesanan.pesanan_id', '=', 'pesanan.id') // Join ke tabel pesanan
+                ->join('pesanan', 'detail_pesanan.pesanan_id', '=', 'pesanan.id') 
                 ->join('produk', 'detail_pesanan.produk_id', '=', 'produk.id')
                 ->where('produk.user_id', $id)
-                ->groupBy('pesanan.id') // Hitung per Transaksi ID
+                ->groupBy('pesanan.id') 
                 ->get();
         } catch (\Exception $e) { $riwayatPesanan = []; }
 
@@ -257,6 +248,7 @@ class AdminController extends Controller // <--- INI JUGA WAJIB
         return view('admin.product_detail', compact('product'));
     }
 
+    //---melihat riwayat pesanan spesifik di toko user---
     public function showShopOrders($id)
     {
         $user = \App\Models\User::findOrFail($id);
@@ -275,7 +267,7 @@ class AdminController extends Controller // <--- INI JUGA WAJIB
                 $query->where('pesanan.status', request('status'));
             }
 
-            // 3. EKSEKUSI & SIMPAN KE VARIABEL $riwayatPesanan (PENTING!)
+            // 3. EKSEKUSI & SIMPAN KE VARIABEL $riwayatPesanan
             $riwayatPesanan = $query->select(
                     'pesanan.id as order_id',
                     'pesanan.created_at as tanggal',

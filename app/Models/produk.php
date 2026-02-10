@@ -10,7 +10,7 @@ class produk extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $table = 'produk'; // Definisikan nama tabel karena tidak pakai bahasa Inggris (plural)
+    protected $table = 'produk';
 
     protected $fillable = [
         'user_id',
@@ -41,6 +41,6 @@ class produk extends Model
     }
 
     protected $casts = [
-    'foto_barang' => 'array', // Otomatis convert JSON <-> Array
+    'foto_barang' => 'array',
     ];
 }

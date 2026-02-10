@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 
 class ChatController extends Controller
 {
-    // 1. Ambil daftar percakapan + Hitung Unread
+    //--- Ambil daftar percakapan + Hitung Jumlah yang Belum Di Baca ---
     public function getConversations(Request $request)
     {
         $userId = $request->user()->id;
@@ -19,6 +19,7 @@ class ChatController extends Controller
                     ->orderBy('created_at', 'desc')
                     ->get();
 
+        // Menyaring Daftar Contact Supaya Tidak Double
         $contacts = [];
         $seenIds = [];
 
@@ -32,15 +33,13 @@ class ChatController extends Controller
                     $otherUser->last_message = $chat->message;
                     $otherUser->last_time = $chat->created_at;
 
-                    // --- HITUNG PESAN BELUM DIBACA DARI ORANG INI ---
+                    //  Hitung Pesan yang Belum di Baca
                     $unreadCount = Chat::where('sender_id', $otherUserId) // Pengirimnya dia
                                      ->where('receiver_id', $userId)      // Penerimanya saya
                                      ->where('is_read', false)            // Belum dibaca
                                      ->count();
                     
-                    $otherUser->unread_count = $unreadCount;
-                    // ----------------------------------------------
-                    
+                    $otherUser->unread_count = $unreadCount;                    
                     $contacts[] = $otherUser;
                     $seenIds[] = $otherUserId;
                 }
@@ -53,14 +52,16 @@ class ChatController extends Controller
         ]);
     }
 
-    // 2. Ambil detail chat
+    //--- Membuka Ruang Chat ---
     public function getMessages($userId)
     {
         $myId = Auth::id();
 
         $messages = Chat::where(function($q) use ($myId, $userId) {
+            // Saya Kirim Ke Dia
             $q->where('sender_id', $myId)->where('receiver_id', $userId);
         })->orWhere(function($q) use ($myId, $userId) {
+            // Dia Kirim Ke Saya
             $q->where('sender_id', $userId)->where('receiver_id', $myId);
         })
         ->orderBy('created_at', 'asc')
@@ -72,14 +73,16 @@ class ChatController extends Controller
         ]);
     }
 
-    // 3. Kirim Pesan
+    //--- Kirim Pesan ---
     public function sendMessage(Request $request)
     {
+        // Validasi Tujuan
         $request->validate([
             'receiver_id' => 'required|exists:users,id',
             'message' => 'required|string'
         ]);
 
+        // Simpan ke Database
         $chat = Chat::create([
             'sender_id' => Auth::id(),
             'receiver_id' => $request->receiver_id,
@@ -89,7 +92,7 @@ class ChatController extends Controller
         return response()->json(['success' => true, 'data' => $chat]);
     }
 
-    // 4. TANDAI PESAN SUDAH DIBACA (Baru)
+    //--- Tandai Pesan Sudah di Baca (Centang Biru) ---
     public function markAsRead($senderId)
     {
         $myId = Auth::id();
@@ -103,14 +106,16 @@ class ChatController extends Controller
         return response()->json(['success' => true]);
     }
 
+    //--- Membuka Ruang Chat ---
     public function showChat($id)
     {
         $myId = Auth::id();
         
-        // Ambil chat antara Saya dan Dia
         $chats = Chat::where(function($q) use ($myId, $id) {
+            // Saya Kirim ke Dia
             $q->where('sender_id', $myId)->where('receiver_id', $id);
         })->orWhere(function($q) use ($myId, $id) {
+            // Dia Kirim ke Saya
             $q->where('sender_id', $id)->where('receiver_id', $myId);
         })->orderBy('created_at', 'asc')->get();
 

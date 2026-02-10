@@ -9,7 +9,7 @@ class keranjang extends Model
 {
     use HasFactory;
 
-    protected $table = 'keranjang'; // Sesuai nama tabel di migration Anda
+    protected $table = 'keranjang';
 
     protected $fillable = [
         'user_id',

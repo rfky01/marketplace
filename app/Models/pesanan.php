@@ -12,14 +12,12 @@ class Pesanan extends Model
 
     protected $table = 'pesanan';
 
-    // HANYA BOLEH ADA SATU $fillable
     protected $fillable = [
         'user_id',
         'invoice_code',
         'tanggal',
         'grand_total',
         'status',
-        // Data Tambahan (Checkout Lengkap)
         'nama_penerima',
         'email_penerima',
         'telepon_penerima',
@@ -27,7 +25,7 @@ class Pesanan extends Model
         'catatan',
         'waktu_pengiriman',
         'metode_pembayaran',
-        'hidden_for_buyer',  // <--- TAMBAHKAN INI
+        'hidden_for_buyer',  
         'hidden_for_seller'
     ];
 

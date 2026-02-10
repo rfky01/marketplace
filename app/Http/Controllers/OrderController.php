@@ -12,11 +12,9 @@ use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
-    // FITUR CHECKOUT (Membuat Pesanan)
+    //===> Fitur Checkout (Membuat Pesanan) <===\\
     public function store(Request $request)
-    {
-      
-        
+    {        
         $request->validate([
             'items' => 'required|array',
             'items.*.produk_id' => 'required|exists:produk,id',
@@ -53,17 +51,19 @@ class OrderController extends Controller
         foreach ($request->items as $item) {
             $produk = produk::find($item['produk_id']);
             
+            // Cek Stok Gudang
             if ($produk->stok_barang < $item['jumlah']) {
                 return response()->json(['message' => 'Stok barang tidak cukup: ' . $produk->nama_barang], 400);
             }
 
+            // Hitung Subtotal
             $subtotal = $produk->harga_barang * $item['jumlah'];
             $grand_total += $subtotal;
 
             // Kurangi Stok
             $produk->decrement('stok_barang', $item['jumlah']);
 
-            // Masuk ke DetailPesanan
+            // Catat ke DetailPesanan
             DetailPesanan::create([
                 'pesanan_id' => $pesanan->id,
                 'produk_id' => $produk->id,
@@ -83,10 +83,10 @@ class OrderController extends Controller
         ]);
     }
 
-    // 1. MELIHAT SEMUA PESANAN (History)
+    //===> MELIHAT SEMUA PESANAN (History) <===\\
     public function index(Request $request)
     {
-        // PERBAIKAN: Definisikan user terlebih dahulu
+        // Definisikan user terlebih dahulu
         $user = $request->user();
 
         // Ambil data pesanan milik user ini yang BELUM dihapus (hidden_for_buyer = false)
@@ -101,8 +101,6 @@ class OrderController extends Controller
             ->latest()
             ->get();
 
-        // Catatan: Logika Penjual DIBUANG dari sini karena sudah ada di SellerOrderController
-
         return response()->json([
             'success' => true,
             'message' => 'Daftar riwayat pesanan Anda',
@@ -110,6 +108,7 @@ class OrderController extends Controller
         ]);
     }
 
+    //===>  <===\\
     public function getSellerOrders()
     {
         // Ambil data detail pesanan dimana produknya milik penjual yang sedang login
@@ -118,7 +117,7 @@ class OrderController extends Controller
                 $q->where('user_id', auth()->id());
             })
             ->whereHas('pesanan', function($q) {
-                // FILTER PENTING: Hanya tampilkan jika BELUM dihapus penjual
+                // Hanya tampilkan jika BELUM dihapus penjual
                 $q->where('hidden_for_seller', false); 
             })
             ->orderBy('created_at', 'desc')
@@ -127,12 +126,11 @@ class OrderController extends Controller
         return response()->json(['success' => true, 'data' => $orders]);
     }
 
-    // FITUR 2: Melihat Detail Satu Pesanan
+    //===> Melihat Detail Satu Pesanan <===\\
     public function show(Request $request, $id)
     {
         $order = Pesanan::where('id', $id)
             ->where('user_id', $request->user()->id)
-            // PERBAIKAN: Gunakan 'detail_pesanan' (sesuai Model)
             ->with(['detail_pesanan.produk' => function ($query) {
                 $query->withTrashed()->with('user');
             }])
@@ -149,6 +147,7 @@ class OrderController extends Controller
         ]);
     }
 
+    //===>  <===\\
     public function markAsReceived(Request $request, $id)
     {
         $order = \App\Models\Pesanan::find($id);
@@ -179,15 +178,7 @@ class OrderController extends Controller
         ]);
     }
 
-    // FITUR: Update Status (Penjual)
-    // Fungsi untuk Penjual mengupdate status (Terima, Kirim, Tolak)
-    // Pastikan Request diimport di bagian atas: use Illuminate\Http\Request;
-    // ==========================================
-    // FITUR: UPDATE STATUS (Terima / Tolak / Kirim)
-    // ==========================================
-    // ==========================================
-    // FITUR: UPDATE STATUS (Terima / Tolak / Kirim)
-    // ==========================================
+    //===> UPDATE STATUS (Terima / Tolak / Kirim) <===\\
     public function updateStatus(Request $request, $id)
     {
         try {
@@ -202,20 +193,19 @@ class OrderController extends Controller
                 'status' => 'required|string'
             ]);
 
-            // Ambil status & ubah ke huruf kecil semua biar aman
+            // Ambil status
             $inputStatus = strtolower($request->status); 
 
             // Mulai Transaksi Database
             DB::beginTransaction();
 
             // --- SKENARIO 1: JIKA PENJUAL MENOLAK / MEMBATALKAN ---
-            // Tambahkan 'tolak', 'batal', 'cancel' ke dalam pengecekan
             if (in_array($inputStatus, ['ditolak', 'tolak', 'canceled', 'cancel', 'batal', 'canceled by seller'])) {
                 
                 // Cek agar tidak double refund stok
                 if (!in_array($order->status, ['selesai', 'ditolak', 'canceled by seller', 'canceled by buyer'])) {
                     
-                    // 1. KEMBALIKAN STOK (Wajib dipanggil!)
+                    // 1. KEMBALIKAN STOK
                     $this->restoreStock($order); 
                     
                     // 2. Ubah status jadi standar 'canceled by seller'
@@ -235,7 +225,7 @@ class OrderController extends Controller
 
             // --- SKENARIO 3: STATUS LAIN (Misal: dikirim) ---
             else {
-                $order->status = $inputStatus; // Gunakan status apa adanya
+                $order->status = $inputStatus;
             }
 
             $order->save();
@@ -254,10 +244,7 @@ class OrderController extends Controller
         }
     }
 
-    // FITUR: Penjual Membatalkan Pesanan
-    // --- GANTI FUNGSI CANCEL YANG LAMA DENGAN INI ---
-    // Fungsi ini Cerdas: Bisa mendeteksi apakah yang klik tombol itu Pembeli atau Penjual
-    // Hapus parameter "Request $request" agar tidak perlu import class Request
+    //===> Penjual Membatalkan Pesanan <===\\
    public function cancelOrder($id)
     {
         try {
@@ -304,8 +291,7 @@ class OrderController extends Controller
 
             $this->restoreStock($order);
 
-            // --- PERBAIKAN UTAMA DI SINI ---
-            // Menggunakan 'canceled by buyer' SESUAI FILE MIGRASI ANDA
+            // Menggunakan 'canceled by buyer'
             $order->status = 'canceled by seller'; 
             $order->save();
 
@@ -325,7 +311,7 @@ class OrderController extends Controller
         }
     }
 
-    // FITUR: Pembeli Membatalkan Pesanan Sendiri
+    //===> Pembeli Membatalkan Pesanan Sendiri <===\\
     public function cancelOrderByBuyer(Request $request, $id)
     {
         $pesanan = Pesanan::where('id', $id)
@@ -352,7 +338,7 @@ class OrderController extends Controller
         ]);
     }
 
-    // --- UPDATE FUNGSI DELETE AGAR BISA HAPUS PESANAN BATAL ---
+    //===> UPDATE FUNGSI DELETE AGAR BISA HAPUS PESANAN BATAL <===\\
     public function destroy(Request $request, $id)
     {
         $pesanan = Pesanan::find($id);
@@ -364,7 +350,7 @@ class OrderController extends Controller
         if ($user->id == $pesanan->user_id) {
             $pesanan->hidden_for_buyer = 1; 
         } 
-        // Jika Penjual yang menghapus (karena route api.php mengarah kesini juga)
+        // Jika Penjual yang menghapus
         else {
             $pesanan->hidden_for_seller = 1;
         }
@@ -374,9 +360,10 @@ class OrderController extends Controller
         return response()->json(['success' => true, 'message' => 'Riwayat berhasil disembunyikan.']);
     }
 
+    //===>  <===\\
     public function destroySellerOrder($id)
     {
-        // Cek dulu apakah ID yang dikirim adalah ID Detail (karena seller fetch detail)
+        // Cek dulu apakah ID yang dikirim adalah ID Detail
         $detail = DetailPesanan::find($id);
         
         if ($detail) {
@@ -390,16 +377,15 @@ class OrderController extends Controller
             return response()->json(['message' => 'Pesanan tidak ditemukan'], 404);
         }
 
-        $pesanan->hidden_for_seller = true; // Tandai hapus Penjual
+        $pesanan->hidden_for_seller = true;
         $pesanan->save();
 
         return response()->json(['success' => true, 'message' => 'Riwayat dihapus dari toko Anda.']);
     }
 
-    // Fungsi Pembantu untuk Mengembalikan Stok
+    //===> Fungsi Pembantu untuk Mengembalikan Stok <===\\
     private function restoreStock($pesanan)
     {
-        // PERBAIKAN: Gunakan 'detail_pesanan'
         $pesanan->load(['detail_pesanan.produk' => function($q) {
             $q->withTrashed();
         }]);
@@ -414,9 +400,9 @@ class OrderController extends Controller
         }
     }
 
+    //===>  <===\\
     public function requestReturn($id)
     {
-        // PERBAIKAN: Gunakan Pesanan::find, bukan Order::find
         $order = Pesanan::find($id); 
 
         if (!$order) {
@@ -426,7 +412,7 @@ class OrderController extends Controller
             ], 404);
         }
 
-        // Cek otorisasi (opsional, jika perlu)
+        // Cek otorisasi
         if ($order->user_id !== auth()->id()) {
              return response()->json([
                 'success' => false,
@@ -435,8 +421,6 @@ class OrderController extends Controller
         }
 
         // Update status
-        // PERHATIAN: Pastikan 'return_requested' sudah didaftarkan di Database (ENUM)
-        // Jika belum, Anda mungkin akan mendapat error "Check violation" setelah ini.
         $order->status = 'return_requested'; 
         $order->save();
 
