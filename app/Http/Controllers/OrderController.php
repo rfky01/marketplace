@@ -56,6 +56,15 @@ class OrderController extends Controller
             ], 422);
         }
 
+        // Jika Validasi Gagal, Paksa Return JSON Error
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi Gagal',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
+
         $user = $request->user();
         $invoice_code = 'INV-' . time() . '-' . $user->id;
         $grand_total = 0;
