@@ -46,6 +46,16 @@
                     </div>
                     Rekrut Admin Baru
                 </h3>
+
+                @if ($errors->any())
+                    <div class="bg-red-50 text-red-600 p-4 mb-4 rounded-lg border border-red-200 text-sm">
+                        <ul class="list-disc pl-5">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
                 
                 <form action="{{ route('admin.store') }}" method="POST">
                     @csrf

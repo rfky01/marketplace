@@ -187,6 +187,9 @@ class AuthController extends Controller
         }
         $addressInput = $request->address ?? $request->alamat;
 
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        
+        try {
         // Simpan Anggota dan Beri Kartu Akses
         $user = User::create([
             'name' => $request->name,
@@ -196,13 +199,22 @@ class AuthController extends Controller
             'address' => $addressInput, 
             'role' => 'pembeli',
         ]);
+        try {
+
         $user->assignRole('pembeli');
+
+        } catch (\Exception $e) {
+                // Jika role belum ada, buatkan otomatis (Self-Healing)
+                \Spatie\Permission\Models\Role::create(['name' => 'pembeli']);
+                $user->assignRole('pembeli');
+            }
 
         // buat token
         $token = $user->createToken('auth_token')->plainTextToken;
         
         // Hapus OTP setelah sukses
         \Illuminate\Support\Facades\Cache::forget('otp_' . $request->phone);
+        \Illuminate\Support\Facades\DB::commit();
 
         return response()->json([
             'success' => true,
@@ -211,6 +223,13 @@ class AuthController extends Controller
             'token_type' => 'Bearer',
             'message' => 'Registrasi Berhasil',
         ], 201);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollback();
+            
+            return response()->json([
+                'message' => 'Gagal Register: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

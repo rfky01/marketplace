@@ -18,8 +18,8 @@ class AdminSeeder extends Seeder
             'email' => 'admin@marketplace.com', 
             'password' => Hash::make('password123'),
             'role' => 'admin',
-            //'phone' => '082251979931',
-            //'address' => 'Lampung Timur, Lampung'
+            'phone' => '082251979931',
+            'address' => 'Lampung Timur, Lampung'
         ]);
     }
 }

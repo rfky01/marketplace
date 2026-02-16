@@ -20,18 +20,24 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
+        ], [
+            'password.confirmed' => 'Password konfirmasi tidak cocok!',
+            'password.min' => 'Password minimal 8 karakter!',
+            'email.unique' => 'Email ini sudah terdaftar sebagai admin/user lain.'
         ]);
 
-        \App\Models\User::create([
+            User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'admin',
-            'email_verified_at' => now(), 
+            'password' => Hash::make($request->password), // Jangan lupa di-Hash
+            'role' => 'admin', // <--- PAKSA JADI ADMIN DISINI
+            'phone' => '-',    // Isi default jika wajib
+            'address' => '-'   // Isi default jika wajib
         ]);
 
-        return redirect()->back()->with('success', 'Admin baru berhasil direkrut!');
+        return redirect()->back()->with('success', 'Admin baru berhasil ditambahkan!');
     }
+
 
     // --- HALAMAN LIST ADMIN (absensi) ---
     public function manageAdmins()

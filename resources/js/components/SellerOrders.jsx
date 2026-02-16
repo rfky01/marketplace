@@ -112,6 +112,10 @@ export default function SellerOrders() {
 
         fetchUserData();
         fetchSellerOrders();
+        
+        const intervalId = setInterval(() => {
+            fetchSellerOrders(true); // Kirim parameter true (isBackground)
+        }, 5000);
 
         function handleClickOutside(event) {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {

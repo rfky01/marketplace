@@ -11,7 +11,7 @@ export default function AdminHelpChat() {
     const messagesEndRef = useRef(null);
 
     // --- PENTING: Ganti angka 1 ini dengan ID Admin di database Anda ---
-    const ADMIN_ID = 6; 
+    const ADMIN_ID = 3; 
     
     // Ambil Token User
     const token = localStorage.getItem('token');

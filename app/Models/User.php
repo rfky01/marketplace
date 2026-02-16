@@ -25,7 +25,7 @@ class User extends Authenticatable
         'password',
         'phone',    
         'address',  
-        //'role',     
+        'role',     
         'profile_photo',
         'ktm_image',
         'npm', 

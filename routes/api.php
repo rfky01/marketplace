@@ -91,8 +91,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/produk/{id}', [ProdukController::class, 'destroy']);
 
     // Produk (Upload barang - Logic pengecekan "Penjual" ada di Controller)
-    Route::post('/produk', [produkController::class, 'store'])
-        ->middleware('permission:create products');
+    Route::post('/produk', [produkController::class, 'store']);
+        //->middleware('permission:create products');
 
     Route::put('/produk/{id}', [ProdukController::class, 'update']);
 

@@ -57,7 +57,7 @@ export default function ProductDetail() {
     const [checkoutForm, setCheckoutForm] = useState({
         phone: '',
         address: '',
-        metode_pembayaran: 'COD'
+        metode_pembayaran: ''
     });
 
     const [editingReviewId, setEditingReviewId] = useState(null);
@@ -313,28 +313,57 @@ export default function ProductDetail() {
     };
 
     const handleConfirmOrder = async () => {
-        console.log("Data User saat ini:", user); 
-        console.log("Link KTM:", user.ktm_image);
-
-        if (!checkoutForm.phone || !checkoutForm.address || !user.ktm_image) {
-            
-            // Pesan error spesifik agar user tahu apa yang kurang
-            let missingParts = [];
-            if (!checkoutForm.phone) missingParts.push("Nomor Telepon");
-            if (!checkoutForm.address) missingParts.push("Alamat");
-            if (!user.ktm_image) missingParts.push("Foto KTM");
-
+        // --- TAHAP 1: VALIDASI KELENGKAPAN PROFIL (USER DATABASE) ---
+        // Cek apakah di database user sudah ada KTM, HP, dan Alamat Utama
+        const userPhone = user.phone || user.telepon || user.no_hp;
+        const userAddress = user.address || user.alamat;
+        
+        if (!user.ktm_image || !userPhone || !userAddress) {
             setCustomAlert({ 
                 isOpen: true, 
-                message: "Profil Anda belum lengkap. Harap isi address dan Nomor Telepon di menu Profil sebelum memesan.", 
-                type: 'error', // Tipe Error
-                showCancel: true, // TRUE agar muncul di tengah (Modal)
+                message: "Profil Anda belum lengkap (KTM, No. HP, atau Alamat Utama). Harap lengkapi di menu Profil sebelum memesan.", 
+                type: 'error', 
+                showCancel: true, 
                 confirmText: 'Lengkapi Profil',
                 cancelText: 'Batal',
-                onConfirm: () => navigate('/profile') // Arahkan ke profil
+                onConfirm: () => navigate('/profile') 
             });
             return;
         }
+
+        // --- TAHAP 2: VALIDASI INPUT FORM CHECKOUT (ALAMAT SPESIFIK) ---
+        if (!checkoutForm.address || !checkoutForm.address.trim()) {
+            setCustomAlert({ 
+                isOpen: true, 
+                message: "Mohon isi detail 'Alamat Pengiriman' (Spesifik Tempat) pada formulir di atas.", 
+                type: 'error', 
+                showCancel: false,
+                confirmText: 'OK'
+            });
+            return;
+        }
+
+        if (!checkoutForm.phone) {
+             setCustomAlert({ 
+                isOpen: true, 
+                message: "Nomor telepon wajib diisi.", 
+                type: 'error', 
+                showCancel: false,
+                confirmText: 'OK'
+            });
+            return;
+        }
+
+        if (!checkoutForm.metode_pembayaran) {
+            setCustomAlert({ 
+               isOpen: true, 
+               message: "Silakan pilih metode pembayaran terlebih dahulu.", 
+               type: 'error', 
+               showCancel: false,
+               confirmText: 'OK'
+           });
+           return;
+       }
 
         const token = localStorage.getItem('token');
         // Waktu Lokal
@@ -418,6 +447,17 @@ export default function ProductDetail() {
                 confirmText: 'OK'
             });
         }
+    };
+
+    // --- Helper Foto Profil ---
+    const getProfilePhoto = () => {
+        if (user.profile_photo) {
+            if (user.profile_photo.startsWith('http')) {
+                return user.profile_photo;
+            }
+            return `http://127.0.0.1:8000/storage/${user.profile_photo}`;
+        }
+        return null;
     };
 
     const handleLogout = () => {
@@ -541,8 +581,73 @@ export default function ProductDetail() {
                                 <Link to="/login" className="text-blue-600 font-bold text-sm">Masuk</Link>
                             )}
                             {isDropdownOpen && (
-                                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-100 p-2 z-50">
-                                    <button onClick={handleLogout} className="w-full text-left px-3 py-2 text-red-500 hover:bg-red-50 rounded-md text-sm font-bold">🚪 Keluar</button>
+                                <div className="absolute right-0 top-full mt-3 w-64 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 overflow-hidden animate-fade-in-down">
+                                    
+                                    {/* Header Profil */}
+                                    <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full overflow-hidden border border-gray-200 bg-white">
+                                            {getProfilePhoto() ? (
+                                                <img 
+                                                    src={getProfilePhoto()} 
+                                                    alt="Profile" 
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-blue-600 font-bold bg-blue-50">
+                                                    {user.name?.charAt(0).toUpperCase()}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="overflow-hidden">
+                                            <p className="text-sm font-bold text-gray-800 truncate">{user.name}</p>
+                                            <Link to="/profile" className="text-xs text-blue-600 hover:text-blue-700 font-medium decoration-none">
+                                                Lihat Profil
+                                            </Link>
+                                        </div>
+                                    </div>
+
+                                    {/* Menu Items */}
+                                    <div className="py-2">
+                                        
+                                        {/* Menu Khusus Penjual (Opsional, akan muncul jika user punya produk) */}
+                                        {user.products_count > 0 && (
+                                            <>
+                                                <Link to="/my-products" className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-3 transition">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-500">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 1.138a3.002 3.002 0 012.28-.738h9.804a3.002 3.002 0 012.28.738l3.12 3.892a3.004 3.004 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z" />
+                                                    </svg>
+                                                    <span className="flex-1">Toko Saya</span>
+                                                    <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-bold">Penjual</span>
+                                                </Link>
+
+                                                <Link to="/seller-orders" className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-3 transition">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-500">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                                    </svg>
+                                                    <span className="flex-1">Pesanan Masuk</span>
+                                                    <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-bold">Penjual</span>
+                                                </Link>
+                                            </>
+                                        )}
+
+                                        {/* DAFTAR PESANAN (MENU STANDAR) */}
+                                        <Link to="/orders" className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-3 transition">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-500">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                                            </svg>
+                                            Daftar Pesanan
+                                        </Link>
+                                    </div>
+
+                                    {/* TOMBOL KELUAR */}
+                                    <div className="border-t border-gray-100 mt-1 pt-1">
+                                        <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-3 transition">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                                            </svg>
+                                            Keluar
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -865,10 +970,17 @@ export default function ProductDetail() {
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Pembayaran</label>
-                                <select className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition" value={checkoutForm.metode_pembayaran} onChange={(e) => setCheckoutForm({...checkoutForm, metode_pembayaran: e.target.value})}>
-                                    <option value="COD">COD</option>
-                                    <option value="Transfer">Transfer Bank</option>
-                                    <option value="E-Wallet">E-Wallet</option>
+                                <select 
+                                    className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none transition ${checkoutForm.metode_pembayaran === '' ? 'text-gray-400' : 'text-gray-800'} border-gray-300`}
+                                    value={checkoutForm.metode_pembayaran} 
+                                    onChange={(e) => setCheckoutForm({...checkoutForm, metode_pembayaran: e.target.value})}
+                                >
+                                    {/* OPSI DEFAULT (Tidak bisa dipilih kembali setelah diganti) */}
+                                    <option value="" disabled>Pilih Metode Pembayaran</option>
+                                    
+                                    <option value="COD" className="text-gray-800">COD</option>
+                                    <option value="Transfer" className="text-gray-800">Transfer Bank</option>
+                                    <option value="E-Wallet" className="text-gray-800">E-Wallet</option>
                                 </select>
                             </div>
                         </div>
