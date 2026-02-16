@@ -11,6 +11,21 @@ class ShopController extends Controller
     {
         $user = $request->user();
 
+        if (
+            !$user->name ||
+            !$user->phone || 
+            !$user->address || 
+            !$user->ktm_image ||
+            !$user->npm ||
+            !$user->prodi ||
+            !$user->fakultas ) 
+        {
+            return response()->json([
+                'success' => false,
+                'message' => 'Profil belum lengkap. Silakan Lengkapi Profile Anda.'
+            ], 400);
+        }
+
         // Cek jika sudah jadi penjual
         if ($user->role === 'penjual') {
             return response()->json(['message' => 'Anda sudah memiliki toko!'], 400);

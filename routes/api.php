@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\SellerOrderController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminCategoryController;
+use App\Http\Controllers\Api\OtpResetController;
 
 /*
 |--------------------------------------------------------------------------
@@ -140,3 +141,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/{id}/public-profile', [ProfileController::class, 'showPublicProfile']);
 
 });
+
+Route::post('/forgot-password-otp', [OtpResetController::class, 'sendOtp']);
+Route::post('/reset-password-otp', [OtpResetController::class, 'verifyAndReset']);

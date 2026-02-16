@@ -125,6 +125,39 @@ export default function Dashboard() {
         return result;
     };
 
+    const handleOpenShopClick = () => {
+        // 1. Cek apakah data penting sudah diisi
+        // Sesuaikan dengan nama kolom database Anda (phone/telepon/no_hp)
+        const hasPhone = 
+        user.name ||
+        user.phone || 
+        user.telepon || 
+        user.no_hp ||
+        user.ktm_image ||
+        user.npm ||
+        user.prodi ||
+        user.fakultas; 
+        const hasAddress = user.address || user.alamat;
+
+        if (!hasPhone || !hasAddress) {
+            setToast({ 
+                show: true, 
+                message: "Gagal! Harap lengkapi Alamat dan Nomor Telepon di Profil sebelum membuka toko.", 
+                type: 'error' 
+            });
+            
+            // Opsional: Arahkan otomatis ke halaman edit profil setelah 2 detik
+            setTimeout(() => {
+                navigate('/profile');
+            }, 2000);
+            
+            return;
+        }
+
+        // 2. Jika lengkap, baru buka modal konfirmasi
+        setShowShopModal(true);
+    };
+
     const processedProducts = getProcessedProducts();
     
     // Ambil Kategori Unik dari data produk yang ada
@@ -250,7 +283,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-6 flex-shrink-0 ml-6">
                         {user.role === 'pembeli' ? (
                             <button 
-                                onClick={() => setShowShopModal(true)} 
+                                onClick={handleOpenShopClick}
                                 className="text-sm font-bold text-white bg-blue-900 hover:bg-blue-800 px-4 py-2 rounded-lg transition shadow-sm flex items-center gap-1 decoration-none"
                             >
                                 Buka Toko
