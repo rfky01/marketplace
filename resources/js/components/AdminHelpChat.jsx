@@ -17,24 +17,46 @@ export default function AdminHelpChat() {
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user'));
 
+    const isLoggedIn = token && user;
+
+    // --- GENERATE ID UNIK UNTUK TAMU ---
+    const getGuestSessionId = () => {
+        let sessionId = localStorage.getItem('guest_session_id');
+        if (!sessionId) {
+            // Buat ID acak, contoh: guest_k9s8d7f_1708234
+            sessionId = 'guest_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+            localStorage.setItem('guest_session_id', sessionId);
+        }
+        return sessionId;
+    };
+
+    // Ambil ID Tamu jika tidak login
+    const guestSessionId = !isLoggedIn ? getGuestSessionId() : null;
+
     // 1. Fungsi Ambil Pesan (Load Chat)
     const fetchMessages = async () => {
-        if (!token) return;
         try {
-            // Sesuaikan URL ini dengan endpoint API chat Anda yang sudah ada
-            // Biasanya: /api/chat/{receiver_id}
-            const response = await fetch(`http://127.0.0.1:8000/api/chat/${ADMIN_ID}`, {
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
+            let url = '';
+            let headers = { 'Content-Type': 'application/json' };
+
+            if (isLoggedIn) {
+                // MODE 1: MEMBER LOGIN (Pakai Tabel 'chats')
+                url = `http://127.0.0.1:8000/api/chat/${ADMIN_ID}`;
+                headers['Authorization'] = `Bearer ${token}`;
+            } else {
+                // MODE 2: TAMU (Pakai Tabel 'guest_chats')
+                url = `http://127.0.0.1:8000/api/guest-chat/${guestSessionId}`;
+            }
+
+            const response = await fetch(url, { headers });
             const data = await response.json();
+            
             if (response.ok) {
-                setMessages(data.data || data); // Sesuaikan dengan struktur respon JSON Anda
+                // Pastikan format data konsisten
+                setMessages(data.data || data);
             }
         } catch (error) {
-            console.error("Gagal ambil chat:", error);
+            console.error("Gagal load chat:", error);
         }
     };
 
@@ -45,33 +67,34 @@ export default function AdminHelpChat() {
         if (!newMessage.trim()) return;
 
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/chat/send', {
+            let url = '';
+            let body = {};
+            let headers = { 'Content-Type': 'application/json' };
+
+            if (isLoggedIn) {
+                // KIRIM SEBAGAI MEMBER
+                url = 'http://127.0.0.1:8000/api/chat/send';
+                headers['Authorization'] = `Bearer ${token}`;
+                body = { receiver_id: ADMIN_ID, message: newMessage };
+            } else {
+                // KIRIM SEBAGAI TAMU
+                url = 'http://127.0.0.1:8000/api/guest-chat/send';
+                body = { session_id: guestSessionId, message: newMessage };
+            }
+
+            const response = await fetch(url, {
                 method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    receiver_id: ADMIN_ID, 
-                    message: newMessage    
-                })
+                headers: headers,
+                body: JSON.stringify(body)
             });
 
-            const data = await response.json(); // Ambil respon JSON dari server
-
             if (response.ok) {
-                // JIKA SUKSES
                 setNewMessage('');
                 setShowEmoji(false);
-                fetchMessages(); 
-            } else {
-                // JIKA GAGAL (Tampilkan Alert!)
-                alert("Gagal Kirim: " + (data.message || "Error tidak diketahui"));
-                console.log("Error Detail:", data);
+                fetchMessages(); // Refresh chat langsung
             }
         } catch (error) {
             console.error("Gagal kirim:", error);
-            alert("Terjadi kesalahan koneksi ke Server");
         }
     };
 
@@ -97,9 +120,6 @@ export default function AdminHelpChat() {
         return () => clearInterval(interval);
     }, [isOpen]);
 
-    // Jika user belum login, jangan tampilkan apa-apa
-    if (!token) return null;
-
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
             
@@ -108,10 +128,18 @@ export default function AdminHelpChat() {
                 <div className="bg-white w-80 h-[420px] rounded-2xl shadow-2xl border border-gray-200 flex flex-col mb-4 overflow-hidden animate-fade-in-up relative">
                     
                     {/* Header Chat */}
-                    <div className="bg-indigo-600 p-4 text-white flex justify-between items-center shadow-md">
+                    <div className={`${isLoggedIn ? 'bg-indigo-600' : 'bg-orange-500'} p-4 text-white flex justify-between items-center shadow-md transition-colors duration-500`}>
                         <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                            <h3 className="font-bold text-sm">Customer Service</h3>
+                            <div className="relative">
+                                <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center font-bold text-sm">
+                                    CS
+                                </div>
+                                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-white rounded-full"></div>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-sm">{isLoggedIn ? 'Admin Support' : 'Layanan Tamu'}</h3>
+                                <p className="text-[10px] opacity-90">{isLoggedIn ? 'Member Area' : 'Konsultasi Login'}</p>
+                            </div>
                         </div>
                         <button onClick={() => setIsOpen(false)} className="text-white hover:text-gray-200">
                             ✕
@@ -125,17 +153,33 @@ export default function AdminHelpChat() {
                                 Halo! Ada yang bisa kami bantu?
                             </p>
                         ) : (
-                            messages.map((msg, index) => (
-                                <div key={index} className={`flex ${msg.sender_id === user.id ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[80%] p-3 rounded-xl text-sm shadow-sm ${
-                                        msg.sender_id === user.id 
-                                        ? 'bg-indigo-600 text-white rounded-br-none' 
-                                        : 'bg-white text-gray-800 border rounded-bl-none'
-                                    }`}>
-                                        {msg.message || msg.content}
+                            messages.map((msg, index) => {
+                                // LOGIC POSISI CHAT (Kanan = Saya, Kiri = Admin)
+                                let isMe = false;
+                                
+                                if (isLoggedIn) {
+                                    // Jika Member: Cek sender_id vs user.id
+                                    isMe = (msg.sender_id === user?.id);
+                                } else {
+                                    // Jika Tamu: Cek sender_type == 'guest'
+                                    isMe = (msg.sender_type === 'guest');
+                                }
+
+                                return (
+                                    <div key={index} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                        <div className={`max-w-[80%] p-3 rounded-2xl text-sm shadow-sm ${
+                                            isMe
+                                            ? (isLoggedIn ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-orange-500 text-white rounded-br-none') 
+                                            : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
+                                        }`}>
+                                            {msg.message || msg.content}
+                                            <p className={`text-[9px] mt-1 text-right opacity-70`}>
+                                                {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                         <div ref={messagesEndRef} />
                     </div>
@@ -204,8 +248,13 @@ export default function AdminHelpChat() {
             {/* --- TOMBOL FLOATING (Lingkaran Kuning di Gambar Anda) --- */}
             <button 
                 onClick={() => setIsOpen(!isOpen)}
-                className={`${isOpen ? 'bg-gray-500 rotate-90' : 'bg-indigo-600'} text-white p-4 rounded-full shadow-lg hover:scale-110 transition-all duration-300 flex items-center justify-center`}
+                className={`
+                    p-4 rounded-full shadow-lg hover:scale-110 transition-all duration-300 flex items-center justify-center relative group
+                    ${isOpen ? 'bg-gray-500 rotate-90' : (isLoggedIn ? 'bg-indigo-600' : 'bg-orange-500')}
+                `}
             >
+
+                <div className="text-white">
                 {isOpen ? (
                     // Ikon Close (X)
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
@@ -217,6 +266,7 @@ export default function AdminHelpChat() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
                     </svg>
                 )}
+                </div>
             </button>
         </div>
     );

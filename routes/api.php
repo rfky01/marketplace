@@ -15,6 +15,7 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AdminCategoryController;
 use App\Http\Controllers\Api\OtpResetController;
+use App\Http\Controllers\Api\GuestChatController;
 
 /*
 |--------------------------------------------------------------------------
@@ -144,3 +145,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::post('/forgot-password-otp', [OtpResetController::class, 'sendOtp']);
 Route::post('/reset-password-otp', [OtpResetController::class, 'verifyAndReset']);
+
+// --- ROUTE CHAT KHUSUS TAMU (Tanpa Login) ---
+Route::get('/guest-chat/{sessionId}', [GuestChatController::class, 'getMessages']);
+Route::post('/guest-chat/send', [GuestChatController::class, 'sendMessage']);
+
+// Route untuk Admin membalas Tamu
+Route::post('/admin/guest-chats/reply/{sessionId}', [GuestChatController::class, 'replyMessage']);
+// Route untuk Admin mengambil chat Tamu
+Route::get('/admin/guest-chats/{sessionId}/json', [GuestChatController::class, 'getMessages']);

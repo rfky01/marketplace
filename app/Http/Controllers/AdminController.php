@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use App\Models\GuestChat;
 
 use Illuminate\Support\Facades\Auth;
 
@@ -139,32 +140,68 @@ class AdminController extends Controller
     {
         $myId = Auth::id(); 
 
-        // 1. Ambil daftar user yang pernah chat dengan Admin
-        $chatIds = Chat::where('sender_id', $myId)
+        if (!$userId) {
+            $userId = request('id');
+        }
+
+        //OPSIONAL: Jika ingin hanya menampilkan user yang PERNAH chat saja (agar list tidak kepanjangan),
+           //Gunakan kode ini dan hapus baris $users di atas:
+           
+           $chatIds = Chat::where('sender_id', $myId)
                     ->orWhere('receiver_id', $myId)
                     ->get()
                     ->map(function($chat) use ($myId) {
                         return $chat->sender_id == $myId ? $chat->receiver_id : $chat->sender_id;
-                    })
-                    ->unique();
+                    })->unique();
+           $users = User::whereIn('id', $chatIds)->get();
+        
 
-        $users = User::whereIn('id', $chatIds)->get();
+        // 2. Ambil Daftar Tamu (Guest) - BAGIAN INI SUDAH BENAR
+        $guests = GuestChat::select('session_id', \DB::raw('MAX(created_at) as last_chat'))
+            ->groupBy('session_id')
+            ->orderBy('last_chat', 'desc')
+            ->get();
 
-        // 2. Jika Admin klik salah satu user, ambil isi pesannya
+        // 3. Logic Membuka Isi Pesan (Jika ada ID yang diklik)
         $messages = [];
         $activeChat = null;
 
         if ($userId) {
-            $activeChat = User::findOrFail($userId);
-            
-            $messages = Chat::where(function($q) use ($myId, $userId) {
-                $q->where('sender_id', $myId)->where('receiver_id', $userId);
-            })->orWhere(function($q) use ($myId, $userId) {
-                $q->where('sender_id', $userId)->where('receiver_id', $myId);
-            })->orderBy('created_at', 'asc')->get();
+            // Cek apakah yang diklik adalah Member atau Tamu?
+            // Kita cek berdasarkan request type dari URL (?type=guest atau ?type=member)
+            $type = request('type');
+
+            if ($type == 'guest') {
+                // LOGIC BUKA CHAT TAMU
+                // Kita buat object dummy untuk $activeChat agar tidak error di view
+                $activeChat = (object) [
+                    'id' => $userId, // Di sini $userId berisi session_id string
+                    'name' => 'Tamu #' . substr($userId, -4),
+                    'profile_photo' => null,
+                    'email' => 'Guest Session'
+                ];
+                
+                // Ambil pesan tamu
+                $messages = GuestChat::where('session_id', $userId)
+                    ->orderBy('created_at', 'asc')
+                    ->get();
+
+            } else {
+                // LOGIC BUKA CHAT MEMBER (User Biasa)
+                $activeChat = User::find($userId);
+                
+                if ($activeChat) {
+                    $messages = Chat::where(function($q) use ($myId, $userId) {
+                        $q->where('sender_id', $myId)->where('receiver_id', $userId);
+                    })->orWhere(function($q) use ($myId, $userId) {
+                        $q->where('sender_id', $userId)->where('receiver_id', $myId);
+                    })->orderBy('created_at', 'asc')->get();
+                }
+            }
         }
 
-        return view('admin.chats', compact('users', 'messages', 'activeChat'));
+        // --- UPDATE: Masukkan 'messages' dan 'activeChat' ke view ---
+        return view('admin.chats', compact('users', 'guests', 'messages', 'activeChat'));
     }
 
     //---FUNCTION REPLY---

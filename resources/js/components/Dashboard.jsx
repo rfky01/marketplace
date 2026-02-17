@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import ChatDropdown from './ChatDropdown';
 import ProductImageSlider from './ProductImageSlider';
-import Pagination from './Pagination'; // Pastikan file ini sudah dibuat!
-
+import Pagination from './Pagination'; 
 import iconKeranjang from './asset/keranjang.png'
 import iconPesanan from './asset/pesan.png'
 import iconSearch from './asset/search.png'
@@ -27,15 +26,13 @@ export default function Dashboard() {
     const [showShopModal, setShowShopModal] = useState(false);
     const [isShopLoading, setIsShopLoading] = useState(false);
     
-    // --- STATE TOAST NOTIFICATION ---
+    // STATE TOAST NOTIFICATION
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
-
     const dropdownRef = useRef(null);
-
     const [currentPage, setCurrentPage] = useState(1);
     const [lastPage, setLastPage] = useState(1);
 
-    // --- EFFECT: AUTO-CLOSE TOAST ---
+    // EFFECT: AUTO-CLOSE TOAST
     useEffect(() => {
         if (toast.show) {
             const timer = setTimeout(() => setToast({ ...toast, show: false }), 3000);
