@@ -24,17 +24,94 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(Request $request)
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        // 1. VALIDASI DATA UMUM
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'npm' => 'nullable|string',
+            'prodi' => 'nullable|string',
+            'fakultas' => 'nullable|string',
+            'address' => 'nullable|string',
+            'bio' => 'nullable|string',
+            'jenis_kelamin' => 'nullable|string',
+            'tanggal_lahir' => 'nullable|date',
+        ]);
+
+        // 2. VALIDASI NO TELEPON (METODE PHP LOOPING - PASTI AKURAT)
+        // Kita cek jika user mengirim data 'phone'
+        if ($request->filled('phone')) {
+            
+            $inputPhone = $request->phone;
+
+            // --- FUNGSI PEMBERSIH NOMOR (Sama seperti di Register) ---
+            $normalize = function ($number) {
+                // 1. Ambil angkanya saja (Hapus + - spasi)
+                $n = preg_replace('/[^0-9]/', '', $number); 
+                
+                // 2. Normalisasi awalan (08 -> 8..., 628 -> 8...)
+                if (substr($n, 0, 2) == '62') {
+                    return substr($n, 2);
+                } elseif (substr($n, 0, 1) == '0') {
+                    return substr($n, 1);
+                }
+                return $n;
+            };
+
+            // Inti nomor yang diinput user (misal: "812345678")
+            $targetNumber = $normalize($inputPhone);
+
+            // Ambil semua nomor HP user LAIN dari database
+            $otherUsers = \App\Models\User::where('id', '!=', $user->id) // Jangan cek diri sendiri
+                                          ->whereNotNull('phone')
+                                          ->pluck('phone');
+
+            // Cek satu per satu secara manual
+            foreach ($otherUsers as $dbPhone) {
+                // Jika inti nomornya sama, tolak!
+                if ($normalize($dbPhone) === $targetNumber) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Gagal! Nomor WhatsApp ini sudah terdaftar di akun lain.'
+                    ], 422);
+                }
+            }
+
+            // Jika lolos pengecekan, baru simpan
+            $user->phone = $inputPhone;
         }
 
-        $request->user()->save();
+        // 3. FILL DATA LAIN
+        $user->fill($request->except(['phone', 'profile_photo', 'ktm_image']));
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        // 4. HANDLE UPLOAD FOTO
+        if ($request->hasFile('profile_photo')) {
+            if ($user->profile_photo) {
+                Storage::delete('public/' . $user->profile_photo);
+            }
+            $user->profile_photo = $request->file('profile_photo')->store('profile-photos', 'public');
+        }
+
+        if ($request->hasFile('ktm_image')) {
+            if ($user->ktm_image) {
+                Storage::delete('public/' . $user->ktm_image);
+            }
+            $user->ktm_image = $request->file('ktm_image')->store('ktm-images', 'public');
+        }
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profil berhasil diperbarui!',
+            'data' => $user
+        ]);
     }
 
     /**

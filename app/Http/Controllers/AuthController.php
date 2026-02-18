@@ -23,10 +23,12 @@ class AuthController extends Controller
     }
 
     //--- Update Profile ---
+    //--- Update Profile (VERSI FINAL - STRATEGI INTI NOMOR) ---
     public function updateUserProfile(Request $request)
     {
         $user = $request->user();
 
+        // 1. Validasi Input Dasar
         $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:20',
@@ -41,50 +43,87 @@ class AuthController extends Controller
             'tanggal_lahir' => 'nullable|date',
         ]);
 
-        $phoneInput = $request->phone ?? $request->no_hp ?? $request->telepon ?? $user->phone;
-        $addressInput = $request->address ?? $request->alamat ?? $user->address;
+        // 2. VALIDASI NO TELEPON (SANGAT KETAT)
+        if ($request->filled('phone')) {
+            $inputPhone = $request->phone;
 
-        // Data yang akan diupdate
-        $dataToUpdate = [
-            'name' => $request->name,
-            'phone' => $phoneInput,
-            'address' => $addressInput,
-            'npm' => $request->npm, 
-            'prodi' => $request->prodi,   
-            'fakultas' => $request->fakultas,
-            'bio' => $request->bio,
-            'jenis_kelamin' => $request->jenis_kelamin,
-            'tanggal_lahir' => $request->tanggal_lahir,
-        ];
+            // --- FUNGSI PENGAMBIL INTI NOMOR ---
+            // Fungsi ini membuang 62, 0, +, spasi, strip
+            // Contoh: "0812" -> "812"
+            // Contoh: "62812" -> "812"
+            // Contoh: "+62 812" -> "812"
+            $getCoreNumber = function ($number) {
+                // 1. Ambil angka saja
+                $n = preg_replace('/[^0-9]/', '', $number); 
+                
+                // 2. Jika depannya 62, buang 62-nya
+                if (substr($n, 0, 2) == '62') {
+                    $n = substr($n, 2);
+                }
+                
+                // 3. Jika depannya 0, buang 0-nya
+                if (substr($n, 0, 1) == '0') {
+                    $n = substr($n, 1);
+                }
+                
+                return $n;
+            };
 
-        // Update Foto Profile
+            // Inti nomor dari input user
+            $targetCore = $getCoreNumber($inputPhone);
+
+            // Ambil semua nomor user lain
+            $otherUsersPhones = \App\Models\User::where('id', '!=', $user->id)
+                                                ->whereNotNull('phone')
+                                                ->pluck('phone');
+
+            // Cek satu per satu
+            foreach ($otherUsersPhones as $dbPhone) {
+                // Jika inti nomornya sama persis, tolak!
+                if ($getCoreNumber($dbPhone) === $targetCore) {
+                    return response()->json([
+                        'message' => 'Gagal! Nomor WhatsApp ini sudah terdaftar di akun lain.'
+                    ], 422);
+                }
+            }
+
+            // Jika lolos, simpan input asli user
+            $user->phone = $inputPhone;
+        }
+
+        // 3. Simpan data lainnya
+        if ($request->has('name')) $user->name = $request->name;
+        if ($request->has('address')) $user->address = $request->address;
+        if ($request->has('npm')) $user->npm = $request->npm;
+        if ($request->has('prodi')) $user->prodi = $request->prodi;
+        if ($request->has('fakultas')) $user->fakultas = $request->fakultas;
+        if ($request->has('bio')) $user->bio = $request->bio;
+        if ($request->has('jenis_kelamin')) $user->jenis_kelamin = $request->jenis_kelamin;
+        if ($request->has('tanggal_lahir')) $user->tanggal_lahir = $request->tanggal_lahir;
+
+        // 4. Handle Foto Profil
         if ($request->hasFile('profile_photo')) {
-            // Check Foto Lama (Jika Ada Hapus)
-            if ($user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
-                Storage::disk('public')->delete($user->profile_photo);
+            if ($user->profile_photo) {
+                \Illuminate\Support\Facades\Storage::delete('public/' . $user->profile_photo);
             }
-            // Simpan Foto Baru
-            $path = $request->file('profile_photo')->store('profile_photos', 'public');
-            $dataToUpdate['profile_photo'] = $path;
+            $path = $request->file('profile_photo')->store('profile-photos', 'public');
+            $user->profile_photo = $path;
         }
 
-        // Update Foto KTM
+        // 5. Handle Foto KTM
         if ($request->hasFile('ktm_image')) {
-            // Check Foto Lama (Jika Ada Hapus)
-            if ($user->ktm_image && Storage::disk('public')->exists($user->ktm_image)) {
-                Storage::disk('public')->delete($user->ktm_image);
+            if ($user->ktm_image) {
+                \Illuminate\Support\Facades\Storage::delete('public/' . $user->ktm_image);
             }
-            // Simpan foto baru
-            $pathKtm = $request->file('ktm_image')->store('ktm_images', 'public');
-            $dataToUpdate['ktm_image'] = $pathKtm;
+            $path = $request->file('ktm_image')->store('ktm-images', 'public');
+            $user->ktm_image = $path;
         }
 
-        $user->update($dataToUpdate);
-        $user->refresh();
+        $user->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'Profil berhasil diperbarui!',
+            'message' => 'Profile updated successfully',
             'data' => $user
         ]);
     }
