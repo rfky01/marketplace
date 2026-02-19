@@ -331,4 +331,113 @@ class AdminController extends Controller
 
         return view('admin.shop_orders', compact('user', 'riwayatPesanan'));
     }
+
+    // --- Menampilkan Semua Produk (Untuk Admin) ---
+    public function allProducts()
+    {
+        // Menggunakan DB::table agar terhindar dari error Model Not Found
+        $products = \Illuminate\Support\Facades\DB::table('produk')
+            ->leftJoin('users', 'produk.user_id', '=', 'users.id')
+            ->select(
+                'produk.*', 
+                'users.name as penjual_name', 
+                'users.profile_photo as penjual_photo'
+            )
+            ->orderBy('produk.created_at', 'desc')
+            ->get();
+
+        return view('admin.admin_products', compact('products'));
+    }
+
+    // --- Menampilkan Semua Transaksi (Untuk Admin) ---
+   // --- Menampilkan Semua Transaksi (Untuk Admin) ---
+    // --- Menampilkan Semua Transaksi (Untuk Admin) ---
+    public function allTransactions(\Illuminate\Http\Request $request)
+    {
+        try {
+            // 1. Ambil semua data mentah dari database
+            $rawTransactions = \Illuminate\Support\Facades\DB::table('detail_pesanan')
+                ->join('pesanan', 'detail_pesanan.pesanan_id', '=', 'pesanan.id')
+                ->join('produk', 'detail_pesanan.produk_id', '=', 'produk.id')
+                ->join('users as pembeli', 'pesanan.user_id', '=', 'pembeli.id')
+                ->join('users as penjual', 'produk.user_id', '=', 'penjual.id')
+                ->select(
+                    'pesanan.id as order_id',
+                    'pembeli.id as pembeli_id',
+                    'pesanan.created_at as tanggal',
+                    'pesanan.status',
+                    'pembeli.name as nama_pembeli',
+                    'penjual.name as nama_penjual',
+                    'produk.nama_barang',
+                    'produk.foto_barang',
+                    'detail_pesanan.jumlah',
+                    'detail_pesanan.total_harga'
+                )
+                ->orderBy('pesanan.created_at', 'desc')
+                ->get();
+
+            // 2. Rakit Nomor Invoice
+            $rawTransactions->transform(function ($trx) {
+                $trx->invoice_id = 'INV-' . \Carbon\Carbon::parse($trx->tanggal)->timestamp . '-' . $trx->pembeli_id;
+                return $trx;
+            });
+
+            // Ambil jumlah total untuk ditampilkan di badge
+            $totalSemua = $rawTransactions->count();
+
+            // 3. Logika Filter Status (Dari Sidebar)
+            $activeStatus = $request->status ?? 'semua';
+            $filteredByStatus = $rawTransactions;
+
+            if ($activeStatus !== 'semua') {
+                $filteredByStatus = $rawTransactions->filter(function ($trx) use ($activeStatus) {
+                    $status = strtolower(trim($trx->status));
+                    if ($activeStatus === 'pending') return $status === 'pending';
+                    if ($activeStatus === 'dikemas') return in_array($status, ['accepted', 'proses']);
+                    if ($activeStatus === 'dikirim') return $status === 'dikirim';
+                    if ($activeStatus === 'selesai') return $status === 'selesai';
+                    if ($activeStatus === 'return') return str_contains($status, 'return');
+                    if ($activeStatus === 'batal') return in_array($status, ['batal', 'dibatalkan', 'canceled', 'canceled by seller', 'canceled by buyer', 'ditolak']);
+                    return true;
+                })->values();
+            }
+
+            // 4. Logika Pencarian (PERBAIKAN VARIABEL DI SINI)
+            if ($request->filled('search')) {
+                $search = strtoupper(trim($request->search)); 
+                $transactionsData = $filteredByStatus->filter(function ($trx) use ($search) {
+                    return str_contains(strtoupper($trx->invoice_id), $search);
+                })->values(); 
+            } else {
+                $transactionsData = $filteredByStatus;
+            }
+
+            // === 5. LOGIKA PAGINATION MANUAL ===
+            $perPage = 10; // Menampilkan 10 transaksi per halaman
+            $currentPage = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
+            
+            // Memotong data array sesuai halaman saat ini
+            $currentItems = $transactionsData->slice(($currentPage - 1) * $perPage, $perPage)->values();
+            
+            // Membuat objek Paginator
+            $transactions = new \Illuminate\Pagination\LengthAwarePaginator(
+                $currentItems, 
+                $transactionsData->count(), 
+                $perPage, 
+                $currentPage, 
+                [
+                    'path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(),
+                    'query' => $request->query() 
+                ]
+            );
+
+        } catch (\Exception $e) {
+            // PERBAIKAN DI SINI: Jangan gunakan collect([]), gunakan Paginator Kosong
+            $transactions = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10, 1);
+            $activeStatus = 'semua';
+            $totalSemua = 0;
+        }
+
+        return view('admin.admin_transactions', compact('transactions', 'activeStatus', 'totalSemua'));
+    }
 }

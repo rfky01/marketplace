@@ -81,25 +81,29 @@
                 </div>
             </a>
 
-            <div class="bg-white p-6 rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 transition group relative overflow-hidden">
+            <a href="{{ route('admin.products') }}" class="bg-white p-6 rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 hover:border-purple-200 transition group cursor-pointer relative overflow-hidden">
                 <div class="absolute right-2 top-2 opacity-10 transform translate-x-2 -translate-y-2 group-hover:scale-110 transition duration-300">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                     </svg>
                 </div>
+                
                 <div class="relative z-10">
                     <div class="w-12 h-12 rounded-lg bg-purple-50 flex items-center justify-center mb-4 text-purple-600">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                         </svg>
                     </div>
+                    
                     <p class="text-gray-500 text-sm font-semibold uppercase tracking-wider">Total Produk</p>
-                    <h3 class="text-3xl font-extrabold text-gray-800 mt-1">{{ $totalProduk }}</h3>
-                    <p class="text-xs text-purple-500 font-medium mt-2">Item Aktif</p>
+                    <h3 class="text-3xl font-extrabold text-gray-800 mt-1">{{ $totalProduk ?? 0 }}</h3>
+                    <p class="text-xs text-purple-500 font-medium mt-2 flex items-center gap-1">
+                        Item Aktif <span>→</span>
+                    </p>
                 </div>
-            </div>
+            </a>
 
-            <div class="bg-white p-6 rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 transition group relative overflow-hidden">
+            <a href="{{ route('admin.transactions') }}" class="bg-white p-6 rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 hover:border-green-200 transition group cursor-pointer relative overflow-hidden block">
                 <div class="absolute right-2 top-2 opacity-10 transform translate-x-2 -translate-y-2 group-hover:scale-110 transition duration-300">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -112,10 +116,12 @@
                         </svg>
                     </div>
                     <p class="text-gray-500 text-sm font-semibold uppercase tracking-wider">Total Transaksi</p>
-                    <h3 class="text-3xl font-extrabold text-gray-800 mt-1">{{ $totalPesanan }}</h3>
-                    <p class="text-xs text-green-500 font-medium mt-2">Pesanan Masuk</p>
+                    <h3 class="text-3xl font-extrabold text-gray-800 mt-1">{{ $totalPesanan ?? 0 }}</h3>
+                    <p class="text-xs text-green-500 font-medium mt-2 flex items-center gap-1">
+                        Lihat Detail <span>→</span>
+                    </p>
                 </div>
-            </div>
+            </a>
 
             <a href="{{ route('admin.categories.index') }}" class="bg-white p-6 rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 hover:border-orange-200 transition group cursor-pointer relative overflow-hidden">
                 <div class="absolute right-2 top-2 opacity-10 transform translate-x-2 -translate-y-2 group-hover:scale-110 transition duration-300">

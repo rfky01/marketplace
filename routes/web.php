@@ -51,6 +51,10 @@ Route::middleware(['auth', IsAdmin::class])->prefix('admin')->group(function () 
     Route::put('/categories/{id}', [App\Http\Controllers\AdminCategoryController::class, 'update'])->name('admin.categories.update');
     Route::delete('/categories/{id}', [App\Http\Controllers\AdminCategoryController::class, 'destroy'])->name('admin.categories.destroy');
 
+    Route::get('/admin/products', [App\Http\Controllers\AdminController::class, 'allProducts'])->name('admin.products');
+    // Route untuk melihat semua transaksi (Semua User)
+    Route::get('/transactions', [App\Http\Controllers\AdminController::class, 'allTransactions'])->name('admin.transactions');
+
     // ... route kategori lainnya ...
 Route::post('/categories/reorder', [App\Http\Controllers\AdminCategoryController::class, 'reorder'])->name('admin.categories.reorder');
 });
