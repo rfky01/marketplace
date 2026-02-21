@@ -18,7 +18,7 @@ use App\Http\Controllers\AdminController;
 */
     Route::post('/login-session', [AuthController::class, 'login']);
 
-Route::middleware(['auth', IsAdmin::class])->prefix('admin')->group(function () {
+Route::middleware(['auth', IsAdmin::class, \App\Http\Middleware\LogUserActivity::class])->prefix('admin')->group(function () {
     
     Route::get('/admins', [AdminController::class, 'manageAdmins'])->name('admin.list');
     Route::post('/admins', [AdminController::class, 'storeAdmin'])->name('admin.store');
@@ -54,6 +54,10 @@ Route::middleware(['auth', IsAdmin::class])->prefix('admin')->group(function () 
     Route::get('/admin/products', [App\Http\Controllers\AdminController::class, 'allProducts'])->name('admin.products');
     // Route untuk melihat semua transaksi (Semua User)
     Route::get('/transactions', [App\Http\Controllers\AdminController::class, 'allTransactions'])->name('admin.transactions');
+
+    // Route khusus untuk Popup Chat Admin
+    Route::get('/popup-chat/{id}', [AdminController::class, 'getPopupMessages'])->name('admin.popup.chat.get');
+    Route::post('/popup-chat/{id}', [AdminController::class, 'sendPopupMessage'])->name('admin.popup.chat.send');
 
     // ... route kategori lainnya ...
 Route::post('/categories/reorder', [App\Http\Controllers\AdminCategoryController::class, 'reorder'])->name('admin.categories.reorder');

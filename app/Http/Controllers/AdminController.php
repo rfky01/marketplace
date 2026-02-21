@@ -72,20 +72,59 @@ class AdminController extends Controller
     }
 
     // 2. MANAGE USERS: Khusus Menampilkan Tabel Pengguna
-    public function manageUsers()
+    // 2. MANAGE USERS: Khusus Menampilkan Tabel Pengguna
+    public function manageUsers(\Illuminate\Http\Request $request)
     {
         $query = \App\Models\User::withCount('products')->latest();
 
-        // Cek apakah ada request filter dari tombol
-        if (request('filter') == 'penjual') {
-            $query->has('products'); // Hanya yang punya produk
-        } elseif (request('filter') == 'pembeli') {
-            $query->doesntHave('products'); // Hanya yang TIDAK punya produk
+        // 1. Cek request filter dari tombol (Penjual/Pembeli)
+        if ($request->filter == 'penjual') {
+            $query->has('products'); 
+        } elseif ($request->filter == 'pembeli') {
+            $query->doesntHave('products'); 
         }
 
-        $users = $query->get();
+        // 2. LOGIKA PENCARIAN (Berdasarkan Nama atau Email)
+        if ($request->search) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('email', 'like', '%' . $search . '%');
+            });
+        }
+
+        // AMBIL SEMUA DATA (Belum di-paginate)
+        $usersData = $query->get();
+
+        // 3. LOGIKA FILTER AKTIVITAS (Online / Offline dari Cache)
+        if ($request->activity == 'online') {
+            $usersData = $usersData->filter(function($user) {
+                return $user->isOnline();
+            })->values();
+        } elseif ($request->activity == 'offline') {
+            $usersData = $usersData->filter(function($user) {
+                return !$user->isOnline();
+            })->values();
+        }
+
+        // 4. PAGINATION MANUAL UNTUK COLLECTION CACHE
+        $perPage = 10;
+        $currentPage = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
         
-        $currentFilter = request('filter') ?? 'semua';
+        $currentItems = $usersData->slice(($currentPage - 1) * $perPage, $perPage)->values();
+        
+        $users = new \Illuminate\Pagination\LengthAwarePaginator(
+            $currentItems, 
+            $usersData->count(), 
+            $perPage, 
+            $currentPage, 
+            [
+                'path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(),
+                'query' => $request->query() // Bawa semua parameter url
+            ]
+        );
+        
+        $currentFilter = $request->filter ?? 'semua';
 
         return view('admin.users', compact('users', 'currentFilter'));
     }
@@ -439,5 +478,45 @@ class AdminController extends Controller
         }
 
         return view('admin.admin_transactions', compact('transactions', 'activeStatus', 'totalSemua'));
+    }
+
+    // --- FUNGSI AMBIL PESAN UNTUK POPUP CHAT ---
+    // --- FUNGSI AMBIL PESAN UNTUK POPUP CHAT ---
+    public function getPopupMessages($userId)
+    {
+        $myId = Auth::id();
+        
+        // 1. Ambil riwayat pesan
+        $messages = Chat::where(function($q) use ($myId, $userId) {
+            $q->where('sender_id', $myId)->where('receiver_id', $userId);
+        })->orWhere(function($q) use ($myId, $userId) {
+            $q->where('sender_id', $userId)->where('receiver_id', $myId);
+        })->orderBy('created_at', 'asc')->get();
+
+        // 2. Ambil status Online / Offline User secara Real-time dari Cache
+        $targetUser = User::find($userId);
+        $isOnline = $targetUser ? $targetUser->isOnline() : false;
+        $lastSeen = $targetUser ? $targetUser->getLastSeen() : 'Offline';
+
+        // 3. Kirim semuanya ke Javascript
+        return response()->json([
+            'messages' => $messages,
+            'isOnline' => $isOnline,
+            'lastSeen' => $lastSeen
+        ]);
+    }
+
+    // --- FUNGSI KIRIM PESAN UNTUK POPUP CHAT ---
+    public function sendPopupMessage(Request $request, $userId)
+    {
+        $request->validate(['message' => 'required']);
+        
+        $chat = Chat::create([
+            'sender_id' => Auth::id(),
+            'receiver_id' => $userId,
+            'message' => $request->message
+        ]);
+
+        return response()->json(['success' => true, 'data' => $chat]);
     }
 }

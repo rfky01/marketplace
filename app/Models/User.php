@@ -83,4 +83,22 @@ class User extends Authenticatable
     {
         return $this->hasMany(\App\Models\Produk::class, 'user_id'); 
     }
+
+    // Tambahkan ini di Model User
+    public function isOnline()
+    {
+        return \Illuminate\Support\Facades\Cache::has('user-is-online-' . $this->id);
+    }
+
+    public function getLastSeen()
+    {
+        $lastSeen = \Illuminate\Support\Facades\Cache::get('user-last-seen-' . $this->id);
+        
+        if ($lastSeen) {
+            // Ubah format waktu menjadi bahasa Indonesia (Contoh: "5 menit yang lalu")
+            return \Carbon\Carbon::parse($lastSeen)->locale('id')->diffForHumans();
+        }
+        
+        return 'Belum pernah login';
+    }
 }

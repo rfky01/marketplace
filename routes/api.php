@@ -64,7 +64,7 @@ Route::get('/cek-saya', function (Illuminate\Http\Request $request) {
 // 2. ROUTE PROTECTED (Wajib Login / Punya Token)
 // ==========================================
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', \App\Http\Middleware\LogUserActivity::class])->group(function () {
 
     
     Route::post('/kategori', [AdminCategoryController::class, 'store'])

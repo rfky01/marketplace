@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import ChatDropdown from './ChatDropdown';
 import ProductImageSlider from './ProductImageSlider';
-import Pagination from './Pagination'; 
+import Pagination from './Pagination';
 import iconKeranjang from './asset/keranjang.png'
 import iconPesanan from './asset/pesan.png'
 import iconSearch from './asset/search.png'
