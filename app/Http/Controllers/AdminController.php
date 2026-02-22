@@ -267,6 +267,7 @@ class AdminController extends Controller
     }
 
     //---menampilkan halaman Toko / Produk User---
+    //---menampilkan halaman Toko / Produk User---
     public function showShop($id)
     {
         // Ambil Kategori
@@ -286,7 +287,6 @@ class AdminController extends Controller
         $totalUlasanToko = 0;
         $totalTerjual = 0;
 
-        //menghitung rating
         foreach($user->products as $p) {
             if($p->ulasan) {
                 foreach($p->ulasan as $u) {
@@ -295,7 +295,6 @@ class AdminController extends Controller
                 }
             }
             
-            // Menggunakan tabel 'detail_pesanan'
             try {
                 $terjual = \Illuminate\Support\Facades\DB::table('detail_pesanan')
                     ->where('produk_id', $p->id)
@@ -307,7 +306,6 @@ class AdminController extends Controller
         $rataRataToko = $totalUlasanToko > 0 ? number_format($totalRatingToko / $totalUlasanToko, 1) : '0.0';
         $persentase = $totalUlasanToko > 0 ? round(($totalRatingToko / ($totalUlasanToko * 5)) * 100) : 0;
 
-        // Mengambil data dari 'detail_pesanan' dan 'pesanan'
         $riwayatPesanan = [];
         try {
             $riwayatPesanan = \Illuminate\Support\Facades\DB::table('detail_pesanan')
@@ -318,7 +316,24 @@ class AdminController extends Controller
                 ->get();
         } catch (\Exception $e) { $riwayatPesanan = []; }
 
-        return view('admin.shop_detail', compact('user', 'rataRataToko', 'totalUlasanToko', 'persentase', 'totalTerjual', 'categories', 'riwayatPesanan'));
+        // === PAGINATION MANUAL 12 PRODUK (BARU) ===
+        $perPage = 12; 
+        $currentPage = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
+        $productsCollection = $user->products;
+        
+        $paginatedProducts = new \Illuminate\Pagination\LengthAwarePaginator(
+            $productsCollection->slice(($currentPage - 1) * $perPage, $perPage)->values(), 
+            $productsCollection->count(), 
+            $perPage, 
+            $currentPage, 
+            [
+                'path' => \Illuminate\Pagination\Paginator::resolveCurrentPath(),
+                'query' => request()->query() 
+            ]
+        );
+
+        // Tambahkan 'paginatedProducts' ke return view
+        return view('admin.shop_detail', compact('user', 'rataRataToko', 'totalUlasanToko', 'persentase', 'totalTerjual', 'categories', 'riwayatPesanan', 'paginatedProducts'));
     }
 
     // Function untuk melihat detail produk (Sama persis tampilan user)
@@ -331,42 +346,55 @@ class AdminController extends Controller
     }
 
     //---melihat riwayat pesanan spesifik di toko user---
-    public function showShopOrders($id)
+    // GANTI BARIS INI: Tambahkan \Illuminate\Http\Request $request
+    public function showShopOrders(\Illuminate\Http\Request $request, $id)
     {
         $user = \App\Models\User::findOrFail($id);
 
-        $riwayatPesanan = [];
-        try {
-            // 1. QUERY DASAR (Simpan ke variabel $query dulu)
-            $query = \Illuminate\Support\Facades\DB::table('detail_pesanan')
-                ->join('pesanan', 'detail_pesanan.pesanan_id', '=', 'pesanan.id')
-                ->join('produk', 'detail_pesanan.produk_id', '=', 'produk.id')
-                ->join('users', 'pesanan.user_id', '=', 'users.id')
-                ->where('produk.user_id', $id);
+        // Hapus Try-Catch agar tidak memalsukan error menjadi Array kosong
+        $query = \Illuminate\Support\Facades\DB::table('detail_pesanan')
+            ->join('pesanan', 'detail_pesanan.pesanan_id', '=', 'pesanan.id')
+            ->join('produk', 'detail_pesanan.produk_id', '=', 'produk.id')
+            ->join('users', 'pesanan.user_id', '=', 'users.id')
+            ->where('produk.user_id', $id);
 
-            // 2. FILTER STATUS (Cek jika user memilih status)
-            if (request()->filled('status')) {
-                $query->where('pesanan.status', request('status'));
-            }
-
-            // 3. EKSEKUSI & SIMPAN KE VARIABEL $riwayatPesanan
-            $riwayatPesanan = $query->select(
-                    'pesanan.id as order_id',
-                    'pesanan.created_at as tanggal',
-                    'pesanan.status',
-                    'users.name as pembeli',
-                    'users.profile_photo as foto_pembeli',
-                    'produk.nama_barang',
-                    'produk.foto_barang',
-                    'detail_pesanan.jumlah',
-                    'detail_pesanan.total_harga'
-                )
-                ->orderBy('pesanan.created_at', 'desc')
-                ->get();
-
-        } catch (\Exception $e) {
-            $riwayatPesanan = [];
+        // 1. FILTER STATUS
+        if ($request->filled('status')) {
+            $query->where('pesanan.status', $request->status);
         }
+
+        // 2. FILTER TANGGAL (BARU)
+        if ($request->filled('tanggal')) {
+            // whereDate digunakan karena format created_at di DB adalah 'YYYY-MM-DD HH:MM:SS'
+            // Kita hanya ingin mencocokkan 'YYYY-MM-DD' nya saja
+            $query->whereDate('pesanan.created_at', $request->tanggal);
+        }
+
+        // 3. FITUR PENCARIAN BARU (Produk & Pembeli)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('produk.nama_barang', 'like', '%' . $search . '%')
+                  ->orWhere('users.name', 'like', '%' . $search . '%');
+            });
+        }
+
+        // 3. EKSEKUSI & SIMPAN KE VARIABEL $riwayatPesanan MENGGUNAKAN PAGINATE
+        $riwayatPesanan = $query->select(
+                'pesanan.id as order_id',
+                'pesanan.user_id as pembeli_id',
+                'pesanan.created_at as tanggal',
+                'pesanan.status',
+                'users.name as pembeli',
+                'users.profile_photo as foto_pembeli',
+                'produk.nama_barang',
+                'produk.foto_barang',
+                'detail_pesanan.jumlah',
+                'detail_pesanan.total_harga'
+            )
+            ->orderBy('pesanan.created_at', 'desc')
+            ->paginate(15)->withQueryString(); 
+            // Angka 15 berarti membatasi 15 data per halaman
 
         return view('admin.shop_orders', compact('user', 'riwayatPesanan'));
     }

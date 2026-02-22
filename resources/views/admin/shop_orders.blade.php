@@ -23,26 +23,60 @@
         
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             
-            <div class="px-6 py-5 border-b border-gray-100 bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
-                <h3 class="font-bold text-gray-800 text-lg flex items-center gap-2">
+            <div class="px-6 py-5 border-b border-gray-100 bg-gray-50 flex flex-col lg:flex-row justify-between items-center gap-4">
+                <h3 class="font-bold text-gray-800 text-lg flex items-center gap-2 whitespace-nowrap">
                     <span>📄</span> Daftar Transaksi
                 </h3>
 
-                <div class="flex items-center gap-3">
-                    <form method="GET" action="{{ route('admin.users.shop.orders', $user->id) }}">
-                        <select name="status" onchange="this.form.submit()" class="bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2 cursor-pointer shadow-sm">
-                            <option value="">Semua Status</option>
-                            <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                            <option value="dikirim" {{ request('status') == 'dikirim' ? 'selected' : '' }}>Dikirim</option>
-                            <option value="selesai" {{ request('status') == 'selesai' ? 'selected' : '' }}>Selesai</option>
-                            <option value="batal" {{ request('status') == 'batal' ? 'selected' : '' }}>Batal</option>
-                        </select>
-                    </form>
+                <form method="GET" action="{{ route('admin.users.shop.orders', $user->id) }}" class="flex-1 w-full flex flex-col sm:flex-row items-center gap-3 lg:justify-end">
+                    
+                    <input 
+                        type="date" 
+                        name="tanggal" 
+                        value="{{ request('tanggal') }}" 
+                        class="w-full sm:w-auto bg-white border border-gray-300 text-gray-600 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 cursor-pointer shadow-sm transition"
+                        onchange="this.form.submit()"
+                        title="Filter berdasarkan tanggal"
+                    >
 
-                    <span class="bg-purple-100 text-purple-700 text-xs font-bold px-3 py-2 rounded-lg border border-purple-200">
-                        Total: {{ count($riwayatPesanan) }}
-                    </span>
-                </div>
+                    <div class="relative w-full sm:max-w-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="w-4 h-4 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                            </svg>
+                        </div>
+                        <input 
+                            type="text" 
+                            name="search" 
+                            value="{{ request('search') }}" 
+                            class="block w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition" 
+                            placeholder="Cari nama produk atau pembeli..." 
+                            onchange="this.form.submit()"
+                        >
+                    </div>
+
+                    <select name="status" onchange="this.form.submit()" class="w-full sm:w-auto bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2 cursor-pointer shadow-sm">
+                        <option value="">Semua Status</option>
+                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="dikirim" {{ request('status') == 'dikirim' ? 'selected' : '' }}>Dikirim</option>
+                        <option value="selesai" {{ request('status') == 'selesai' ? 'selected' : '' }}>Selesai</option>
+                        <option value="batal" {{ request('status') == 'batal' ? 'selected' : '' }}>Batal</option>
+                    </select>
+
+                    @if(request('search') || request('status') || request('tanggal'))
+                        <a href="{{ route('admin.users.shop.orders', $user->id) }}" class="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 font-bold text-sm rounded-lg hover:bg-red-100 transition shadow-sm border border-red-200 whitespace-nowrap" title="Hapus semua filter">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Reset
+                        </a>
+                    @endif
+
+                </form>
+
+                <span class="bg-purple-100 text-purple-700 text-xs font-bold px-3 py-2 rounded-lg border border-purple-200 whitespace-nowrap">
+                    Total: {{ $riwayatPesanan->total() }}
+                </span>
             </div>
 
             <div class="overflow-x-auto">
@@ -84,9 +118,16 @@
                                                 <div class="flex items-center justify-center h-full text-gray-300 text-xs">No img</div>
                                             @endif
                                         </div>
-                                        <span class="font-bold text-gray-700 line-clamp-2 max-w-[180px]" title="{{ $order->nama_barang }}">
-                                            {{ $order->nama_barang }}
-                                        </span>
+                                        
+                                        <div class="flex flex-col">
+                                            <span class="text-[10px] font-bold text-indigo-600 mb-0.5 bg-indigo-50 px-1.5 py-0.5 rounded w-fit border border-indigo-100">
+                                                INV-{{ \Carbon\Carbon::parse($order->tanggal)->timestamp }}-{{ $order->pembeli_id }}
+                                            </span>
+                                            <span class="font-bold text-gray-700 line-clamp-2 max-w-[180px]" title="{{ $order->nama_barang }}">
+                                                {{ $order->nama_barang }}
+                                            </span>
+                                        </div>
+                                        
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
@@ -142,6 +183,33 @@
                     </tbody>
                 </table>
             </div>
+            @if($riwayatPesanan->hasPages())
+            <div class="p-6 border-t border-gray-100 bg-white flex justify-center rounded-b-xl">
+                <div class="flex items-center gap-4 text-sm font-medium">
+                    
+                    @if (!$riwayatPesanan->onFirstPage())
+                        <a href="{{ $riwayatPesanan->previousPageUrl() }}" class="text-indigo-600 hover:text-indigo-800 transition">« Sebelumnya</a>
+                    @endif
+
+                    <div class="flex items-center gap-4">
+                        @foreach(range(1, $riwayatPesanan->lastPage()) as $i)
+                            @if($i >= $riwayatPesanan->currentPage() - 2 && $i <= $riwayatPesanan->currentPage() + 2)
+                                @if($i == $riwayatPesanan->currentPage())
+                                    <span class="text-white font-bold text-sm bg-indigo-600 w-8 h-8 flex items-center justify-center rounded-full shadow-md">{{ $i }}</span>
+                                @else
+                                    <a href="{{ $riwayatPesanan->url($i) }}" class="text-gray-500 hover:text-indigo-600 font-bold transition w-8 h-8 flex items-center justify-center rounded-full hover:bg-indigo-50 border border-transparent">{{ $i }}</a>
+                                @endif
+                            @endif
+                        @endforeach
+                    </div>
+
+                    @if ($riwayatPesanan->hasMorePages())
+                        <a href="{{ $riwayatPesanan->nextPageUrl() }}" class="text-indigo-600 hover:text-indigo-800 transition">Berikutnya »</a>
+                    @endif
+                    
+                </div>
+            </div>
+            @endif
         </div>
     </div>
 

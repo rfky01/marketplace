@@ -134,9 +134,9 @@
                                 </div>
                             </a>
                             
-                            <a href="{{ route('admin.chats', $product->user_id) }}" class="px-4 py-2 bg-white border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition shadow-sm font-bold text-sm ml-auto cursor-pointer">
+                            <button type="button" onclick="openCenterChat({{ $product->user_id }}, '{{ addslashes($product->user->name) }}')" class="px-4 py-2 bg-white border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition shadow-sm font-bold text-sm ml-auto cursor-pointer">
                                 Chat Penjual
-                            </a>
+                            </button>
                         </div>
                     </div>
 
@@ -202,6 +202,6 @@
         </div>
 
     </div>
-
+    @include('admin.popup.chat_popup_center')
 </body>
 </html>

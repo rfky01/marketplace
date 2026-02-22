@@ -308,6 +308,6 @@
         });
     </script>
     
-    @include('admin.chat_popup')
+    @include('admin.popup.chat_popup')
 </body>
 </html>

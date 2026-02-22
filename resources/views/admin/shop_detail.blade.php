@@ -60,12 +60,12 @@
                         <p class="text-gray-500 text-sm mb-2">{{ $user->email }}</p>
                         
                         <div class="mt-1">
-                            <a href="{{ route('admin.chats', $user->id) }}" class="bg-green-100 text-green-700 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-green-200 transition cursor-pointer inline-flex items-center gap-1">
+                            <button type="button" onclick="openCenterChat({{ $user->id }}, '{{ addslashes($user->name) }}')" class="bg-green-100 text-green-700 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-green-200 transition cursor-pointer inline-flex items-center gap-1">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                                 </svg>
                                 Chat Penjual
-                            </a>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -297,6 +297,36 @@
                 </a>
                 @endforeach
             </div>
+            
+            @if($paginatedProducts->hasPages())
+            <div class="mt-10 mb-4 flex justify-center">
+                <div class="flex items-center gap-4 text-sm font-medium bg-white px-6 py-3 rounded-2xl shadow-sm border border-gray-200">
+                    
+                    {{-- Tombol Sebelumnya --}}
+                    @if (!$paginatedProducts->onFirstPage())
+                        <a href="{{ $paginatedProducts->previousPageUrl() }}" class="text-blue-600 hover:text-blue-800 transition font-bold">« Sebelumnya</a>
+                    @endif
+
+                    {{-- Angka Halaman --}}
+                    <div class="flex items-center gap-2">
+                        @foreach(range(1, $paginatedProducts->lastPage()) as $i)
+                            @if($i >= $paginatedProducts->currentPage() - 2 && $i <= $paginatedProducts->currentPage() + 2)
+                                @if($i == $paginatedProducts->currentPage())
+                                    <span class="text-white font-bold text-sm bg-blue-600 w-8 h-8 flex items-center justify-center rounded-full shadow-md">{{ $i }}</span>
+                                @else
+                                    <a href="{{ $paginatedProducts->url($i) }}" class="text-gray-500 hover:text-blue-600 font-bold transition w-8 h-8 flex items-center justify-center rounded-full hover:bg-blue-50 border border-transparent hover:border-blue-100">{{ $i }}</a>
+                                @endif
+                            @endif
+                        @endforeach
+                    </div>
+
+                    {{-- Tombol Berikutnya --}}
+                    @if ($paginatedProducts->hasMorePages())
+                        <a href="{{ $paginatedProducts->nextPageUrl() }}" class="text-blue-600 hover:text-blue-800 transition font-bold">Berikutnya »</a>
+                    @endif
+                </div>
+            </div>
+            @endif
         @else
             <div class="flex flex-col items-center justify-center py-20 bg-white rounded-xl shadow-sm">
                 <div class="bg-gray-50 p-6 rounded-full mb-4">
@@ -309,6 +339,6 @@
         @endif
 
     </div>
-
+    @include('admin.popup.chat_popup_center')
 </body>
 </html>
