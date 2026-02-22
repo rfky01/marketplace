@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Semua Produk - Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
@@ -25,12 +23,51 @@
                 <h1 class="text-xl font-bold border-l border-white/20 pl-4">Semua Produk Marketplace</h1>
             </div>
             <div class="text-sm font-medium bg-white/10 px-4 py-2 rounded-lg">
-                Total: {{ $products->count() }} Produk
+                Total: {{ $products->total() ?? 0 }} Produk
             </div>
         </div>
     </nav>
 
     <div class="container mx-auto px-4 mt-8">
+        
+        <div class="mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <form method="GET" action="{{ route('admin.products') ?? url()->current() }}" class="flex flex-col md:flex-row justify-between items-center gap-4">
+                
+                <div class="w-full md:flex-1 relative flex items-center">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <svg class="w-5 h-5 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <input 
+                        type="text" 
+                        name="search" 
+                        value="{{ request('search') }}" 
+                        class="block w-full pl-12 pr-4 py-3 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition shadow-inner" 
+                        placeholder="Cari nama produk, kategori, atau nama penjual..." 
+                        onchange="this.form.submit()"
+                    >
+                </div>
+
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <select name="sort" onchange="this.form.submit()" class="bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full md:w-40 py-3 px-3 cursor-pointer shadow-sm transition outline-none hover:bg-gray-50">
+                        <option value="">Terbaru</option>
+                        <option value="lowest" {{ request('sort') == 'lowest' ? 'selected' : '' }}>Harga Termurah</option>
+                        <option value="highest" {{ request('sort') == 'highest' ? 'selected' : '' }}>Harga Termahal</option>
+                    </select>
+
+                    @if(request('search') || request('sort'))
+                        <a href="{{ route('admin.products') ?? url()->current() }}" class="flex items-center justify-center gap-2 text-sm font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-4 py-3 rounded-lg transition border border-red-100 shadow-sm whitespace-nowrap">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Reset
+                        </a>
+                    @endif
+                </div>
+
+            </form>
+        </div>
         
         @if($products->isEmpty())
             <div class="bg-white p-12 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center mt-10">
@@ -38,14 +75,16 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                 </svg>
                 <h3 class="text-lg font-bold text-gray-700">Belum Ada Produk</h3>
-                <p class="text-gray-500 text-sm mt-1">Saat ini belum ada penjual yang mengunggah produk.</p>
+                <p class="text-gray-500 text-sm mt-1">
+                    {!! request('search') ? 'Tidak ada produk yang cocok dengan pencarian Anda.' : 'Saat ini belum ada penjual yang mengunggah produk.' !!}
+                </p>
             </div>
         @else
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                 @foreach($products as $product)
                     
                     @php
-                        // LOGIKA PHP UNTUK MEMPROSES FOTO JSON KE ARRAY
+                        // FOTO BARANG
                         $rawFoto = $product->foto_barang;
                         $fotos = [];
 
@@ -60,94 +99,150 @@
                             $fotos = $rawFoto;
                         }
 
-                        // Bersihkan path 'public/' dari setiap foto
                         $fotos = array_map(function($f) {
                             return str_replace('public/', '', $f);
                         }, $fotos);
                         
-                        // Default jika kosong
                         if (empty($fotos)) $fotos = [null]; 
+
+                        // RATING OTOMATIS DARI ELOQUENT
+                        $jumlahUlasan = $product->ulasan ? $product->ulasan->count() : 0; 
+                        $rataRata = $jumlahUlasan > 0 ? number_format($product->ulasan->avg('rating'), 1) : '0.0';
                     @endphp
 
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col group">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 flex flex-col group relative">
                         
-                        <div x-data="{ activeSlide: 0, slides: {{ count($fotos) }} }" class="aspect-square bg-gray-100 relative overflow-hidden group/slider">
-                            
-                            @foreach($fotos as $index => $foto)
-                                <div x-show="activeSlide === {{ $index }}" 
-                                     class="absolute inset-0 w-full h-full transition-opacity duration-300"
-                                     x-transition:enter="transition ease-out duration-300"
-                                     x-transition:enter-start="opacity-0"
-                                     x-transition:enter-end="opacity-100"
-                                     x-transition:leave="transition ease-in duration-300"
-                                     x-transition:leave-start="opacity-100"
-                                     x-transition:leave-end="opacity-0">
-                                    
-                                    @if($foto)
-                                        <img src="{{ asset('storage/' . $foto) }}" alt="{{ $product->nama_barang }}" class="w-full h-full object-cover">
-                                    @else
-                                        <div class="w-full h-full flex items-center justify-center text-gray-400 bg-gray-50">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                        </div>
-                                    @endif
-                                </div>
-                            @endforeach
+                        <a href="{{ route('admin.products.show', $product->id) }}" class="block relative">
+                            <div x-data="{ activeSlide: 0, slides: {{ count($fotos) }} }" class="aspect-square bg-gray-100 relative overflow-hidden group/slider">
+                                
+                                @foreach($fotos as $index => $foto)
+                                    <div x-show="activeSlide === {{ $index }}" 
+                                         class="absolute inset-0 w-full h-full transition-opacity duration-300"
+                                         x-transition:enter="transition ease-out duration-300"
+                                         x-transition:enter-start="opacity-0"
+                                         x-transition:enter-end="opacity-100"
+                                         x-transition:leave="transition ease-in duration-300"
+                                         x-transition:leave-start="opacity-100"
+                                         x-transition:leave-end="opacity-0">
+                                        
+                                        @if($foto)
+                                            <img src="{{ asset('storage/' . $foto) }}" alt="{{ $product->nama_barang }}" class="w-full h-full object-cover">
+                                        @else
+                                            <div class="w-full h-full flex items-center justify-center text-gray-400 bg-gray-50">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endforeach
 
-                            @if(count($fotos) > 1)
-                                <button @click.prevent="activeSlide = activeSlide === 0 ? slides - 1 : activeSlide - 1" 
-                                        class="absolute left-1 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 rounded-full p-1 shadow-md opacity-0 group-hover/slider:opacity-100 transition duration-200 z-20">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                                    </svg>
-                                </button>
+                                @if($product->stok_barang <= 0)
+                                    <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
+                                        <span class="text-white font-bold text-xs bg-red-600 px-2 py-1 rounded">HABIS</span>
+                                    </div>
+                                @endif
 
-                                <button @click.prevent="activeSlide = activeSlide === slides - 1 ? 0 : activeSlide + 1" 
-                                        class="absolute right-1 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 rounded-full p-1 shadow-md opacity-0 group-hover/slider:opacity-100 transition duration-200 z-20">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                    </svg>
-                                </button>
+                                @if(count($fotos) > 1)
+                                    <button @click.prevent="activeSlide = activeSlide === 0 ? slides - 1 : activeSlide - 1" 
+                                            class="absolute left-1 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 rounded-full p-1 shadow-md opacity-0 group-hover/slider:opacity-100 transition duration-200 z-20">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                                    </button>
 
-                                <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-1 z-20">
-                                    <template x-for="i in slides">
-                                        <div class="w-1.5 h-1.5 rounded-full transition-colors duration-200 shadow-sm"
-                                             :class="activeSlide === i - 1 ? 'bg-white' : 'bg-white/50'"></div>
-                                    </template>
-                                </div>
-                            @endif
-                            
-                            <div class="absolute top-2 right-2 {{ $product->stok_barang > 0 ? 'bg-green-500' : 'bg-red-500' }} text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm z-30">
-                                Stok: {{ $product->stok_barang }}
+                                    <button @click.prevent="activeSlide = activeSlide === slides - 1 ? 0 : activeSlide + 1" 
+                                            class="absolute right-1 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 rounded-full p-1 shadow-md opacity-0 group-hover/slider:opacity-100 transition duration-200 z-20">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                                    </button>
+
+                                    <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-1 z-20">
+                                        <template x-for="i in slides">
+                                            <div class="w-1.5 h-1.5 rounded-full transition-colors duration-200 shadow-sm"
+                                                 :class="activeSlide === i - 1 ? 'bg-white' : 'bg-white/50'"></div>
+                                        </template>
+                                    </div>
+                                @endif
                             </div>
-                        </div>
+                        </a>
 
-                        <div class="p-4 flex flex-col flex-1">
-                            <h3 class="font-bold text-gray-800 text-sm mb-1 line-clamp-2" title="{{ $product->nama_barang }}">
-                                {{ $product->nama_barang }}
-                            </h3>
-                            <p class="text-indigo-600 font-extrabold text-lg mt-auto mb-2">
-                                Rp {{ number_format($product->harga_barang, 0, ',', '.') }}
-                            </p>
+                        <div class="p-3 flex flex-col flex-1">
                             
-                            <div class="pt-3 border-t border-gray-100 mt-2 flex items-center gap-2">
-                                <div class="w-6 h-6 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
-                                    @if($product->penjual_photo)
-                                        <img src="{{ asset('storage/' . $product->penjual_photo) }}" class="w-full h-full object-cover">
-                                    @else
-                                        <div class="w-full h-full flex items-center justify-center bg-indigo-100 text-indigo-700 text-[10px] font-bold">
-                                            {{ substr($product->penjual_name ?? '?', 0, 1) }}
-                                        </div>
-                                    @endif
-                                </div>
-                                <span class="text-xs text-gray-500 truncate" title="{{ $product->penjual_name ?? 'Anonim' }}">
-                                    {{ $product->penjual_name ?? 'Penjual Anonim' }}
+                            <a href="{{ route('admin.products.show', $product->id) }}" class="block">
+                                <h3 class="text-sm font-semibold text-gray-800 mb-1 line-clamp-2 leading-snug hover:text-indigo-600 transition min-h-[40px]" title="{{ $product->nama_barang }}">
+                                    {{ $product->nama_barang }}
+                                </h3>
+                            </a>
+
+                            <div class="mb-1 pointer-events-none">
+                                <span class="text-gray-800 font-bold text-base">
+                                    Rp {{ number_format($product->harga_barang, 0, ',', '.') }}
                                 </span>
                             </div>
+
+                            <p class="text-[10px] text-gray-500 uppercase tracking-wide font-medium mb-3 pointer-events-none">
+                                {{ $product->kategori }}
+                            </p>
+                            
+                            <div class="flex items-center gap-1 mb-2 pointer-events-none">
+                                <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
+                                <span class="text-xs font-bold text-gray-600">{{ $rataRata }}</span>
+                                <span class="text-[10px] text-gray-400">({{ $jumlahUlasan }})</span>
+                            </div>
+
+                            <div class="pt-3 border-t border-gray-100 mt-auto flex items-center justify-between gap-2">
+                                
+                                <a href="{{ route('admin.users.profile', $product->user_id) }}" class="flex items-center gap-2 overflow-hidden hover:opacity-75 transition group/profil" title="Lihat profil: {{ $product->user->name ?? 'Anonim' }}">
+                                    <div class="w-6 h-6 rounded-full bg-gray-200 overflow-hidden flex-shrink-0 group-hover/profil:ring-2 ring-indigo-400 transition">
+                                        @if($product->user && $product->user->profile_photo)
+                                            <img src="{{ asset('storage/' . $product->user->profile_photo) }}" class="w-full h-full object-cover">
+                                        @else
+                                            <div class="w-full h-full flex items-center justify-center bg-indigo-100 text-indigo-700 text-[10px] font-bold">
+                                                {{ substr($product->user->name ?? '?', 0, 1) }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <span class="text-xs font-medium text-gray-500 truncate group-hover/profil:text-indigo-600 transition">
+                                        {{ explode(' ', $product->user->name ?? 'Penjual')[0] }}
+                                    </span>
+                                </a>
+                                <span class="text-[10px] bg-blue-100 text-blue-900 px-1.5 py-0.5 rounded font-bold flex-shrink-0 pointer-events-none">
+                                    Stok {{ $product->stok_barang }}
+                                </span>
+                            </div>
+
                         </div>
 
                     </div>
                 @endforeach
             </div>
+
+            @if($products->hasPages())
+            <div class="mt-12 flex justify-center pb-4">
+                <div class="flex items-center gap-4 text-sm font-medium bg-white px-6 py-3 rounded-2xl shadow-sm border border-gray-200">
+                    
+                    @if (!$products->onFirstPage())
+                        <a href="{{ $products->previousPageUrl() }}" class="text-indigo-600 hover:text-indigo-800 transition font-bold">« Sebelumnya</a>
+                    @endif
+
+                    <div class="flex items-center gap-2">
+                        @foreach(range(1, $products->lastPage()) as $i)
+                            @if($i >= $products->currentPage() - 2 && $i <= $products->currentPage() + 2)
+                                @if($i == $products->currentPage())
+                                    <span class="text-white font-bold text-sm bg-indigo-600 w-8 h-8 flex items-center justify-center rounded-full shadow-md">{{ $i }}</span>
+                                @else
+                                    <a href="{{ $products->url($i) }}" class="text-gray-500 hover:text-indigo-600 font-bold transition w-8 h-8 flex items-center justify-center rounded-full hover:bg-indigo-50 border border-transparent">{{ $i }}</a>
+                                @endif
+                            @endif
+                        @endforeach
+                    </div>
+
+                    @if ($products->hasMorePages())
+                        <a href="{{ $products->nextPageUrl() }}" class="text-indigo-600 hover:text-indigo-800 transition font-bold">Berikutnya »</a>
+                    @endif
+                    
+                </div>
+            </div>
+            @endif
+
         @endif
 
     </div>

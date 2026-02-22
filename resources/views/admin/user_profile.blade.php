@@ -10,13 +10,38 @@
 </head>
 <body class="bg-gray-100 font-sans min-h-screen pb-10">
 
+    @php
+        $prevUrl = url()->previous();
+        
+        // Atur fallback jika halaman ini di-refresh (mencegah tombol kembali ke halaman ini sendiri)
+        if ($prevUrl === url()->current()) {
+            $backUrl = route('admin.users'); // Default: Kembali ke kelola pengguna
+            $backText = 'Kembali ke Daftar Pengguna';
+        } else {
+            $backUrl = $prevUrl;
+            
+            // Deteksi teks cerdas berdasarkan URL asal
+            if (str_contains($prevUrl, '/shop')) {
+                $backText = 'Kembali ke Etalase Toko';
+            } elseif (str_contains($prevUrl, '/products/')) {
+                $backText = 'Kembali ke Detail Produk';
+            } elseif (str_contains($prevUrl, '/products')) {
+                $backText = 'Kembali ke Semua Produk';
+            } elseif (str_contains($prevUrl, '/users')) {
+                $backText = 'Kembali ke Kelola Pengguna';
+            } else {
+                $backText = 'Kembali';
+            }
+        }
+    @endphp
+
     <nav class="bg-indigo-900 text-white p-4 shadow-lg sticky top-0 z-50">
         <div class="container mx-auto flex items-center gap-4">
-            <a href="{{ route('admin.users.shop', $user->id) }}" class="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded-lg transition">
+            <a href="{{ $backUrl }}" class="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded-lg transition">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
                 </svg>
-                <span class="font-bold text-sm">Kembali ke Toko</span>
+                <span class="font-bold text-sm">{{ $backText }}</span>
             </a>
             <h1 class="text-xl font-bold border-l border-indigo-700 pl-4 ml-2">Detail Pengguna Lengkap</h1>
         </div>

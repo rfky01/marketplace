@@ -14,14 +14,34 @@
 </head>
 <body class="bg-blue-50 min-h-screen pb-20">
 
+    @php
+        $prevUrl = url()->previous();
+        
+        // 1. SIMPAN JEJAK KE MEMORI (SESSION):
+        // Jika Admin datang dari "Semua Produk", simpan URL pencariannya.
+        if (str_contains($prevUrl, '/products') && !str_contains($prevUrl, '/products/' . $product->id)) {
+            session(['product_back_url' => $prevUrl, 'product_back_text' => 'Kembali ke Semua Produk']);
+        } 
+        // Jika Admin datang dari "Etalase Toko", simpan URL pencariannya.
+        elseif (str_contains($prevUrl, '/shop')) {
+            session(['product_back_url' => $prevUrl, 'product_back_text' => 'Kembali ke Toko']);
+        }
+        
+        // 2. AMBIL JEJAK DARI MEMORI:
+        // Jika Admin kembali dari "Profil", kondisi if di atas akan terabaikan (karena URL-nya /profile).
+        // Hasilnya? Memori (Session) tidak tertimpa, dan Admin tetap kembali ke jejak aslinya dengan sempurna!
+        $backUrl = session('product_back_url', route('admin.users.shop', $product->user_id));
+        $backText = session('product_back_text', 'Kembali ke Toko');
+    @endphp
+
     <nav class="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
         <div class="max-w-7xl mx-auto h-16 flex items-center justify-between px-4 lg:px-8">
             <div class="flex items-center gap-4">
-                <a href="{{ route('admin.users.shop', $product->user_id) }}" class="flex items-center gap-2 text-gray-500 hover:text-blue-900 transition">
+                <a href="{{ $backUrl }}" class="flex items-center gap-2 text-gray-500 hover:text-blue-900 transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
-                    <span class="font-bold text-sm">Kembali ke Toko</span>
+                    <span class="font-bold text-sm">{{ $backText }}</span>
                 </a>
             </div>
             <div class="flex items-center gap-6">

@@ -400,24 +400,48 @@ class AdminController extends Controller
     }
 
     // --- Menampilkan Semua Produk (Untuk Admin) ---
-    public function allProducts()
+    public function allProducts(\Illuminate\Http\Request $request)
     {
-        // Menggunakan DB::table agar terhindar dari error Model Not Found
-        $products = \Illuminate\Support\Facades\DB::table('produk')
-            ->leftJoin('users', 'produk.user_id', '=', 'users.id')
-            ->select(
-                'produk.*', 
-                'users.name as penjual_name', 
-                'users.profile_photo as penjual_photo'
-            )
-            ->orderBy('produk.created_at', 'desc')
-            ->get();
+        // 1. GUNAKAN ELOQUENT MURNI: Memanggil data relasi 'user' dan 'ulasan'
+        $query = \App\Models\Produk::with(['user', 'ulasan']);
+
+        // 2. FITUR PENCARIAN
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                
+                // A. Cari berdasarkan nama produk atau kategori (di tabel produk)
+                $q->where('nama_barang', 'ilike', '%' . $search . '%')
+                  ->orWhere('kategori', 'ilike', '%' . $search . '%')
+                  
+                  // B. Cari berdasarkan nama penjual (di tabel users) menggunakan "orWhereHas"
+                  ->orWhereHas('user', function($userQuery) use ($search) {
+                      $userQuery->where('name', 'like', '%' . $search . '%');
+                  });
+            });
+        }
+
+        // 3. FITUR PENGURUTAN HARGA
+        if ($request->filled('sort')) {
+            if ($request->sort == 'lowest') {
+                $query->orderBy('harga_barang', 'asc'); // Termurah
+            } elseif ($request->sort == 'highest') {
+                $query->orderBy('harga_barang', 'desc'); // Termahal
+            } else {
+                $query->latest(); // Default: Terbaru
+            }
+        } else {
+            $query->latest(); // Default jika tidak ada filter
+        }
+
+        // 4. AMBIL DATA (PAGINATION)
+        $products = $query->latest()
+                          ->paginate(15)
+                          ->withQueryString();
 
         return view('admin.admin_products', compact('products'));
     }
 
-    // --- Menampilkan Semua Transaksi (Untuk Admin) ---
-   // --- Menampilkan Semua Transaksi (Untuk Admin) ---
     // --- Menampilkan Semua Transaksi (Untuk Admin) ---
     public function allTransactions(\Illuminate\Http\Request $request)
     {
