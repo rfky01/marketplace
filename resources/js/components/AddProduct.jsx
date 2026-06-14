@@ -10,9 +10,8 @@ export default function AddProduct() {
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
     const [stock, setStock] = useState('');
-    const [dbCategories, setDbCategories] = useState([]);
-    const [category, setCategory] = useState('');
     const [description, setDescription] = useState('');
+    const [predictedCategory, setPredictedCategory] = useState('');
     
     // State Khusus Upload & Loading (TETAP SAMA)
     const [files, setFiles] = useState([]); 
@@ -168,10 +167,7 @@ export default function AddProduct() {
     // handleSubmit (TETAP SAMA PERSIS LOGIKANYA)
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!category) {
-            alert("Harap pilih Kategori Produk!");
-            return;
-        }
+        
         setIsLoading(true); 
         setErrors([]);
 
@@ -180,7 +176,6 @@ export default function AddProduct() {
         formData.append('nama_barang', name);
         formData.append('harga_barang', cleanPrice);
         formData.append('stok_barang', stock);
-        formData.append('kategori', category);
         formData.append('deskripsi', description);
 
         files.forEach((file) => {
@@ -202,6 +197,7 @@ export default function AddProduct() {
             const result = await response.json();
 
             if (response.ok) {
+                setPredictedCategory(result.kategori_otomatis || result.data?.kategori || '');
                 setShowSuccessModal(true);
             } else {
                 setErrors(result.errors || { message: [result.message] });
@@ -215,19 +211,6 @@ export default function AddProduct() {
         }
     };
 
-    useEffect(() => {
-    // Panggil API Laravel yang baru kita buat
-    fetch('http://127.0.0.1:8000/api/categories')
-        .then(response => response.json())
-        .then(data => {
-            setDbCategories(data); // Simpan data ke state
-            // Jika user belum pilih kategori, set default ke item pertama
-            if (data.length > 0) {
-                // Opsional: setCategory(data[0].nama_kategori); 
-            }
-        })
-        .catch(error => console.error('Error fetching categories:', error));
-}, []);
 
     return (
         <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6 relative">
@@ -286,21 +269,11 @@ export default function AddProduct() {
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-                        <select 
-                            value={category} 
-                            onChange={(e) => setCategory(e.target.value)} 
-                            className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 bg-white"
-                            required
-                        >
-                            <option value="">-- Pilih Kategori --</option>
-                            {dbCategories.map((item) => (
-                                <option key={item.id} value={item.nama_kategori}>
-                                    {item.nama_kategori}
-                                </option>
-                            ))}
-                        </select>
+                    <div className="bg-blue-50 border border-blue-200 text-blue-800 p-3 rounded">
+                        <p className="text-sm font-semibold">Kategori Produk Otomatis</p>
+                        <p className="text-sm">
+                            Kategori produk akan ditentukan otomatis oleh sistem berdasarkan nama barang dan deskripsi produk menggunakan algoritma Decision Tree.
+                        </p>
                     </div>
 
                     <div>
@@ -365,6 +338,11 @@ export default function AddProduct() {
                         <p className="text-gray-600 text-sm mb-6 leading-relaxed">
                             Produk Anda berhasil ditambahkan dan siap dijual.
                         </p>
+                        {predictedCategory && (
+                            <p className="text-sm text-blue-700 font-semibold mt-2">
+                                Kategori otomatis: {predictedCategory}
+                            </p>
+                        )}
                         <button 
                             onClick={() => navigate('/')} 
                             className="w-full py-3 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition shadow-lg"

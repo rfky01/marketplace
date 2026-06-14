@@ -12,7 +12,7 @@ export default function EditProduct() {
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
     const [stock, setStock] = useState('');
-    const [category, setCategory] = useState('Elektronik');
+    const [predictedCategory, setPredictedCategory] = useState('');
     const [description, setDescription] = useState('');
     const [image, setImage] = useState(null); 
     const [previewImage, setPreviewImage] = useState(''); 
@@ -56,7 +56,7 @@ export default function EditProduct() {
                 setName(p.nama_barang);
                 setPrice(p.harga_barang);
                 setStock(p.stok_barang);
-                setCategory(p.kategori);
+                setPredictedCategory(p.kategori || '');
                 setDescription(p.deskripsi);
                 setPreviewImage(p.foto_barang);
 
@@ -134,7 +134,6 @@ export default function EditProduct() {
         formData.append('nama_barang', name);
         formData.append('harga_barang', price);
         formData.append('stok_barang', stock);
-        formData.append('kategori', category);
         formData.append('deskripsi', description);
         
         formData.append('_method', 'PUT'); 
@@ -164,14 +163,28 @@ export default function EditProduct() {
             const data = await response.json();
 
             if (response.ok) {
-                setToast({ show: true, message: "Produk berhasil diupdate!", type: 'success' });
-                setTimeout(() => {
-                    navigate('/my-products');
-                }, 1500); 
-            } else {
-                setErrors(data.errors || { message: [data.message] });
-                setToast({ show: true, message: "Gagal update produk", type: 'error' });
-            }
+            const kategoriOtomatis = data.kategori_otomatis || data.data?.kategori || '-';
+
+            setPredictedCategory(kategoriOtomatis);
+
+            setToast({ 
+                show: true, 
+                message: `Produk berhasil diupdate! Kategori otomatis: ${kategoriOtomatis}`, 
+                type: 'success' 
+            });
+
+            setTimeout(() => {
+                navigate('/my-products');
+            }, 2000);
+
+        } else {
+            setErrors(data.errors || { message: [data.message] });
+            setToast({ 
+                show: true, 
+                message: "Gagal update produk", 
+                type: 'error' 
+            });
+        }
         } catch (error) {
             console.error("Error updating:", error);
             setToast({ show: true, message: "Terjadi kesalahan sistem", type: 'error' });
@@ -213,17 +226,14 @@ export default function EditProduct() {
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Kategori</label>
-                        <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border p-2 rounded bg-white">
-                            <option value="Buku">Buku</option>
-                            <option value="Pakaian">Pakaian</option>
-                            <option value="Makanan">Makanan</option>
-                            <option value="Perlengkapan">Perlengkapan</option>
-                            <option value="Elektronik">Elektronik</option>
-                            <option value="Kecantikan">Kecantikan</option>
-                            <option value="Lainya...">Lainya...</option>
-                        </select>
+                    <div className="bg-blue-50 border border-blue-200 text-blue-800 p-3 rounded">
+                        <p className="text-sm font-semibold">Kategori Produk Otomatis</p>
+                        <p className="text-sm">
+                            Kategori saat ini: <b>{predictedCategory || '-'}</b>
+                        </p>
+                        <p className="text-sm mt-1">
+                            Jika nama barang atau deskripsi diubah, kategori akan diperbarui otomatis oleh sistem menggunakan algoritma Decision Tree.
+                        </p>
                     </div>
 
                     <div>

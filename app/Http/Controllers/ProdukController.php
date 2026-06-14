@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Http;
 
 class ProdukController extends Controller
 {
@@ -95,50 +96,89 @@ class ProdukController extends Controller
 
     // 3. UPLOAD BARANG BARU (Khusus Penjual)
     public function store(Request $request)
-    {
-        // --- Definisi Validator yang Benar ---
+{
+        // Validasi input produk
+        // Kategori tidak lagi divalidasi dari input frontend,
+        // karena kategori akan dihasilkan otomatis oleh model Decision Tree.
         $validator = Validator::make($request->all(), [
-            'nama_barang'  => 'required|string',
-            'harga_barang' => 'required|numeric',
-            'stok_barang'  => 'required|integer',
-            'kategori'     => 'required|string',
-            'deskripsi'    => 'required|string',
-            'foto_barang'  => 'required', 
-            'foto_barang.*'=> 'image|mimes:jpeg,png,jpg,gif|max:2048'
+            'nama_barang'   => 'required|string',
+            'harga_barang'  => 'required|numeric',
+            'stok_barang'   => 'required|integer',
+            'deskripsi'     => 'required|string',
+            'foto_barang'   => 'required',
+            'foto_barang.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // --- LOGIKA UPLOAD MULTIPLE ---
+        // Mengirim nama produk dan deskripsi ke Python API Decision Tree
+        try {
+            $mlResponse = Http::timeout(15)->post(config('services.ml_api.url'), [
+                'nama_produk' => $request->nama_barang,
+                'deskripsi_produk' => $request->deskripsi,
+            ]);
+
+            if (!$mlResponse->successful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal mendapatkan hasil klasifikasi dari Python API.',
+                    'error' => $mlResponse->body()
+                ], 500);
+            }
+
+            $kategoriPrediksi = $mlResponse->json('kategori');
+
+            $kategoriValid = ['makanan', 'kerajinan', 'pertanian', 'perikanan'];
+
+            if (!$kategoriPrediksi || !in_array($kategoriPrediksi, $kategoriValid)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kategori hasil prediksi tidak valid.',
+                    'kategori_diterima' => $kategoriPrediksi
+                ], 500);
+            }
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Laravel gagal terhubung ke Python API Decision Tree.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+
+        // Upload foto produk
         $fotoPaths = [];
         if ($request->hasFile('foto_barang')) {
-            foreach($request->file('foto_barang') as $file) {
-                $fotoPaths[] = $file->store('produk_images', 'public'); 
+            foreach ($request->file('foto_barang') as $file) {
+                $fotoPaths[] = $file->store('produk_images', 'public');
             }
         }
 
+        // Membuat slug produk
         $slugRaw = Str::slug($request->nama_barang);
         $slug = $slugRaw . '-' . Str::random(5);
 
-        // Simpan ke Database (Laravel otomatis cast array ke JSON jika di model sudah di-cast)
+        // Simpan produk ke database dengan kategori hasil prediksi otomatis
         $produk = Produk::create([
-            'user_id'      => $request->user()->id,
-            'nama_barang'  => $request->nama_barang,
-            'harga_barang' => $request->harga_barang,
-            'stok_barang'  => $request->stok_barang,
-            'kategori'     => $request->kategori,
-            'deskripsi'    => $request->deskripsi,
-            'foto_barang'  => $fotoPaths, 
-            'slug'         => $slug,
+            'user_id'       => $request->user()->id,
+            'nama_barang'   => $request->nama_barang,
+            'harga_barang'  => $request->harga_barang,
+            'stok_barang'   => $request->stok_barang,
+            'kategori'      => $kategoriPrediksi,
+            'deskripsi'     => $request->deskripsi,
+            'foto_barang'   => $fotoPaths,
+            'slug'          => $slug,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Barang berhasil diposting!',
-            'data'    => $produk
-        ]);
+            'message' => 'Barang berhasil diposting dengan kategori otomatis!',
+            'kategori_otomatis' => $kategoriPrediksi,
+            'hasil_klasifikasi' => $mlResponse->json(),
+            'data' => $produk
+        ], 201);
     }
 
     // 4. AMBIL PRODUK MILIK USER SENDIRI
@@ -170,19 +210,55 @@ class ProdukController extends Controller
             return response()->json(['message' => 'Anda dilarang mengedit barang orang lain'], 403);
         }
 
-        // --- Validasi Update ---
+        // Validasi update produk
+        // Kategori tidak lagi divalidasi dari frontend,
+        // karena kategori akan diprediksi otomatis oleh model Decision Tree.
         $validator = Validator::make($request->all(), [
-            'nama_barang'  => 'required|string',
-            'harga_barang' => 'required|numeric',
-            'stok_barang'  => 'required|integer',
-            'kategori'     => 'required|string',
-            'deskripsi'    => 'required|string',
-            'foto_barang'  => 'nullable', 
-            'foto_barang.*'=> 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'nama_barang'   => 'required|string',
+            'harga_barang'  => 'required|numeric',
+            'stok_barang'   => 'required|integer',
+            'deskripsi'     => 'required|string',
+            'foto_barang'   => 'nullable',
+            'foto_barang.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // Prediksi ulang kategori menggunakan Python API Decision Tree
+        try {
+            $mlResponse = Http::timeout(15)->post(config('services.ml_api.url'), [
+                'nama_produk' => $request->nama_barang,
+                'deskripsi_produk' => $request->deskripsi,
+            ]);
+
+            if (!$mlResponse->successful()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal mendapatkan hasil klasifikasi dari Python API.',
+                    'error' => $mlResponse->body()
+                ], 500);
+            }
+
+            $kategoriPrediksi = $mlResponse->json('kategori');
+
+            $kategoriValid = ['makanan', 'kerajinan', 'pertanian', 'perikanan'];
+
+            if (!$kategoriPrediksi || !in_array($kategoriPrediksi, $kategoriValid)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kategori hasil prediksi tidak valid.',
+                    'kategori_diterima' => $kategoriPrediksi
+                ], 500);
+            }
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Laravel gagal terhubung ke Python API Decision Tree.',
+                'error' => $e->getMessage()
+            ], 500);
         }
 
         // Data yang akan diupdate
@@ -190,29 +266,27 @@ class ProdukController extends Controller
             'nama_barang'  => $request->nama_barang,
             'harga_barang' => $request->harga_barang,
             'stok_barang'  => $request->stok_barang,
-            'kategori'     => $request->kategori,
+            'kategori'     => $kategoriPrediksi,
             'deskripsi'    => $request->deskripsi,
-            'updated_by'   => $request->user()->id 
+            'updated_by'   => $request->user()->id
         ];
 
-        // --- Logic Update Foto Multiple ---
+        // Jika user upload foto baru, hapus foto lama lalu simpan foto baru
         if ($request->hasFile('foto_barang')) {
-            // 1. Hapus foto lama
             if ($produk->foto_barang && is_array($produk->foto_barang)) {
-                foreach($produk->foto_barang as $oldPhoto) {
-                    if(Storage::disk('public')->exists($oldPhoto)) {
+                foreach ($produk->foto_barang as $oldPhoto) {
+                    if (Storage::disk('public')->exists($oldPhoto)) {
                         Storage::disk('public')->delete($oldPhoto);
                     }
                 }
             }
 
-            // 2. Upload foto baru
             $newFotoPaths = [];
-            foreach($request->file('foto_barang') as $file) {
+
+            foreach ($request->file('foto_barang') as $file) {
                 $newFotoPaths[] = $file->store('produk_images', 'public');
             }
-            
-            // Masukkan ke array update
+
             $dataToUpdate['foto_barang'] = $newFotoPaths;
         }
 
@@ -220,8 +294,10 @@ class ProdukController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Produk berhasil diperbarui',
-            'data'    => $produk
+            'message' => 'Produk berhasil diperbarui dengan kategori otomatis.',
+            'kategori_otomatis' => $kategoriPrediksi,
+            'hasil_klasifikasi' => $mlResponse->json(),
+            'data' => $produk
         ]);
     }
 

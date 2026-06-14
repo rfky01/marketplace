@@ -1096,12 +1096,12 @@ export default function ProductDetail() {
                     >
                         <img 
                             src={`http://127.0.0.1:8000/storage/${mainImage}`} 
-                            className="max-w-none max-h-none transition-transform duration-100 ease-out select-none" // select-none penting agar gambar tidak ter-blok saat drag
+                            className="max-w-none max-h-none transition-transform duration-100 ease-out select-none" // select-none agar gambar tidak ter-blok saat drag
                             alt="Detail Produk Full"
                             style={{ 
                                 transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
                                 cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
-                                maxHeight: zoom === 1 ? '90vh' : 'none', // Batasi tinggi hanya saat tidak di-zoom
+                                maxHeight: zoom === 1 ? '90vh' : 'none',
                                 maxWidth: zoom === 1 ? '90vw' : 'none'
                             }}
                             draggable="false" // Matikan native drag browser

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
@@ -194,7 +195,99 @@
             </div>
         </div>
 
+        <!-- Grafik Akurasi Decision Tree -->
+    <div class="mt-6 mb-10 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="text-lg font-extrabold text-gray-800">
+                Grafik Akurasi Model Decision Tree
+            </h3>
+
+            <span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1 rounded-full text-xs font-bold">
+                TF-IDF + Decision Tree
+            </span>
+        </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                
+                <div class="lg:col-span-7 grid grid-cols-2 gap-4">
+                    <div class="bg-green-50 border border-green-100 rounded-xl p-4">
+                        <p class="text-[10px] text-green-600 font-bold uppercase tracking-wider">Accuracy</p>
+                        <h4 class="text-2xl font-extrabold text-green-700 mt-1">94,76%</h4>
+                    </div>
+
+                    <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                        <p class="text-[10px] text-blue-600 font-bold uppercase tracking-wider">Data Testing</p>
+                        <h4 class="text-2xl font-extrabold text-blue-700 mt-1">210</h4>
+                    </div>
+
+                    <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+                        <p class="text-[10px] text-indigo-600 font-bold uppercase tracking-wider">Prediksi Benar</p>
+                        <h4 class="text-2xl font-extrabold text-indigo-700 mt-1">199</h4>
+                    </div>
+
+                    <div class="bg-red-50 border border-red-100 rounded-xl p-4">
+                        <p class="text-[10px] text-red-600 font-bold uppercase tracking-wider">Prediksi Salah</p>
+                        <h4 class="text-2xl font-extrabold text-red-700 mt-1">11</h4>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-5 flex justify-center">
+                    <div class="relative w-56 h-56">
+                        <canvas id="accuracyDecisionTreeChart"></canvas>
+
+                        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                            <span class="text-2xl font-extrabold text-gray-800 leading-none">94,76%</span>
+                            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1">
+                                Akurasi Model
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
     </div>
+
+    <script>
+        const ctxAccuracy = document.getElementById('accuracyDecisionTreeChart');
+
+        if (ctxAccuracy) {
+            new Chart(ctxAccuracy, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Prediksi Benar', 'Prediksi Salah'],
+                    datasets: [{
+                        data: [94.76, 5.24],
+                        backgroundColor: [
+                            '#22c55e',
+                            '#ef4444'
+                        ],
+                        borderColor: '#ffffff',
+                        borderWidth: 4,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '72%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.raw + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
 
 </body>
 </html>
