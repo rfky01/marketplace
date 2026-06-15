@@ -16,8 +16,8 @@
 <body class="bg-gray-100 font-sans h-screen flex flex-col">
 
     <nav class="bg-indigo-900 text-white p-4 shadow-lg flex-none">
-        <div class="container mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold flex items-center gap-3">
+        <div class="container mx-auto flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+            <h1 class="text-lg sm:text-xl font-bold flex items-center gap-3">
                 <div class="p-2 rounded-lg bg-white/10">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
@@ -25,25 +25,25 @@
                 </div>
                 Admin Chat Center
             </h1>
-            <a href="{{ route('admin.dashboard') }}" class="bg-indigo-800 hover:bg-indigo-700 px-4 py-2 rounded-lg text-sm font-bold border border-indigo-700 transition">
+            <a href="{{ route('admin.dashboard') }}" class="w-full sm:w-auto text-center bg-indigo-800 hover:bg-indigo-700 px-4 py-2 rounded-lg text-sm font-bold border border-indigo-700 transition">
                 Kembali Dashboard
             </a>
         </div>
     </nav>
 
-    <div class="container mx-auto mt-6 px-4 flex-1 flex overflow-hidden gap-4 pb-6 h-[85vh]" x-data="{ tab: '{{ request('type') == 'guest' ? 'guest' : 'member' }}' }">
+    <div class="container mx-auto mt-4 sm:mt-6 px-3 sm:px-4 flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden gap-4 pb-4 sm:pb-6" x-data="{ tab: '{{ request('type') == 'guest' ? 'guest' : 'member' }}' }">
     
-        <div class="w-1/3 bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden">
+        <div class="w-full lg:w-1/3 xl:w-[360px] h-[34vh] lg:h-full bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden">
             
             <div class="flex border-b border-gray-200 bg-gray-50">
                 <button @click="tab = 'member'" 
                         :class="tab === 'member' ? 'border-b-2 border-indigo-600 text-indigo-700 bg-white' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'" 
-                        class="flex-1 py-4 font-bold text-sm transition focus:outline-none">
+                        class="flex-1 py-3 sm:py-4 font-bold text-xs sm:text-sm transition focus:outline-none">
                     Member ({{ $users->count() }})
                 </button>
                 <button @click="tab = 'guest'" 
                         :class="tab === 'guest' ? 'border-b-2 border-orange-500 text-orange-600 bg-white' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'" 
-                        class="flex-1 py-4 font-bold text-sm transition focus:outline-none">
+                        class="flex-1 py-3 sm:py-4 font-bold text-xs sm:text-sm transition focus:outline-none">
                     Tamu ({{ isset($guests) ? $guests->count() : 0 }})
                 </button>
             </div>
@@ -52,7 +52,7 @@
                 
                 <div x-show="tab === 'member'" class="divide-y divide-gray-100">
                     @forelse($users as $user)
-                        <a href="?type=member&id={{ $user->id }}" class="block hover:bg-indigo-50 transition p-4 {{ request('type') != 'guest' && request('id') == $user->id ? 'bg-indigo-50 border-l-4 border-indigo-600' : '' }}">
+                        <a href="?type=member&id={{ $user->id }}" class="block hover:bg-indigo-50 transition p-3 sm:p-4 {{ request('type') != 'guest' && request('id') == $user->id ? 'bg-indigo-50 border-l-4 border-indigo-600' : '' }}">
                             <div class="flex items-center gap-3">
                                 @if($user->profile_photo)
                                     <img src="{{ asset('storage/' . $user->profile_photo) }}" class="w-10 h-10 rounded-full object-cover border">
@@ -75,7 +75,7 @@
                 <div x-show="tab === 'guest'" style="display: none;" class="divide-y divide-gray-100">
                     @if(isset($guests))
                         @forelse($guests as $guest)
-                            <a href="?type=guest&id={{ $guest->session_id }}" class="block hover:bg-orange-50 transition p-4 {{ request('type') == 'guest' && request('id') == $guest->session_id ? 'bg-orange-50 border-l-4 border-orange-500' : '' }}">
+                            <a href="?type=guest&id={{ $guest->session_id }}" class="block hover:bg-orange-50 transition p-3 sm:p-4 {{ request('type') == 'guest' && request('id') == $guest->session_id ? 'bg-orange-50 border-l-4 border-orange-500' : '' }}">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center font-bold text-orange-600">
                                         T
@@ -98,10 +98,10 @@
             </div>
         </div>
 
-        <div class="w-2/3 bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden relative">
+        <div class="w-full lg:flex-1 min-h-[55vh] lg:h-full bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col overflow-hidden relative">
             
             @if(isset($activeChat))
-                <div class="p-4 border-b border-gray-100 flex items-center gap-4 shadow-sm z-10 bg-white">
+                <div class="p-3 sm:p-4 border-b border-gray-100 flex items-center gap-3 sm:gap-4 shadow-sm z-10 bg-white">
                     <div class="w-10 h-10 rounded-full {{ request('type') == 'guest' ? 'bg-orange-100 text-orange-600' : 'bg-indigo-100 text-indigo-600' }} flex items-center justify-center font-bold border">
                         @if(request('type') != 'guest' && $activeChat->profile_photo)
                              <img src="{{ asset('storage/' . $activeChat->profile_photo) }}" class="w-full h-full rounded-full object-cover">
@@ -109,15 +109,15 @@
                              {{ substr($activeChat->name, 0, 1) }}
                         @endif
                     </div>
-                    <div>
-                        <h3 class="font-bold text-gray-800 text-lg">{{ $activeChat->name }}</h3>
+                    <div class="min-w-0">
+                        <h3 class="font-bold text-gray-800 text-base sm:text-lg truncate">{{ $activeChat->name }}</h3>
                         <span class="text-xs font-medium {{ request('type') == 'guest' ? 'text-orange-500' : 'text-indigo-500' }} bg-gray-50 px-2 py-0.5 rounded">
                             {{ request('type') == 'guest' ? 'Mode Tamu' : 'Member Terdaftar' }}
                         </span>
                     </div>
                 </div>
 
-                <div class="flex-1 overflow-y-auto p-6 space-y-3 bg-gray-50" id="chatContainer">
+                <div class="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 bg-gray-50" id="chatContainer">
                     <div class="flex justify-center mt-10">
                         <span class="bg-white px-4 py-2 rounded-full shadow-sm text-sm text-gray-400 flex items-center gap-2 border">
                             <svg class="animate-spin h-4 w-4 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -126,10 +126,10 @@
                     </div>
                 </div>
 
-                <div class="p-4 border-t border-gray-100 bg-white">
+                <div class="p-3 sm:p-4 border-t border-gray-100 bg-white">
                     <form id="replyForm" class="flex gap-3">
                         <input type="text" id="messageInput" autocomplete="off" placeholder="Ketik balasan..." 
-                            class="flex-1 px-5 py-3 bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 {{ request('type') == 'guest' ? 'focus:ring-orange-500' : 'focus:ring-indigo-500' }} transition">
+                            class="min-w-0 flex-1 px-4 sm:px-5 py-3 bg-gray-50 border border-gray-200 rounded-full focus:outline-none focus:ring-2 {{ request('type') == 'guest' ? 'focus:ring-orange-500' : 'focus:ring-indigo-500' }} transition">
                         
                         <button type="submit" 
                             class="p-3.5 rounded-full text-white shadow-md hover:scale-105 transition transform {{ request('type') == 'guest' ? 'bg-orange-500 hover:bg-orange-600' : 'bg-indigo-600 hover:bg-indigo-700' }}">
@@ -138,14 +138,14 @@
                     </form>
                 </div>
             @else
-                <div class="flex-1 flex flex-col items-center justify-center text-gray-400 bg-gray-50/50">
+                <div class="flex-1 flex flex-col items-center justify-center text-gray-400 bg-gray-50/50 text-center px-6">
                     <div class="bg-white p-6 rounded-full shadow-sm mb-4">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-indigo-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
                     </div>
                     <h3 class="text-lg font-bold text-gray-600">Admin Chat Center</h3>
-                    <p class="text-sm mt-1">Pilih Member atau Tamu di sebelah kiri untuk memulai chat.</p>
+                    <p class="text-sm mt-1">Pilih Member atau Tamu untuk memulai chat.</p>
                 </div>
             @endif
         </div>
@@ -215,7 +215,7 @@
 
                     html += `
                         <div class="flex ${alignClass} mb-3 animate-fade-in-up">
-                            <div class="max-w-[70%] px-4 py-2.5 rounded-2xl shadow-sm text-sm relative group ${bgClass}">
+                            <div class="max-w-[82%] sm:max-w-[70%] px-4 py-2.5 rounded-2xl shadow-sm text-sm relative group ${bgClass}">
                                 <p class="leading-relaxed whitespace-pre-wrap">${msg.message}</p>
                                 <span class="text-[10px] block text-right mt-1 opacity-70">${time}</span>
                             </div>
@@ -243,7 +243,7 @@
                 const tempColor = chatType === 'guest' ? 'bg-orange-500' : 'bg-indigo-600';
                 const tempHtml = `
                     <div class="flex justify-end mb-3 opacity-50">
-                        <div class="max-w-[70%] px-4 py-2.5 rounded-2xl text-sm shadow-sm text-white rounded-tr-none ${tempColor}">
+                        <div class="max-w-[82%] sm:max-w-[70%] px-4 py-2.5 rounded-2xl text-sm shadow-sm text-white rounded-tr-none ${tempColor}">
                             ${text} <span class="text-[10px] ml-1">...</span>
                         </div>
                     </div>`;

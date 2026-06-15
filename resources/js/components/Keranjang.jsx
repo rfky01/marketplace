@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import SellerNavActions from './SellerNavActions';
 import iconHome from './asset/home.png';
 import keranjangKosongImg from './asset/keranjangkosong.png';
 
@@ -322,37 +323,39 @@ export default function Keranjang() {
             
             {/* --- NAVBAR --- */}
             <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
-                <div className="max-w-7xl mx-auto h-16 flex items-center justify-between px-4 lg:px-8">
-                    <div className="flex items-center gap-8">
-                        <Link to="/" className="text-2xl font-bold text-blue-600 tracking-tight decoration-none">
+                <div className="max-w-7xl mx-auto min-h-[4rem] flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 py-2 sm:px-4 lg:px-8 md:h-16 md:flex-nowrap">
+                    <div className="flex min-w-0 items-center gap-4 lg:gap-8">
+                        <Link to="/" className="text-xl sm:text-2xl font-bold text-blue-600 tracking-tight decoration-none whitespace-nowrap">
                             Marketplace<span className="text-gray-700">Plus</span>
                         </Link>
                     </div>
-                    <div className="flex items-center gap-6">
+                    <div className="order-3 flex w-full items-center justify-end gap-1 md:order-none md:w-auto md:gap-3 lg:gap-6">
                         <div className="hidden md:flex items-center gap-2">
                             <h1 className="text-lg font-bold text-gray-800 m-0">Keranjang Belanja</h1>
                         </div>
-                        <Link 
-                            to="/orders" 
-                            className="text-gray-500 hover:text-blue-900 transition p-1" 
+                        <SellerNavActions />
+
+                        <Link
+                            to="/orders"
+                            className="text-gray-500 hover:text-blue-900 hover:bg-gray-100 transition p-2 rounded-full"
                             title="Daftar Pesanan"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 sm:w-6 sm:h-6">
                                 <path fillRule="evenodd" d="M7.502 6h7.128A3.375 3.375 0 0118 9.375v9.375a3 3 0 003-3V6.108c0-1.505-1.125-2.811-2.664-2.94a48.972 48.972 0 00-.673-.05A3 3 0 0015 1.5h-1.5a3 3 0 00-2.663 1.618c-.225.015-.45.032-.673.05C8.662 3.295 7.554 4.542 7.502 6zM13.5 1.5h-3c.621 0 1.129.504 1.243 1.136.014.077.037.156.07.236h1.374c.033-.08.056-.159.07-.236.114-.632.622-1.136 1.243-1.136z" clipRule="evenodd" />
                                 <path fillRule="evenodd" d="M3.75 15a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zm0 4.5a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zm0-9a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75z" clipRule="evenodd" />
                             </svg>
                         </Link>
-                        <Link 
-                            to="/" 
-                            className="text-gray-500 hover:text-blue-900 transition p-1" 
+                        <Link
+                            to="/"
+                            className="text-gray-500 hover:text-blue-900 hover:bg-gray-100 transition p-2 rounded-full"
                             title="Dashboard">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 sm:w-6 sm:h-6">
                                 <path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z" />
                                 <path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.43z" />
                             </svg>
                         </Link>
                         <div className="relative" ref={dropdownRef}>
-                                <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition border border-transparent hover:border-gray-200">
+                                <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition border border-transparent hover:border-gray-200">
                                     <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-200 bg-gray-200">
                                         {getProfilePhoto() ? (
                                             <img 

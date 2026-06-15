@@ -1,15 +1,15 @@
 <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
 
-<div id="center-chat-modal" class="fixed inset-0 z-[9999] bg-black/60 hidden flex items-center justify-center backdrop-blur-sm opacity-0 transition-opacity duration-300">
+<div id="center-chat-modal" class="fixed inset-0 z-[9999] bg-black/60 hidden flex items-center justify-center backdrop-blur-sm opacity-0 transition-opacity duration-300 p-3 sm:p-4">
     
-    <div id="center-chat-box" class="bg-white w-[90%] max-w-md h-[550px] rounded-2xl shadow-2xl flex flex-col overflow-hidden transform scale-95 transition-transform duration-300 relative">
+    <div id="center-chat-box" class="bg-white w-full max-w-md h-[86vh] max-h-[550px] sm:h-[550px] rounded-xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden transform scale-95 transition-transform duration-300 relative">
         
-        <div class="bg-indigo-600 text-white px-5 py-4 flex justify-between items-center shadow-sm">
-            <div class="flex items-center gap-3">
+        <div class="bg-indigo-600 text-white px-4 sm:px-5 py-4 flex justify-between items-center gap-3 shadow-sm">
+            <div class="flex items-center gap-3 min-w-0">
                 <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-bold text-white relative overflow-hidden">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                 </div>
-                <div>
+                <div class="min-w-0">
                     <h4 id="center-chat-name" class="font-bold text-base tracking-wide line-clamp-1">Nama User</h4>
                     <p id="center-chat-status" class="text-xs text-indigo-200 flex items-center gap-1 mt-0.5">
                         <span class="w-2 h-2 bg-gray-400 rounded-full"></span> Menghubungkan...
@@ -21,14 +21,14 @@
             </button>
         </div>
 
-        <div id="center-chat-messages" class="flex-1 p-5 overflow-y-auto bg-gray-50 flex flex-col gap-2 relative">
+        <div id="center-chat-messages" class="flex-1 p-3 sm:p-5 overflow-y-auto bg-gray-50 flex flex-col gap-2 relative">
             <div class="flex h-full items-center justify-center text-sm text-gray-400">Memuat obrolan...</div>
         </div>
 
         <div class="relative bg-white border-t border-gray-100 p-3">
             
-            <div id="emoji-picker-container-center" class="absolute bottom-full left-0 mb-2 hidden z-50 w-full px-3">
-                <emoji-picker class="light" style="--num-columns: 8; --emoji-size: 1.5rem; width: 100%; height: 300px; border-radius: 0.75rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); border: 1px solid #e5e7eb;"></emoji-picker>
+            <div id="emoji-picker-container-center" class="absolute bottom-full left-0 mb-2 hidden z-50 w-full px-2 sm:px-3">
+                <emoji-picker class="light" style="--num-columns: 8; --emoji-size: 1.5rem; width: 100%; height: min(300px, 42vh); border-radius: 0.75rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); border: 1px solid #e5e7eb;"></emoji-picker>
             </div>
 
             <form onsubmit="sendCenterMsg(event)" class="flex items-center gap-2">
@@ -37,7 +37,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </button>
-                <input type="text" id="center-chat-input" class="flex-1 bg-gray-100 border-transparent focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-full px-4 py-2.5 text-sm outline-none transition" placeholder="Tulis pesan..." autocomplete="off">
+                <input type="text" id="center-chat-input" class="min-w-0 flex-1 bg-gray-100 border-transparent focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-full px-4 py-2.5 text-sm outline-none transition" placeholder="Tulis pesan..." autocomplete="off">
                 <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white w-10 h-10 rounded-full flex items-center justify-center transition shadow-md flex-shrink-0 disabled:opacity-50" id="btn-send-chat-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform rotate-45 -mt-0.5 -ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
                 </button>

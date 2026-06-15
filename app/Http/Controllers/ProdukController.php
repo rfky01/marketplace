@@ -22,12 +22,11 @@ class ProdukController extends Controller
      * @OA\MediaType(
      * mediaType="multipart/form-data",
      * @OA\Schema(
-     * required={"nama_barang", "harga_barang", "kategori", "foto_barang[]"},
+     * required={"nama_barang", "harga_barang", "stok_barang", "deskripsi", "foto_barang[]"},
      * @OA\Property(property="nama_barang", type="string", example="Laptop Asus"),
      * @OA\Property(property="harga_barang", type="integer", example=5000000),
      * @OA\Property(property="stok_barang", type="integer", example=10),
-     * @OA\Property(property="kategori", type="string", example="Elektronik"),
-     * @OA\Property(property="deskripsi", type="string", example="Kondisi mulus like new"),
+     * @OA\Property(property="deskripsi", type="string", example="Produk akan diklasifikasikan otomatis oleh Decision Tree"),
      * @OA\Property(
      * property="foto_barang[]",
      * type="array",
@@ -130,7 +129,7 @@ class ProdukController extends Controller
 
             $kategoriPrediksi = $mlResponse->json('kategori');
 
-            $kategoriValid = ['makanan', 'kerajinan', 'pertanian', 'perikanan'];
+            $kategoriValid = config('product_categories');
 
             if (!$kategoriPrediksi || !in_array($kategoriPrediksi, $kategoriValid)) {
                 return response()->json([
@@ -243,7 +242,7 @@ class ProdukController extends Controller
 
             $kategoriPrediksi = $mlResponse->json('kategori');
 
-            $kategoriValid = ['makanan', 'kerajinan', 'pertanian', 'perikanan'];
+            $kategoriValid = config('product_categories');
 
             if (!$kategoriPrediksi || !in_array($kategoriPrediksi, $kategoriValid)) {
                 return response()->json([

@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import iconPesan from './asset/pesan.png'
 import iconKeranjang from './asset/keranjang.png'
 import ChatBox from './ChatBox'; 
+import SellerNavActions from './SellerNavActions';
 
 export default function ProductDetail() {
     const params = useParams();
@@ -314,14 +315,14 @@ export default function ProductDetail() {
 
     const handleConfirmOrder = async () => {
         // --- TAHAP 1: VALIDASI KELENGKAPAN PROFIL (USER DATABASE) ---
-        // Cek apakah di database user sudah ada KTM, HP, dan Alamat Utama
+        // Cek apakah di database user sudah ada KTP, HP, dan Alamat Utama
         const userPhone = user.phone || user.telepon || user.no_hp;
         const userAddress = user.address || user.alamat;
         
-        if (!user.ktm_image || !userPhone || !userAddress) {
+        if (!user.ktp_image || !userPhone || !userAddress) {
             setCustomAlert({ 
                 isOpen: true, 
-                message: "Profil Anda belum lengkap (KTM, No. HP, atau Alamat Utama). Harap lengkapi di menu Profil sebelum memesan.", 
+                message: "Profil Anda belum lengkap (KTP, No. HP, atau Alamat Utama). Harap lengkapi di menu Profil sebelum memesan.",
                 type: 'error', 
                 showCancel: true, 
                 confirmText: 'Lengkapi Profil',
@@ -541,30 +542,37 @@ export default function ProductDetail() {
             
             {/* NAVBAR */}
             <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
-                <div className="max-w-7xl mx-auto h-16 flex items-center justify-between px-4 lg:px-8">
-                    <div className="flex items-center gap-8">
-                        <Link to="/" className="text-2xl font-bold text-blue-900 tracking-tight decoration-none">
+                <div className="max-w-7xl mx-auto min-h-[4rem] flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 py-2 sm:px-4 lg:px-8 md:h-16 md:flex-nowrap">
+                    <div className="flex min-w-0 items-center gap-4 lg:gap-8">
+                        <Link to="/" className="text-xl sm:text-2xl font-bold text-blue-900 tracking-tight decoration-none whitespace-nowrap">
                             Marketplace<span className="text-gray-700">Plus</span>
                         </Link>
                     </div>
-                    <div className="flex items-center gap-6">
-                        <Link to="/keranjang" 
-                        className="text-2xl text-gray-500 hover:text-blue-900">
-                            <img src={iconKeranjang} alt="keranjang" className="w-11 h-15 object-contain opacity-60 group-hover:opacity-100 transition duration-200"/>
+                    <div className="order-3 flex w-full items-center justify-end gap-1 md:order-none md:w-auto md:gap-3">
+                        <SellerNavActions />
+
+                        <Link
+                            to="/keranjang"
+                            className="relative group flex items-center p-1.5 sm:p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-full transition"
+                            title="Keranjang"
+                            aria-label="Keranjang"
+                        >
+                            <img src={iconKeranjang} alt="keranjang" className="w-8 h-8 sm:w-10 sm:h-10 object-contain opacity-60 group-hover:opacity-100 transition duration-200"/>
                         </Link>
-                        <Link 
+                        <Link
                             to="/" 
-                            className="text-gray-500 hover:text-blue-900 transition p-1" 
+                            className="text-gray-500 hover:text-blue-900 hover:bg-gray-100 transition p-2 rounded-full"
                             title="Dashboard"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 sm:w-6 sm:h-6">
                                 <path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z" />
                                 <path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.43z" />
                             </svg>
                         </Link>
+
                         <div className="relative" ref={dropdownRef}>
                             {user.name ? (
-                                <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition">
+                                <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition">
                                     <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-200">
                                         {user.profile_photo ? (
                                             <img src={`http://127.0.0.1:8000/storage/${user.profile_photo}`} alt="Profile" className="w-full h-full object-cover"/>

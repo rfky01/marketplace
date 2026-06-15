@@ -9,6 +9,8 @@ use App\Models\DetailPesanan;
 use Illuminate\Validation\Rule;
 use App\Models\produk;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class OrderController extends Controller
@@ -113,6 +115,8 @@ class OrderController extends Controller
 
         // 3. Update Grand Total
         $pesanan->update(['grand_total' => $grand_total]);
+        $pesanan->load(['detail_pesanan.produk.user']);
+        $this->sendNewOrderNotificationsToSellers($pesanan);
 
         return response()->json([
             'success' => true,
@@ -419,6 +423,100 @@ class OrderController extends Controller
         $pesanan->save();
 
         return response()->json(['success' => true, 'message' => 'Riwayat dihapus dari toko Anda.']);
+    }
+
+    private function sendNewOrderNotificationsToSellers(Pesanan $pesanan): void
+    {
+        $detailsBySeller = $pesanan->detail_pesanan
+            ->filter(fn ($detail) => $detail->produk && $detail->produk->user)
+            ->groupBy(fn ($detail) => $detail->produk->user_id);
+
+        foreach ($detailsBySeller as $sellerDetails) {
+            $seller = $sellerDetails->first()->produk->user;
+            $targetPhone = $this->normalizeWhatsappPhone($seller->phone ?? null);
+
+            if (!$targetPhone) {
+                Log::warning('GoWa new order notification skipped: seller phone is empty', [
+                    'order_id' => $pesanan->id,
+                    'seller_id' => $seller->id,
+                ]);
+                continue;
+            }
+
+            $sellerTotal = $sellerDetails->sum(fn ($detail) => (int) $detail->total_harga);
+            $items = $sellerDetails
+                ->map(function ($detail) {
+                    $productName = $detail->produk?->nama_barang ?: 'Produk';
+                    $qty = (int) $detail->jumlah;
+                    $total = number_format((int) $detail->total_harga, 0, ',', '.');
+
+                    return "- {$productName} x{$qty} = Rp {$total}";
+                })
+                ->implode("\n");
+
+            $deliveryTime = $pesanan->waktu_pengiriman
+                ? $pesanan->waktu_pengiriman->timezone(config('app.timezone'))->format('d/m/Y H:i')
+                : '-';
+
+            $message = "Halo {$seller->name},\n\n"
+                . "Ada pesanan baru masuk di MarketplacePlus.\n\n"
+                . "Invoice: *{$pesanan->invoice_code}*\n"
+                . "Pembeli: {$pesanan->nama_penerima}\n"
+                . "Waktu Pengiriman: {$deliveryTime}\n\n"
+                . "Produk:\n{$items}\n\n"
+                . "Total untuk toko Anda: Rp " . number_format($sellerTotal, 0, ',', '.') . "\n\n"
+                . "Silakan buka website untuk menerima atau menolak pesanan.";
+
+            $this->sendGowaMessage($targetPhone, $message, [
+                'order_id' => $pesanan->id,
+                'seller_id' => $seller->id,
+                'invoice' => $pesanan->invoice_code,
+            ]);
+        }
+    }
+
+    private function sendGowaMessage(string $targetPhone, string $message, array $context = []): void
+    {
+        $gowaUrl = rtrim((string) config('services.gowa.url'), '/');
+        $deviceId = config('services.gowa.device_id');
+
+        if (!$gowaUrl || !$deviceId) {
+            Log::warning('GoWa new order notification skipped: config is incomplete', $context);
+            return;
+        }
+
+        try {
+            $response = Http::timeout(15)
+                ->withHeaders(['X-Device-Id' => $deviceId])
+                ->post($gowaUrl . '/send/message', [
+                    'phone' => $targetPhone,
+                    'message' => $message,
+                ]);
+
+            if (!$response->successful()) {
+                Log::warning('GoWa new order notification failed', array_merge($context, [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]));
+            }
+        } catch (\Throwable $e) {
+            Log::error('GoWa new order notification error: ' . $e->getMessage(), $context);
+        }
+    }
+
+    private function normalizeWhatsappPhone(?string $phone): ?string
+    {
+        $phone = preg_replace('/[^0-9]/', '', (string) $phone);
+
+        if ($phone === '') {
+            return null;
+        }
+
+        if (str_starts_with($phone, '0')) {
+            return '62' . substr($phone, 1);
+        }
+
+        return $phone;
     }
 
     //===> Fungsi Pembantu untuk Mengembalikan Stok <===\\

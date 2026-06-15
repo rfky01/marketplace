@@ -9,64 +9,6 @@
         "version": "1.0.0"
     },
     "paths": {
-        "/api/kategori": {
-            "get": {
-                "tags": [
-                    "Admin - Kategori"
-                ],
-                "summary": "List Semua Kategori",
-                "operationId": "ed89769bf040dadda68f262175d5abce",
-                "responses": {
-                    "200": {
-                        "description": "Sukses"
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "Admin - Kategori"
-                ],
-                "summary": "Buat Kategori Baru (Admin Only)",
-                "operationId": "d7cab933c4dbdd8d3401e6052f05df70",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "multipart/form-data": {
-                            "schema": {
-                                "required": [
-                                    "nama_kategori"
-                                ],
-                                "properties": {
-                                    "nama_kategori": {
-                                        "type": "string",
-                                        "example": "Fashion Pria"
-                                    },
-                                    "icon": {
-                                        "description": "Upload icon kategori",
-                                        "type": "string",
-                                        "format": "binary"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Kategori dibuat"
-                    },
-                    "403": {
-                        "description": "Forbidden (Bukan Admin)"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
         "/api/register": {
             "post": {
                 "tags": [
@@ -374,7 +316,8 @@
                                 "required": [
                                     "nama_barang",
                                     "harga_barang",
-                                    "kategori",
+                                    "stok_barang",
+                                    "deskripsi",
                                     "foto_barang[]"
                                 ],
                                 "properties": {
@@ -390,13 +333,9 @@
                                         "type": "integer",
                                         "example": 10
                                     },
-                                    "kategori": {
-                                        "type": "string",
-                                        "example": "Elektronik"
-                                    },
                                     "deskripsi": {
                                         "type": "string",
-                                        "example": "Kondisi mulus like new"
+                                        "example": "Produk akan diklasifikasikan otomatis oleh Decision Tree"
                                     },
                                     "foto_barang[]": {
                                         "type": "array",
@@ -441,10 +380,6 @@
         }
     },
     "tags": [
-        {
-            "name": "Admin - Kategori",
-            "description": "Admin - Kategori"
-        },
         {
             "name": "Auth",
             "description": "Auth"

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import SellerNavActions from './SellerNavActions';
 import iconKosong from './asset/kosong.png'
 
 export default function MyProducts() {
@@ -186,33 +187,24 @@ export default function MyProducts() {
         <div className="min-h-screen bg-blue-50 w-full font-sans pb-20">
             
             <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
-                <div className="max-w-7xl mx-auto h-16 flex items-center justify-between px-4 lg:px-8">
-                    <div className="flex items-center gap-8">
-                        <Link to="/" className="text-2xl font-bold text-blue-600 tracking-tight decoration-none">
+                <div className="max-w-7xl mx-auto min-h-[4rem] flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 py-2 sm:px-4 lg:px-8 md:h-16 md:flex-nowrap">
+                    <div className="flex min-w-0 items-center gap-4 lg:gap-8">
+                        <Link to="/" className="text-xl sm:text-2xl font-bold text-blue-600 tracking-tight decoration-none whitespace-nowrap">
                             Marketplace<span className="text-gray-700">Plus</span>
                         </Link>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <Link to="/seller-orders" className="text-gray-600 hover:text-blue-600 font-medium px-2 py-2 transition decoration-none">
-                           Pesanan Masuk
-                        </Link>
+                    <div className="order-3 flex w-full items-center justify-end gap-1 md:order-none md:w-auto md:gap-3">
+                        <SellerNavActions />
 
-                        <Link 
-                            to="/add-product" 
-                            className="hidden sm:flex items-center gap-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg transition shadow-sm decoration-none whitespace-nowrap"
-                        >
-                            + Upload Produk
-                        </Link>
+                        <div className="hidden sm:block h-6 w-px bg-gray-300 mx-1"></div>
 
-                        <div className="h-6 w-px bg-gray-300 mx-1"></div>
-
-                        <Link to="/" className="text-gray-500 hover:text-blue-600 font-medium px-4 py-2 transition decoration-none">
+                        <Link to="/" className="text-gray-500 hover:text-blue-600 hover:bg-gray-100 font-medium px-3 sm:px-4 py-2 rounded-lg transition decoration-none">
                             Dashboard
                         </Link>
 
                         <div className="relative" ref={dropdownRef}>
-                                <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition border border-transparent hover:border-gray-200">
+                                <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition border border-transparent hover:border-gray-200">
                                     <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-200 bg-gray-200">
                                         {getProfilePhoto() ? (
                                             <img 

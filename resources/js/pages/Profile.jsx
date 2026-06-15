@@ -35,8 +35,8 @@ export default function Profile() {
     // --- STATE ---
     const [user, setUser] = useState({
         name: '', email: '', phone: '', address: '', role: '',
-        profile_photo: null, ktm_image: null, // TAMBAHAN STATE KTM
-        npm: '', prodi: '', fakultas: '',
+        profile_photo: null, ktp_image: null,
+        nomor_kk: '', dusun_rt_rw: '', nik: '',
         bio: '', jenis_kelamin: '', tanggal_lahir: '',
         created_at: '', updated_at: '', updater: null
     });
@@ -111,11 +111,11 @@ export default function Profile() {
         const token = localStorage.getItem('token');
         const formData = new FormData();
         
-        ['name', 'phone', 'address', 'npm', 'prodi', 'fakultas', 'bio', 'jenis_kelamin', 'tanggal_lahir'].forEach(key => formData.append(key, user[key] || ''));
+        ['name', 'phone', 'address', 'nomor_kk', 'dusun_rt_rw', 'nik', 'bio', 'jenis_kelamin', 'tanggal_lahir'].forEach(key => formData.append(key, user[key] || ''));
         formData.append('_method', 'PUT'); 
         
         if (photoFile) formData.append('profile_photo', photoFile);
-        if (ktmFile) formData.append('ktm_image', ktmFile); // Append file KTM
+        if (ktmFile) formData.append('ktp_image', ktmFile);
 
         try {
             const response = await fetch('http://127.0.0.1:8000/api/profile', {
@@ -149,7 +149,7 @@ export default function Profile() {
     // Helper untuk URL KTM
     const getKtmUrl = () => {
         if (ktmPreview) return ktmPreview;
-        if (user.ktm_image) return `http://127.0.0.1:8000/storage/${user.ktm_image}`;
+        if (user.ktp_image) return `http://127.0.0.1:8000/storage/${user.ktp_image}`;
         return null;
     };
 
@@ -173,14 +173,16 @@ export default function Profile() {
                         </Link>
                         <h1 className="text-lg font-bold text-slate-800">Pengaturan Profil</h1>
                     </div>
-                    {!isEditing && (
-                        <button 
-                            onClick={() => setIsEditing(true)} 
-                            className="text-sm font-semibold text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg transition flex items-center gap-2 border border-blue-100"
-                        >
-                            <Icons.Edit /> Edit Profil
-                        </button>
-                    )}
+                    <div className="flex items-center gap-3">
+                        {!isEditing && (
+                            <button 
+                                onClick={() => setIsEditing(true)} 
+                                className="text-sm font-semibold text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg transition flex items-center gap-2 border border-blue-100"
+                            >
+                                <Icons.Edit /> Edit Profil
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -245,7 +247,7 @@ export default function Profile() {
                             </div>
 
                             <div className="p-6 space-y-6">
-                                {/* Nama & NPM */}
+                                {/* Nama & Nomor KK */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div>
                                         <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">Nama Lengkap</label>
@@ -259,9 +261,9 @@ export default function Profile() {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">NPM</label>
+                                        <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">Nomor KK</label>
                                         <input 
-                                            type="text" name="npm" value={user.npm || ''} onChange={handleChange} disabled={!isEditing} placeholder="-"
+                                            type="text" name="nomor_kk" value={user.nomor_kk || ''} onChange={handleChange} disabled={!isEditing} placeholder="-"
                                             className={`w-full px-4 py-2.5 rounded-lg text-sm border transition
                                                 ${isEditing ? 'border-slate-300 bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500' : 'border-transparent bg-slate-50 text-slate-800 font-medium'}`}
                                         />
@@ -324,25 +326,25 @@ export default function Profile() {
                                     </div>
                                 </div>
 
-                                {/* DATA AKADEMIK & KTM */}
+                                {/* Identitas Warga & KTP */}
                                 <div className="pt-4 border-t border-slate-100">
                                     <h4 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
-                                        <Icons.Card /> Data Akademik & KTM
+                                        <Icons.Card /> Identitas Warga & KTP
                                     </h4>
                                     
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
                                         <div>
-                                            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">Fakultas</label>
+                                            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">NIK</label>
                                             <input 
-                                                type="text" name="fakultas" value={user.fakultas || ''} onChange={handleChange} disabled={!isEditing} placeholder="-"
+                                                type="text" name="nik" value={user.nik || ''} onChange={handleChange} disabled={!isEditing} placeholder="-"
                                                 className={`w-full px-4 py-2.5 rounded-lg text-sm border transition
                                                     ${isEditing ? 'border-slate-300 bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500' : 'border-transparent bg-slate-50 text-slate-800 font-medium'}`}
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">Program Studi</label>
+                                            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase">Dusun / RT / RW</label>
                                             <input 
-                                                type="text" name="prodi" value={user.prodi || ''} onChange={handleChange} disabled={!isEditing} placeholder="-"
+                                                type="text" name="dusun_rt_rw" value={user.dusun_rt_rw || ''} onChange={handleChange} disabled={!isEditing} placeholder="-"
                                                 className={`w-full px-4 py-2.5 rounded-lg text-sm border transition
                                                     ${isEditing ? 'border-slate-300 bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500' : 'border-transparent bg-slate-50 text-slate-800 font-medium'}`}
                                             />
@@ -351,7 +353,7 @@ export default function Profile() {
 
                                     {/* === AREA UPLOAD KTM === */}
                                     <div className="w-full">
-                                        <label className="block text-xs font-semibold text-slate-500 mb-2 uppercase">Kartu Tanda Mahasiswa (KTM)</label>
+                                        <label className="block text-xs font-semibold text-slate-500 mb-2 uppercase">Kartu Tanda Penduduk (KTP)</label>
                                         
                                         <div 
                                             onClick={triggerKtmSelect}
@@ -359,13 +361,13 @@ export default function Profile() {
                                                 ${isEditing ? 'border-dashed border-blue-300 bg-blue-50 cursor-pointer hover:bg-blue-100' : 'border-slate-200 bg-slate-50'}`}
                                         >
                                             {getKtmUrl() ? (
-                                                <img src={getKtmUrl()} alt="KTM" className="w-full h-full object-contain p-2" />
+                                                <img src={getKtmUrl()} alt="KTP" className="w-full h-full object-contain p-2" />
                                             ) : (
                                                 <div className="text-center p-4">
                                                     <div className="mx-auto w-12 h-12 text-slate-300 mb-2">
                                                         <Icons.Card className="w-12 h-12" />
                                                     </div>
-                                                    <p className="text-sm text-slate-500 font-medium">Belum ada foto KTM</p>
+                                                    <p className="text-sm text-slate-500 font-medium">Belum ada foto KTP</p>
                                                     {isEditing && <p className="text-xs text-blue-500 mt-1">Klik untuk upload</p>}
                                                 </div>
                                             )}

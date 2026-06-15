@@ -192,33 +192,33 @@
                             <path d="M12 14l9-5-9-5-9 5 9 5z" />
                             <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
                         </svg>
-                        Data Akademik
+                        Identitas
                     </h3>
                     <div class="space-y-4">
                         <div>
-                            <label class="text-xs font-bold text-gray-400 uppercase block">NPM (Nomor Pokok Mahasiswa)</label>
+                            <label class="text-xs font-bold text-gray-400 uppercase block">NIK (Nomor Induk Kependudukan)</label>
                             <span class="text-indigo-700 font-bold text-lg block mt-1">
-                                {{ $user->npm ?? '-' }}
+                                {{ $user->nik ?? '-' }}
                             </span>
                         </div>
                         <div>
-                            <label class="text-xs font-bold text-gray-400 uppercase block">Program Studi</label>
+                            <label class="text-xs font-bold text-gray-400 uppercase block">Dusun / RT / RW</label>
                             <span class="text-gray-800 font-medium block mt-1">
-                                {{ $user->prodi ?? '-' }}
+                                {{ $user->dusun_rt_rw ?? '-' }}
                             </span>
                         </div>
                         <div>
-                            <label class="text-xs font-bold text-gray-400 uppercase block">Fakultas</label>
+                            <label class="text-xs font-bold text-gray-400 uppercase block">nik</label>
                             <span class="text-gray-800 font-medium block mt-1">
-                                {{ $user->fakultas ?? '-' }}
+                                {{ $user->nik ?? '-' }}
                             </span>
                         </div>
                         
                         <div class="mt-6">
-                            <label class="text-xs font-bold text-gray-400 uppercase block mb-2">Kartu Tanda Mahasiswa (KTM)</label>
-                            @if($user->ktm_image)
-                                <a href="{{ asset('storage/' . $user->ktm_image) }}" target="_blank" class="group relative block overflow-hidden rounded-lg border hover:shadow-lg transition">
-                                    <img src="{{ asset('storage/' . $user->ktm_image) }}" class="w-full h-40 object-cover group-hover:scale-105 transition duration-500">
+                            <label class="text-xs font-bold text-gray-400 uppercase block mb-2">Kartu Tanda Penduduk (KTP)</label>
+                            @if($user->ktp_image)
+                                <a href="{{ asset('storage/' . $user->ktp_image) }}" target="_blank" class="group relative block overflow-hidden rounded-lg border hover:shadow-lg transition">
+                                    <img src="{{ asset('storage/' . $user->ktp_image) }}" class="w-full h-40 object-cover group-hover:scale-105 transition duration-500">
                                     <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                                         <span class="text-white font-bold text-sm flex items-center gap-1">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -230,7 +230,7 @@
                                 </a>
                             @else
                                 <div class="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg h-32 flex items-center justify-center text-gray-400 text-sm">
-                                    Tidak ada foto KTM
+                                    Tidak ada foto KTP
                                 </div>
                             @endif
                         </div>
@@ -306,7 +306,7 @@
                             @endif
                         </div>
 
-                        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                        <script src="https://cdn.jsdelivr.net/nik/chart.js"></script>
                         <script>
                             document.addEventListener("DOMContentLoaded", function() {
                                 const ctx = document.getElementById('keaktifanChart');

@@ -77,15 +77,15 @@ export default function ChatDropdown() {
     return (
         <div className="relative" ref={dropdownRef}>
             {/* --- TOMBOL UTAMA --- */}
-            <button 
+            <button
                 onClick={toggleDropdown} 
-                className="relative p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-full transition"
+                className="relative p-1.5 sm:p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-full transition"
                 title="Pesan Masuk"
             >
                 <img 
                     src={iconPesanan} 
                     alt="Chat" 
-                    className="w-10 h-10 object-contain opacity-60 group-hover:opacity-100 transition duration-200" 
+                    className="w-8 h-8 sm:w-10 sm:h-10 object-contain opacity-60 group-hover:opacity-100 transition duration-200"
                 />
                 
                 {/* Badge Merah Utama (Muncul jika ada pesan belum dibaca) */}
@@ -98,7 +98,7 @@ export default function ChatDropdown() {
 
             {/* --- DROPDOWN LIST --- */}
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-fade-in-down">
+                <div className="fixed left-3 right-3 top-20 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-fade-in-down">
                     <div className="bg-gray-50 px-4 py-3 border-b border-gray-100 flex justify-between items-center">
                         <h3 className="font-bold text-gray-700">Pesan Masuk</h3>
                         <span className="text-xs text-blue-600 cursor-pointer hover:underline" onClick={fetchConversations}>Refresh</span>

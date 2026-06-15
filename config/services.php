@@ -35,4 +35,9 @@ return [
         'url' => env('ML_API_URL', 'http://127.0.0.1:8000/predict'),
     ],
 
+    'gowa' => [
+        'url' => env('GOWA_URL', 'http://localhost:3000'),
+        'device_id' => env('GOWA_DEVICE_ID', 'my-wa'),
+    ],
+
 ];

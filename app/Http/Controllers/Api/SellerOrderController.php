@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\DetailPesanan; 
 use App\Models\Pesanan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class SellerOrderController extends Controller
 {
@@ -32,6 +34,61 @@ class SellerOrderController extends Controller
         return response()->json([
             'success' => true,
             'data' => $sellerItems
+        ]);
+    }
+
+    public function notifications()
+    {
+        $userId = Auth::id();
+        $query = $this->newSellerOrderNotificationQuery($userId);
+
+        $unreadCount = (clone $query)->count();
+        $items = $query
+            ->with(['produk', 'pesanan.user'])
+            ->latest()
+            ->limit(5)
+            ->get()
+            ->map(function (DetailPesanan $detail) {
+                return [
+                    'id' => $detail->id,
+                    'order_id' => $detail->pesanan_id,
+                    'invoice' => $detail->pesanan?->invoice_code,
+                    'buyer_name' => $detail->pesanan?->nama_penerima ?: $detail->pesanan?->user?->name,
+                    'product_name' => $detail->produk?->nama_barang,
+                    'quantity' => $detail->jumlah,
+                    'total_harga' => (int) $detail->total_harga,
+                    'created_at' => $detail->created_at,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'unread_count' => $unreadCount,
+            'data' => $items,
+        ]);
+    }
+
+    public function markNotificationsAsRead()
+    {
+        $updated = $this->newSellerOrderNotificationQuery(Auth::id())->update([
+            'seller_seen_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'updated' => $updated,
+        ]);
+    }
+
+    public function pendingCount()
+    {
+        $count = $this->pendingSellerOrderQuery(Auth::id())
+            ->distinct('pesanan_id')
+            ->count('pesanan_id');
+
+        return response()->json([
+            'success' => true,
+            'pending_count' => $count,
         ]);
     }
 
@@ -81,39 +138,9 @@ class SellerOrderController extends Controller
         
         $pesanan->save(); 
 
-        // --- KIRIM WA (FONNTE) ---
+        // --- KIRIM WA (GOWA) ---
         if ($request->status == 'accepted') {
-            $targetPhone = $pesanan->telepon_penerima; 
-            $customerName = $pesanan->nama_penerima;
-            $invoice = $pesanan->invoice_code;
-            
-            $message = "Halo Kak {$customerName},\n\nPesanan Anda dengan invoice *{$invoice}* telah kami *TERIMA* dan sedang dalam proses pengemasan.\n";
-            if($pesanan->waktu_pengiriman){
-                 $message .= "Estimasi dikirim: {$pesanan->waktu_pengiriman}\n";
-            }
-            $message .= "\nTerima kasih telah berbelanja di MarketplacePlus!";
-
-            $curl = curl_init();
-            curl_setopt_array($curl, array(
-                CURLOPT_URL => 'https://api.fonnte.com/send',
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_ENCODING => '',
-                CURLOPT_MAXREDIRS => 10,
-                CURLOPT_TIMEOUT => 30, 
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                CURLOPT_CUSTOMREQUEST => 'POST',
-                CURLOPT_POSTFIELDS => array(
-                    'target' => $targetPhone,
-                    'message' => $message,
-                    'countryCode' => '62', 
-                ),
-                CURLOPT_HTTPHEADER => array(
-                    'Authorization: PzkJf4FzoSnZy5ATt9gN' 
-                ),
-            ));
-            $response = curl_exec($curl);
-            curl_close($curl);
+            $this->sendAcceptedOrderNotification($pesanan, $detail);
         }
 
         return response()->json([
@@ -164,6 +191,95 @@ class SellerOrderController extends Controller
         } catch (\Exception $e) {
             return response()->json(['message' => 'Server Error: ' . $e->getMessage()], 500);
         }
+    }
+
+    private function sendAcceptedOrderNotification(Pesanan $pesanan, DetailPesanan $detail): void
+    {
+        $targetPhone = $this->normalizeWhatsappPhone($pesanan->telepon_penerima);
+
+        if (!$targetPhone) {
+            Log::warning('GoWa notification skipped: recipient phone is empty', [
+                'order_id' => $pesanan->id,
+                'invoice' => $pesanan->invoice_code,
+            ]);
+            return;
+        }
+
+        $customerName = $pesanan->nama_penerima ?: 'Pembeli';
+        $invoice = $pesanan->invoice_code ?: '-';
+        $total = number_format((int) ($pesanan->grand_total ?: $detail->total_harga), 0, ',', '.');
+        $paymentMethod = strtoupper($pesanan->metode_pembayaran ?: '-');
+        $deliveryTime = $pesanan->waktu_pengiriman
+            ? $pesanan->waktu_pengiriman->timezone(config('app.timezone'))->format('d/m/Y H:i')
+            : '-';
+        $address = $pesanan->alamat_pengiriman ?: '-';
+
+        $message = "Halo Kak {$customerName},\n\n"
+            . "Pesanan Anda dengan invoice *{$invoice}* telah kami *TERIMA* dan sedang dalam proses pengemasan.\n\n"
+            . "Total Pesanan: Rp {$total}\n"
+            . "Metode Pembayaran: {$paymentMethod}\n"
+            . "Estimasi Tiba: {$deliveryTime}\n\n"
+            . "Alamat Tujuan:\n{$address}\n\n"
+            . "Terima kasih telah berbelanja di MarketplacePlus!";
+
+        try {
+            $response = Http::timeout(15)
+                ->withHeaders(['X-Device-Id' => config('services.gowa.device_id')])
+                ->post(rtrim(config('services.gowa.url'), '/') . '/send/message', [
+                    'phone' => $targetPhone,
+                    'message' => $message,
+                ]);
+
+            if (!$response->successful()) {
+                Log::warning('GoWa notification failed', [
+                    'order_id' => $pesanan->id,
+                    'invoice' => $invoice,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::error('GoWa notification error: ' . $e->getMessage(), [
+                'order_id' => $pesanan->id,
+                'invoice' => $invoice,
+            ]);
+        }
+    }
+
+    private function normalizeWhatsappPhone(?string $phone): ?string
+    {
+        $phone = preg_replace('/[^0-9]/', '', (string) $phone);
+
+        if ($phone === '') {
+            return null;
+        }
+
+        if (str_starts_with($phone, '0')) {
+            return '62' . substr($phone, 1);
+        }
+
+        return $phone;
+    }
+
+    private function newSellerOrderNotificationQuery(int $userId)
+    {
+        return $this->pendingSellerOrderQuery($userId)
+            ->whereNull('seller_seen_at');
+    }
+
+    private function pendingSellerOrderQuery(int $userId)
+    {
+        return DetailPesanan::query()
+            ->whereHas('produk', function ($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })
+            ->whereHas('pesanan', function ($query) {
+                $query->where('status', 'pending')
+                    ->where(function ($sub) {
+                        $sub->where('hidden_for_seller', 0)
+                            ->orWhereNull('hidden_for_seller');
+                    });
+            });
     }
 
 }

@@ -2,7 +2,6 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Models\Kategori;
 use App\Http\Controllers\produkController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\AuthController;
@@ -13,7 +12,6 @@ use App\Http\Controllers\ShopController;
 use App\Http\Controllers\Api\SellerOrderController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\AdminCategoryController;
 use App\Http\Controllers\Api\OtpResetController;
 use App\Http\Controllers\Api\GuestChatController;
 
@@ -36,12 +34,22 @@ Route::post('/send-otp', [AuthController::class, 'sendOtp']);
 Route::get('/produk', [produkController::class, 'index']);     // List Barang
 Route::get('/produk/{id}', [produkController::class, 'show']); // Detail Barang
 
-    // React akan memanggil link ini untuk minta daftar kategori
-    Route::get('/categories', function () {
-    return response()->json(\App\Models\Kategori::orderBy('urutan', 'asc')->get());
+// Daftar kategori final dari model Decision Tree. Dropdown dashboard tetap boleh memakai ini untuk filter.
+Route::get('/categories', function () {
+    return response()->json(
+        collect(config('product_categories'))->values()->map(function ($category, $index) {
+            return [
+                'id' => $index + 1,
+                'nama_kategori' => $category,
+                'urutan' => $index + 1,
+            ];
+        })
+    );
 });
 
-Route::get('/kategori', [AdminCategoryController::class, 'index']);
+Route::get('/kategori', function () {
+    return response()->json(config('product_categories'));
+});
 
 Route::get('/cek-saya', function (Illuminate\Http\Request $request) {
     // Ambil user dari token yang dikirim
@@ -55,7 +63,7 @@ Route::get('/cek-saya', function (Illuminate\Http\Request $request) {
         'nama' => $user->name,
         'email' => $user->email,
         'punya_role_admin' => $user->hasRole('admin'),       // Harus TRUE
-        'punya_izin_kategori' => $user->can('create category') // Harus TRUE
+        'kategori_otomatis' => config('product_categories')
     ];
 })->middleware('auth:sanctum');
 
@@ -65,12 +73,6 @@ Route::get('/cek-saya', function (Illuminate\Http\Request $request) {
 // ==========================================
 
 Route::middleware(['auth:sanctum', \App\Http\Middleware\LogUserActivity::class])->group(function () {
-
-    
-    Route::post('/kategori', [AdminCategoryController::class, 'store'])
-        ->middleware('permission:create category');
-
-    
 
     // User Info
     Route::get('/user', function (Request $request) {
@@ -87,6 +89,9 @@ Route::middleware(['auth:sanctum', \App\Http\Middleware\LogUserActivity::class])
     Route::get('/my-products', [ProdukController::class, 'userIndex']);
 
     Route::get('/seller/orders', [SellerOrderController::class, 'index']);
+    Route::get('/seller/orders/pending-count', [SellerOrderController::class, 'pendingCount']);
+    Route::get('/seller/order-notifications', [SellerOrderController::class, 'notifications']);
+    Route::post('/seller/order-notifications/read', [SellerOrderController::class, 'markNotificationsAsRead']);
     Route::put('/seller/orders/{id}', [SellerOrderController::class, 'update']);
     
     // Route Hapus Produk

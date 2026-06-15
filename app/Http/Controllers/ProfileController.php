@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -31,9 +32,9 @@ class ProfileController extends Controller
         // 1. VALIDASI DATA UMUM
         $request->validate([
             'name' => 'required|string|max:255',
-            'npm' => 'nullable|string',
-            'prodi' => 'nullable|string',
-            'fakultas' => 'nullable|string',
+            'nomor_kk' => 'nullable|string',
+            'dusun_rt_rw' => 'nullable|string',
+            'nik' => 'nullable|string',
             'address' => 'nullable|string',
             'bio' => 'nullable|string',
             'jenis_kelamin' => 'nullable|string',
@@ -84,7 +85,7 @@ class ProfileController extends Controller
         }
 
         // 3. FILL DATA LAIN
-        $user->fill($request->except(['phone', 'profile_photo', 'ktm_image']));
+        $user->fill($request->except(['phone', 'profile_photo', 'ktp_image']));
 
         // 4. HANDLE UPLOAD FOTO
         if ($request->hasFile('profile_photo')) {
@@ -94,11 +95,11 @@ class ProfileController extends Controller
             $user->profile_photo = $request->file('profile_photo')->store('profile-photos', 'public');
         }
 
-        if ($request->hasFile('ktm_image')) {
-            if ($user->ktm_image) {
-                Storage::delete('public/' . $user->ktm_image);
+        if ($request->hasFile('ktp_image')) {
+            if ($user->ktp_image) {
+                Storage::delete('public/' . $user->ktp_image);
             }
-            $user->ktm_image = $request->file('ktm_image')->store('ktm-images', 'public');
+            $user->ktp_image = $request->file('ktp_image')->store('ktm-images', 'public');
         }
 
         if ($user->isDirty('email')) {
@@ -153,14 +154,14 @@ class ProfileController extends Controller
             'data' => [
                 'id' => $user->id,
                 'name' => $user->name,
-                'npm' => $user->npm,
+                'nomor_kk' => $user->nomor_kk,
                 'email' => $user->email, // Opsional
                 'profile_photo' => $user->profile_photo,
                 'role' => $user->role,
                 'bio' => $user->bio,
                 'jenis_kelamin' => $user->jenis_kelamin,
                 'created_at' => $user->created_at,
-                'ktm_image' => $user->ktm_image,
+                'ktp_image' => $user->ktp_image,
                 'address' => $user->address,
             ]
         ]);

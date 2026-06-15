@@ -3,8 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import ChatDropdown from './ChatDropdown';
 import ProductImageSlider from './ProductImageSlider';
 import Pagination from './Pagination';
+import SellerNavActions from './SellerNavActions';
 import iconKeranjang from './asset/keranjang.png'
-import iconPesanan from './asset/pesan.png'
 import iconSearch from './asset/search.png'
 import iconToko from './asset/toko.png'
 
@@ -232,10 +232,10 @@ export default function Dashboard() {
         <div className="min-h-screen bg-blue-50 w-full font-sans pb-20">
             
             <nav className="bg-white shadow-md sticky top-0 z-50 w-full">
-                <div className="w-[90%] mx-auto h-16 flex items-center justify-between px-4">
+                <div className="w-full max-w-7xl mx-auto min-h-[4rem] flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 py-2 sm:px-4 md:h-16 md:flex-nowrap">
                     
-                    <div className="flex items-center gap-4 lg:gap-6 flex-1">
-                        <Link to="/" className="text-2xl font-bold text-blue-900 tracking-tight">
+                    <div className="flex min-w-0 items-center gap-3 lg:gap-6 flex-1">
+                        <Link to="/" className="text-xl sm:text-2xl font-bold text-blue-900 tracking-tight whitespace-nowrap">
                             Marketplace<span className="text-gray-700">Plus</span>
                         </Link>
                         
@@ -277,28 +277,28 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-6 flex-shrink-0 ml-6">
+                    <div className="order-3 flex w-full items-center justify-end gap-1 flex-shrink-0 md:order-none md:ml-4 md:w-auto md:gap-3">
                         {user.role === 'pembeli' ? (
                             <button 
                                 onClick={handleOpenShopClick}
-                                className="text-sm font-bold text-white bg-blue-900 hover:bg-blue-800 px-4 py-2 rounded-lg transition shadow-sm flex items-center gap-1 decoration-none"
+                                className="text-xs sm:text-sm font-bold text-white bg-blue-900 hover:bg-blue-800 px-3 sm:px-4 py-2 rounded-lg transition shadow-sm flex items-center gap-1 decoration-none whitespace-nowrap"
                             >
                                 Buka Toko
                             </button>
-                        ) : user.role === 'penjual' ? (
-                            <Link 
-                                to="/add-product" 
-                                className="text-sm font-bold text-white bg-blue-900 hover:bg-blue-800 px-4 py-2 rounded-lg transition shadow-sm flex items-center gap-1 decoration-none whitespace-nowrap flex-shrink-0"
-                            >
-                                + Upload
-                            </Link>
                         ) : null}
 
-                        <Link to="/keranjang" className="relative group flex items-center">
+                        <SellerNavActions showUpload />
+
+                        <Link
+                            to="/keranjang"
+                            className="relative group flex items-center p-1.5 sm:p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-full transition"
+                            title="Keranjang"
+                            aria-label="Keranjang"
+                        >
                             <img 
                                 src={iconKeranjang} 
                                 alt="keranjang" 
-                                className="w-10 h-10 object-contain opacity-60 group-hover:opacity-100 transition duration-200"
+                                className="w-8 h-8 sm:w-10 sm:h-10 object-contain opacity-60 group-hover:opacity-100 transition duration-200"
                             />
                         </Link>
 
@@ -311,7 +311,7 @@ export default function Dashboard() {
                             </div>
                         ) : (
                             <div className="relative" ref={dropdownRef}>
-                                <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition">
+                                <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition">
                                     <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-200">
                                         {getProfilePhoto() ? (
                                             <img 

@@ -10,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\PermissionRegistrar;
 use Illuminate\Http\UploadedFile; // <--- Tambahkan ini agar bisa upload foto palsu
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;
 
 class ProductRbacTest extends TestCase
 {
@@ -36,6 +37,13 @@ class ProductRbacTest extends TestCase
     {
         $this->withoutExceptionHandling();
         Storage::fake('public');
+        Http::fake([
+            config('services.ml_api.url') => Http::response([
+                'status' => 'success',
+                'kategori' => 'kerajinan',
+                'skor_kepercayaan' => 95.5,
+            ], 200),
+        ]);
 
         $seller = User::factory()->create();
         $seller->assignRole('seller');
@@ -45,7 +53,6 @@ class ProductRbacTest extends TestCase
             'harga_barang' => 150000,         // <--- UBAH INI (dari 'harga' jadi 'harga_barang')
             'deskripsi'    => 'Kondisi bagus',
             'stok_barang'  => 10,
-            'kategori'     => 'Pakaian',
             'foto_barang'  => [ 
                 UploadedFile::fake()->image('sepatu.jpg')
             ]
@@ -58,11 +65,12 @@ class ProductRbacTest extends TestCase
         $response = $this->actingAs($seller)
                          ->postJson('/api/produk', $payload);
 
-        $response->assertStatus(200);
+        $response->assertStatus(201);
         
         $this->assertDatabaseHas('produk', [
             'nama_barang' => 'Sepatu Test',
             'harga_barang' => 150000, // <--- Pastikan di sini juga pakai 'harga_barang'
+            'kategori' => 'kerajinan',
         ]);
     }
 

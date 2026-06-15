@@ -46,7 +46,7 @@
 
         <div id="data-users" class="bg-white rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden">
             
-            <div class="px-6 py-5 border-b border-gray-100 bg-gray-50/50 flex flex-col lg:flex-row justify-between items-center gap-4">
+            <div class="px-4 sm:px-6 py-5 border-b border-gray-100 bg-gray-50/50 flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4">
                 
                 <h3 class="font-bold text-gray-800 text-lg flex items-center gap-2 whitespace-nowrap">
                     <div class="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg">
@@ -57,7 +57,7 @@
                     Daftar Semua Pengguna
                 </h3>
                 
-                <form method="GET" action="{{ route('admin.users') }}" class="w-full lg:flex-1 lg:max-w-xl relative flex items-center gap-2">
+                <form method="GET" action="{{ route('admin.users') }}" class="w-full lg:flex-1 lg:max-w-xl relative flex flex-col sm:flex-row sm:items-center gap-2">
                     @if(request('filter'))
                         <input type="hidden" name="filter" value="{{ request('filter') }}">
                     @endif
@@ -79,7 +79,7 @@
                         >
                     </div>
 
-                    <select name="activity" class="bg-white border border-gray-200 text-gray-600 text-sm font-bold rounded-lg py-2 px-3 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition cursor-pointer flex-shrink-0" onchange="this.form.submit()">
+                    <select name="activity" class="w-full sm:w-auto bg-white border border-gray-200 text-gray-600 text-sm font-bold rounded-lg py-2 px-3 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm transition cursor-pointer flex-shrink-0" onchange="this.form.submit()">
                         <option value="">Semua Status</option>
                         <option value="online" {{ request('activity') == 'online' ? 'selected' : '' }}>🟢 Online</option>
                         <option value="offline" {{ request('activity') == 'offline' ? 'selected' : '' }}>⚫ Offline</option>
@@ -104,8 +104,95 @@
                 </div>
             </div>
 
-            <div class="overflow-x-auto overflow-y-auto max-h-[calc(100vh-16rem)] table-container">
-                <table class="w-full text-left border-collapse relative">
+            <div class="table-container max-h-[calc(100vh-16rem)] overflow-y-auto">
+                <div class="md:hidden divide-y divide-gray-100 bg-white">
+                    @forelse($users as $mobileUser)
+                        <div class="p-4">
+                            <div class="flex items-start gap-3">
+                                <a href="{{ route('admin.users.shop', $mobileUser->id) }}" class="flex-shrink-0">
+                                    @if($mobileUser->profile_photo)
+                                        <img src="{{ asset('storage/' . $mobileUser->profile_photo) }}" class="w-12 h-12 rounded-full object-cover border border-gray-200 shadow-sm">
+                                    @else
+                                        <div class="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center font-bold text-indigo-600 border border-indigo-100">
+                                            {{ substr($mobileUser->name, 0, 1) }}
+                                        </div>
+                                    @endif
+                                </a>
+
+                                <div class="min-w-0 flex-1">
+                                    <a href="{{ route('admin.users.shop', $mobileUser->id) }}" class="block">
+                                        <p class="font-bold text-gray-800 truncate">{{ $mobileUser->name }}</p>
+                                        <p class="text-xs text-gray-500 truncate">{{ $mobileUser->email }}</p>
+                                    </a>
+
+                                    <div class="mt-2 flex flex-wrap gap-2">
+                                        @if($mobileUser->isOnline())
+                                            <span class="inline-flex items-center gap-1.5 text-[10px] font-bold text-green-700 bg-green-50 px-2.5 py-1 rounded-full border border-green-200">
+                                                <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Online
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1.5 text-[10px] font-bold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full border border-gray-200">
+                                                <span class="w-1.5 h-1.5 bg-gray-400 rounded-full"></span> {{ $mobileUser->getLastSeen() }}
+                                            </span>
+                                        @endif
+
+                                        @if($mobileUser->role === 'admin')
+                                            <span class="inline-flex items-center bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full text-[10px] font-bold border border-purple-100">Administrator</span>
+                                        @elseif($mobileUser->products_count > 0)
+                                            <span class="inline-flex items-center bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-[10px] font-bold border border-green-100">Penjual</span>
+                                        @else
+                                            <span class="inline-flex items-center bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full text-[10px] font-bold border border-blue-100">Pembeli</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 grid grid-cols-2 gap-3 text-xs">
+                                <div class="rounded-lg bg-gray-50 border border-gray-100 p-3">
+                                    <p class="text-gray-400 font-bold uppercase tracking-wide">Produk</p>
+                                    @if($mobileUser->products_count > 0)
+                                        <a href="{{ route('admin.users.shop', $mobileUser->id) }}" class="mt-1 inline-flex items-center font-bold text-indigo-600">
+                                            {{ $mobileUser->products_count }} Produk
+                                        </a>
+                                    @else
+                                        <p class="mt-1 font-bold text-gray-500">Kosong</p>
+                                    @endif
+                                </div>
+                                <div class="rounded-lg bg-gray-50 border border-gray-100 p-3">
+                                    <p class="text-gray-400 font-bold uppercase tracking-wide">Bergabung</p>
+                                    <p class="mt-1 font-bold text-gray-700">{{ $mobileUser->created_at->format('d M Y') }}</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 flex flex-wrap gap-2">
+                                @if($mobileUser->email === 'admin@marketplace.com')
+                                    <span class="inline-flex items-center text-xs font-bold text-red-600 bg-red-100 px-3 py-1.5 rounded-full border border-red-200">ADMIN</span>
+                                @elseif(auth()->id() == $mobileUser->id)
+                                    <span class="inline-flex items-center text-xs font-bold text-gray-400 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200">Akun Anda</span>
+                                @else
+                                    <button type="button" onclick="openAdminChat({{ $mobileUser->id }}, '{{ addslashes($mobileUser->name) }}')" class="flex items-center gap-1 bg-white text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-50 transition border border-gray-200 hover:border-indigo-200 shadow-sm">
+                                        Chat
+                                    </button>
+
+                                    <form action="{{ route('admin.users.delete', $mobileUser->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus user ini? Semua produk dan data akan hilang.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="flex items-center gap-1 bg-white text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-50 transition border border-gray-200 hover:border-red-200 shadow-sm">
+                                            Hapus
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-8 text-center text-sm text-gray-500">
+                            Tidak ada data pengguna yang cocok dengan filter atau pencarian Anda.
+                        </div>
+                    @endforelse
+                </div>
+
+                <div class="hidden md:block overflow-x-auto">
+                <table class="min-w-[900px] w-full text-left border-collapse relative">
                     <thead class="sticky top-0 z-20 shadow-sm">
                         <tr class="text-gray-500 text-xs uppercase border-b border-gray-100 tracking-wider">
                             <th class="px-6 py-4 font-bold bg-white">Nama / Email</th>
@@ -238,6 +325,7 @@
                         @endforelse
                     </tbody>
                 </table>
+                </div>
             </div>
 
             @if($users->hasPages())

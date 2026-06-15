@@ -62,7 +62,7 @@ class AdminController extends Controller
         $totalPembeli = $totalUsers - $totalPenjual;
 
         $totalProduk = \App\Models\Produk::count();
-        $totalKategori = \App\Models\Kategori::count();
+        $totalKategori = count(config('product_categories'));
         $totalPesanan = \Illuminate\Support\Facades\DB::table('pesanan')->count();
 
         return view('admin.dashboard', compact(
@@ -404,6 +404,12 @@ class AdminController extends Controller
     {
         // 1. GUNAKAN ELOQUENT MURNI: Memanggil data relasi 'user' dan 'ulasan'
         $query = \App\Models\Produk::with(['user', 'ulasan']);
+        $categories = config('product_categories');
+        $activeCategory = strtolower((string) $request->query('category', ''));
+
+        if ($activeCategory && in_array($activeCategory, $categories, true)) {
+            $query->whereRaw('LOWER(kategori) = ?', [$activeCategory]);
+        }
 
         // 2. FITUR PENCARIAN
         if ($request->filled('search')) {
@@ -439,7 +445,7 @@ class AdminController extends Controller
                           ->paginate(15)
                           ->withQueryString();
 
-        return view('admin.admin_products', compact('products'));
+        return view('admin.admin_products', compact('products', 'categories', 'activeCategory'));
     }
 
     // --- Menampilkan Semua Transaksi (Untuk Admin) ---

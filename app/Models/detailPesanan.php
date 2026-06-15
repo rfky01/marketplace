@@ -15,7 +15,12 @@ class DetailPesanan extends Model
         'pesanan_id',
         'produk_id',
         'jumlah',
-        'total_harga'
+        'total_harga',
+        'seller_seen_at'
+    ];
+
+    protected $casts = [
+        'seller_seen_at' => 'datetime',
     ];
 
     // Relasi ke Produk

@@ -3,24 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Semua Produk - Admin</title>
+    <title>{{ ($activeCategory ?? null) ? 'Produk ' . ucfirst($activeCategory) . ' - Admin' : 'Semua Produk - Admin' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="bg-gray-50 min-h-screen pb-10">
+    @php
+        $fromCategories = request('from') === 'categories';
+        $backUrl = $fromCategories ? route('admin.categories.index') : route('admin.dashboard');
+        $resetUrl = $fromCategories ? route('admin.products', ['from' => 'categories']) : route('admin.products');
+    @endphp
 
     <nav class="bg-indigo-900 text-white p-4 shadow-xl sticky top-0 z-50">
         <div class="container mx-auto flex items-center justify-between">
             <div class="flex items-center gap-4">
-                <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded-lg transition text-sm font-semibold border border-transparent hover:border-white/20">
+                <a href="{{ $backUrl }}" class="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded-lg transition text-sm font-semibold border border-transparent hover:border-white/20">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
                     Kembali
                 </a>
-                <h1 class="text-xl font-bold border-l border-white/20 pl-4">Semua Produk Marketplace</h1>
+                <h1 class="text-xl font-bold border-l border-white/20 pl-4">
+                    {{ ($activeCategory ?? null) ? 'Produk ' . ucfirst($activeCategory) : 'Semua Produk Marketplace' }}
+                </h1>
             </div>
             <div class="text-sm font-medium bg-white/10 px-4 py-2 rounded-lg">
                 Total: {{ $products->total() ?? 0 }} Produk
@@ -32,6 +39,9 @@
         
         <div class="mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
             <form method="GET" action="{{ route('admin.products') ?? url()->current() }}" class="flex flex-col md:flex-row justify-between items-center gap-4">
+                @if($fromCategories)
+                    <input type="hidden" name="from" value="categories">
+                @endif
                 
                 <div class="w-full md:flex-1 relative flex items-center">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -50,14 +60,23 @@
                 </div>
 
                 <div class="flex items-center gap-3 w-full md:w-auto">
+                    <select name="category" onchange="this.form.submit()" class="bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full md:w-44 py-3 px-3 cursor-pointer shadow-sm transition outline-none hover:bg-gray-50">
+                        <option value="">Semua Kategori</option>
+                        @foreach($categories ?? [] as $category)
+                            <option value="{{ $category }}" {{ ($activeCategory ?? request('category')) == $category ? 'selected' : '' }}>
+                                {{ ucfirst($category) }}
+                            </option>
+                        @endforeach
+                    </select>
+
                     <select name="sort" onchange="this.form.submit()" class="bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full md:w-40 py-3 px-3 cursor-pointer shadow-sm transition outline-none hover:bg-gray-50">
                         <option value="">Terbaru</option>
                         <option value="lowest" {{ request('sort') == 'lowest' ? 'selected' : '' }}>Harga Termurah</option>
                         <option value="highest" {{ request('sort') == 'highest' ? 'selected' : '' }}>Harga Termahal</option>
                     </select>
 
-                    @if(request('search') || request('sort'))
-                        <a href="{{ route('admin.products') ?? url()->current() }}" class="flex items-center justify-center gap-2 text-sm font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-4 py-3 rounded-lg transition border border-red-100 shadow-sm whitespace-nowrap">
+                    @if(request('search') || request('sort') || request('category'))
+                        <a href="{{ $resetUrl }}" class="flex items-center justify-center gap-2 text-sm font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-4 py-3 rounded-lg transition border border-red-100 shadow-sm whitespace-nowrap">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                             </svg>
@@ -76,7 +95,7 @@
                 </svg>
                 <h3 class="text-lg font-bold text-gray-700">Belum Ada Produk</h3>
                 <p class="text-gray-500 text-sm mt-1">
-                    {!! request('search') ? 'Tidak ada produk yang cocok dengan pencarian Anda.' : 'Saat ini belum ada penjual yang mengunggah produk.' !!}
+                    {!! request('search') || request('category') ? 'Tidak ada produk yang cocok dengan filter Anda.' : 'Saat ini belum ada penjual yang mengunggah produk.' !!}
                 </p>
             </div>
         @else

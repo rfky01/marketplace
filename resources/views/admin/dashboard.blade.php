@@ -209,15 +209,25 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
                 
-                <div class="lg:col-span-7 grid grid-cols-2 gap-4">
-                    <div class="bg-green-50 border border-green-100 rounded-xl p-4">
-                        <p class="text-[10px] text-green-600 font-bold uppercase tracking-wider">Accuracy</p>
-                        <h4 class="text-2xl font-extrabold text-green-700 mt-1">94,76%</h4>
+                <div class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                        <p class="text-[10px] text-slate-600 font-bold uppercase tracking-wider">Semua Data</p>
+                        <h4 class="text-2xl font-extrabold text-slate-700 mt-1">1050</h4>
+                    </div>
+
+                    <div class="bg-purple-50 border border-purple-100 rounded-xl p-4">
+                        <p class="text-[10px] text-purple-600 font-bold uppercase tracking-wider">Data Latih</p>
+                        <h4 class="text-2xl font-extrabold text-purple-700 mt-1">840</h4>
                     </div>
 
                     <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
                         <p class="text-[10px] text-blue-600 font-bold uppercase tracking-wider">Data Testing</p>
                         <h4 class="text-2xl font-extrabold text-blue-700 mt-1">210</h4>
+                    </div>
+
+                    <div class="bg-green-50 border border-green-100 rounded-xl p-4">
+                        <p class="text-[10px] text-green-600 font-bold uppercase tracking-wider">Accuracy</p>
+                        <h4 class="text-2xl font-extrabold text-green-700 mt-1">94,76%</h4>
                     </div>
 
                     <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
@@ -231,7 +241,7 @@
                     </div>
                 </div>
 
-                <div class="lg:col-span-5 flex justify-center">
+                <div class="lg:col-span-4 flex justify-center">
                     <div class="relative w-56 h-56">
                         <canvas id="accuracyDecisionTreeChart"></canvas>
 

@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getCroppedImg } from './canvasUtils';
 import Cropper from 'react-easy-crop'; // IMPORT TAMBAHAN
+import SellerNavActions from './SellerNavActions';
 
 export default function AddProduct() {
     const navigate = useNavigate();
@@ -90,10 +91,10 @@ export default function AddProduct() {
                     // Cek 'telepon' (sesuai DB) atau 'phone' (kadang beda mapping)
                     const telp = userFixed.telepon || userFixed.phone || userFixed.no_hp;
                     const almt = userFixed.address || userFixed.alamat;
-                    const ktm = userFixed.ktm_image;
-                    const npm = userFixed.npm
+                    const ktp = userFixed.ktp_image;
+                    const nomorkk = userFixed.nomorkk
 
-                    if (!telp || !almt || !ktm || !npm) {
+                    if (!telp || !almt || !ktp || !nomor_kk) {
                         setShowProfileWarning(true);
                     }
                 } else {
@@ -213,11 +214,14 @@ export default function AddProduct() {
 
 
     return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-6 relative">
-            <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl">
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">Upload Produk Baru</h2>
-                    <Link to="/" className="text-gray-500 hover:text-gray-700">Batal</Link>
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 sm:p-6 relative">
+            <div className="bg-white p-5 sm:p-8 rounded-xl shadow-lg w-full max-w-2xl">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Upload Produk Baru</h2>
+                    <div className="flex items-center justify-end gap-3">
+                        <SellerNavActions />
+                        <Link to="/" className="text-gray-500 hover:text-gray-700">Batal</Link>
+                    </div>
                 </div>
 
                 {Object.keys(errors).length > 0 && (
@@ -367,7 +371,7 @@ export default function AddProduct() {
 
                         <h3 className="text-2xl font-bold text-gray-800 mb-2">Profil Belum Lengkap</h3>
                         <p className="text-gray-600 mb-8 leading-relaxed">
-                            Anda belum bisa mengupload produk. Harap lengkapi <b>Alamat</b> dan <b>Nomor Telepon</b> Anda terlebih dahulu.
+                            Anda belum bisa mengupload produk. Harap lengkapi <b>Alamat</b>, <b>Nomor Telepon</b>, <b>Nomor KK</b>, dan <b>Foto KTP</b> terlebih dahulu.
                         </p>
 
                         <div className="flex flex-col gap-3">

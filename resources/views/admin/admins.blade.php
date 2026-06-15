@@ -12,14 +12,14 @@
 
     <nav class="bg-indigo-900 text-white p-4 shadow-xl sticky top-0 z-50">
         <div class="container mx-auto flex items-center justify-between">
-            <div class="flex items-center gap-4">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
                 <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded-lg transition text-sm font-semibold border border-transparent hover:border-white/20">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
                     Dashboard
                 </a>
-                <h1 class="text-xl font-bold border-l border-indigo-700 pl-4 ml-2 tracking-tight">Kelola Administrator</h1>
+                <h1 class="text-lg sm:text-xl font-bold sm:border-l border-indigo-700 sm:pl-4 sm:ml-2 tracking-tight">Kelola Administrator</h1>
             </div>
         </div>
     </nav>
@@ -92,7 +92,7 @@
             <div class="md:col-span-2">
                 <div class="bg-white rounded-xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden">
                     
-                    <div class="px-6 py-5 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+                    <div class="px-4 sm:px-6 py-5 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center gap-3">
                         <h3 class="font-bold text-gray-800 text-lg flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -107,9 +107,9 @@
 
                     <div class="divide-y divide-gray-50">
                         @forelse($admins as $admin)
-                        <div class="p-4 hover:bg-gray-50 transition duration-150 group flex items-center justify-between">
+                        <div class="p-4 hover:bg-gray-50 transition duration-150 group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             
-                            <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-4 w-full min-w-0">
                                 @if($admin->profile_photo)
                                     <img src="{{ asset('storage/' . $admin->profile_photo) }}" class="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm">
                                 @else
@@ -117,13 +117,13 @@
                                         {{ substr($admin->name, 0, 1) }}
                                     </div>
                                 @endif
-                                <div>
-                                    <p class="font-bold text-gray-800 text-sm">{{ $admin->name }}</p>
-                                    <p class="text-xs text-gray-500">{{ $admin->email }}</p>
+                                <div class="min-w-0">
+                                    <p class="font-bold text-gray-800 text-sm truncate">{{ $admin->name }}</p>
+                                    <p class="text-xs text-gray-500 truncate">{{ $admin->email }}</p>
                                 </div>
                             </div>
 
-                            <div class="flex items-center gap-4">
+                            <div class="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
                                 <span class="inline-flex items-center gap-1 bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-md text-[10px] font-bold border border-purple-100">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />

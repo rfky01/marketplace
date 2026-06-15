@@ -79,8 +79,89 @@
                 </span>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
+            <div>
+                <div class="md:hidden divide-y divide-gray-100 bg-white">
+                    @forelse($riwayatPesanan as $mobileOrder)
+                        @php
+                            $fotoMobile = $mobileOrder->foto_barang;
+                            if (is_string($fotoMobile)) {
+                                $decodedMobile = json_decode($fotoMobile, true);
+                                if (is_array($decodedMobile) && count($decodedMobile) > 0) $fotoMobile = $decodedMobile[0];
+                            } elseif (is_array($fotoMobile)) {
+                                $fotoMobile = $fotoMobile[0];
+                            }
+                            $fotoMobile = str_replace('public/', '', $fotoMobile);
+                        @endphp
+
+                        <div class="p-4">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <p class="font-bold text-gray-700">{{ \Carbon\Carbon::parse($mobileOrder->tanggal)->format('d M Y') }}</p>
+                                    <p class="text-xs text-gray-400 mt-0.5">{{ \Carbon\Carbon::parse($mobileOrder->tanggal)->format('H:i') }} WIB</p>
+                                </div>
+                                @if($mobileOrder->status == 'selesai')
+                                    <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold border border-green-200">Selesai</span>
+                                @elseif($mobileOrder->status == 'dikirim')
+                                    <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold border border-blue-200">Dikirim</span>
+                                @elseif($mobileOrder->status == 'batal')
+                                    <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold border border-red-200">Batal</span>
+                                @else
+                                    <span class="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold border border-yellow-200">{{ ucfirst($mobileOrder->status) }}</span>
+                                @endif
+                            </div>
+
+                            <div class="mt-4 flex items-center gap-3">
+                                <div class="w-14 h-14 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 border border-gray-200">
+                                    @if($fotoMobile)
+                                        <img src="{{ asset('storage/' . $fotoMobile) }}" class="w-full h-full object-cover">
+                                    @else
+                                        <div class="flex items-center justify-center h-full text-gray-300 text-xs">No img</div>
+                                    @endif
+                                </div>
+                                <div class="min-w-0">
+                                    <span class="text-[10px] font-bold text-indigo-600 mb-1 bg-indigo-50 px-1.5 py-0.5 rounded w-fit border border-indigo-100 block">
+                                        INV-{{ \Carbon\Carbon::parse($mobileOrder->tanggal)->timestamp }}-{{ $mobileOrder->pembeli_id }}
+                                    </span>
+                                    <p class="font-bold text-gray-700 line-clamp-2">{{ $mobileOrder->nama_barang }}</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 grid grid-cols-2 gap-3 text-xs">
+                                <div class="rounded-lg bg-gray-50 border border-gray-100 p-3">
+                                    <p class="text-gray-400 font-bold uppercase tracking-wide">Pembeli</p>
+                                    <p class="mt-1 font-bold text-gray-700 truncate">{{ $mobileOrder->pembeli }}</p>
+                                </div>
+                                <div class="rounded-lg bg-gray-50 border border-gray-100 p-3">
+                                    <p class="text-gray-400 font-bold uppercase tracking-wide">Jumlah</p>
+                                    <p class="mt-1 font-bold text-gray-700">{{ $mobileOrder->jumlah }}</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 rounded-lg bg-blue-50 border border-blue-100 p-3">
+                                <p class="text-xs font-bold uppercase tracking-wide text-blue-500">Total Harga</p>
+                                <p class="mt-1 font-extrabold text-blue-700">Rp {{ number_format($mobileOrder->total_harga, 0, ',', '.') }}</p>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="px-6 py-16 text-center">
+                            <div class="flex flex-col items-center justify-center opacity-50">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                <p class="text-gray-500 font-medium">
+                                    @if(request('status'))
+                                        Tidak ada pesanan dengan status "{{ ucfirst(request('status')) }}".
+                                    @else
+                                        Belum ada riwayat pesanan di toko ini.
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                    @endforelse
+                </div>
+
+                <div class="hidden md:block overflow-x-auto">
+                <table class="min-w-[900px] w-full text-left border-collapse">
                     <thead>
                         <tr class="bg-white text-gray-500 text-xs uppercase border-b border-gray-100 tracking-wider">
                             <th class="px-6 py-4 font-bold">Tanggal</th>
@@ -182,6 +263,7 @@
                         @endforelse
                     </tbody>
                 </table>
+                </div>
             </div>
             @if($riwayatPesanan->hasPages())
             <div class="p-6 border-t border-gray-100 bg-white flex justify-center rounded-b-xl">

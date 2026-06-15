@@ -1,6 +1,6 @@
 <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
 
-<div id="admin-chat-popup" class="fixed bottom-0 right-6 w-80 bg-white shadow-[0_-5px_25px_rgba(0,0,0,0.15)] rounded-t-2xl z-[9999] flex flex-col border border-gray-200 font-sans transition-transform duration-300 transform translate-y-full opacity-0" style="height: 450px;">
+<div id="admin-chat-popup" class="fixed bottom-0 left-3 right-3 sm:left-auto sm:right-6 sm:w-80 max-w-[calc(100vw-1.5rem)] h-[82vh] max-h-[450px] sm:h-[450px] bg-white shadow-[0_-5px_25px_rgba(0,0,0,0.15)] rounded-t-2xl z-[9999] flex flex-col border border-gray-200 font-sans transition-transform duration-300 transform translate-y-full opacity-0">
     
     <div class="bg-indigo-600 text-white px-4 py-3 rounded-t-2xl flex justify-between items-center shadow-sm cursor-pointer" onclick="closeAdminChat()">
         <div class="flex items-center gap-2">
@@ -8,7 +8,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
             </div>
             <div>
-                <h4 id="popup-chat-name" class="font-bold text-sm tracking-wide line-clamp-1 max-w-[150px]">Nama User</h4>
+                <h4 id="popup-chat-name" class="font-bold text-sm tracking-wide line-clamp-1 max-w-[180px] sm:max-w-[150px]">Nama User</h4>
                 <p id="popup-chat-status" class="text-[10px] text-indigo-200 flex items-center gap-1">
                     <span class="w-1.5 h-1.5 bg-gray-400 rounded-full"></span> Menghubungkan...
                 </p>
@@ -25,7 +25,7 @@
 
     <div class="relative bg-white border-t border-gray-100">
         <div id="emoji-picker-container" class="absolute bottom-full left-0 mb-1 hidden z-50 w-full px-2">
-            <emoji-picker class="light" style="--num-columns: 7; --emoji-size: 1.3rem; width: 100%; height: 280px; border-radius: 0.75rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); border: 1px solid #e5e7eb;"></emoji-picker>
+            <emoji-picker class="light" style="--num-columns: 7; --emoji-size: 1.3rem; width: 100%; height: min(280px, 42vh); border-radius: 0.75rem; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); border: 1px solid #e5e7eb;"></emoji-picker>
         </div>
 
         <form onsubmit="sendPopupMsg(event)" class="p-2.5 flex items-center gap-2">

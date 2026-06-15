@@ -12,16 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('npm')->nullable()->after('name');     // NPM
-            $table->string('prodi')->nullable()->after('npm');    // Program Studi
-            $table->string('fakultas')->nullable()->after('prodi'); // Fakultas
+            $table->string('nomor_kk')->nullable()->after('name');     // NPM
+            $table->string('dusun_rt_rw')->nullable()->after('nomor_kk');    // Program Studi
+            $table->string('nik')->nullable()->after('dusun_rt_rw'); // Fakultas
         });
     }
 
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['npm', 'prodi', 'fakultas']);
+            $table->dropColumn(['nomor_kk', 'dusun_rt_rw', 'nik']);
         });
     }
 };

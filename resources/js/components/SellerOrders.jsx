@@ -128,6 +128,22 @@ export default function SellerOrders() {
         };
     }, []);
 
+    const markOrderNotificationsAsRead = async () => {
+        const token = localStorage.getItem('token');
+
+        try {
+            await fetch('http://127.0.0.1:8000/api/seller/order-notifications/read', {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: 'application/json'
+                }
+            });
+        } catch (error) {
+            console.error("Gagal menandai notifikasi pesanan:", error);
+        }
+    };
+
     const fetchSellerOrders = async () => {
         const token = localStorage.getItem('token');
         try {
@@ -137,6 +153,7 @@ export default function SellerOrders() {
             const data = await response.json();
             if (data.success) {
                 setSellerOrders(data.data);
+                markOrderNotificationsAsRead();
             }
         } catch (error) {
             console.error("Error fetching seller orders:", error);
@@ -153,47 +170,6 @@ export default function SellerOrders() {
         const targetStatuses = tabs.find(t => t.id === activeTab)?.statuses || [];
         return targetStatuses.includes(currentStatus);
     });
-
-    const formatDateTimeIndo = (dateString) => {
-        if (!dateString) return '-';
-        const options = { 
-            weekday: 'long', 
-            day: 'numeric', 
-            month: 'long', 
-            year: 'numeric', 
-            hour: '2-digit', 
-            minute: '2-digit',
-            hour12: false
-        };
-        return new Date(dateString).toLocaleDateString('id-ID', options);
-    };
-
-    const sendWhatsappFonnte = async (targetPhone, customerName, invoice, estimasiKirim, alamatPenerima, totalHarga, metodeBayar) => {
-        const token = "PzkJf4FzoSnZy5ATt9gN"; 
-        if (!targetPhone) return;
-
-        const waktuCantik = formatDateTimeIndo(estimasiKirim);
-        const hargaCantik = typeof totalHarga === 'number' ? formatRupiah(totalHarga) : totalHarga;
-
-        const message = `Halo Kak ${customerName},\n\n` +
-            `Pesanan Anda dengan invoice *${invoice}* telah kami *TERIMA* dan sedang dalam proses pengemasan.\n\n` +
-            `💰 *Total Pesanan:* ${hargaCantik}\n` + 
-            `💳 *Metode Pembayaran:* ${metodeBayar}\n` +
-            `⏰ *Estimasi Tiba:*\n ${waktuCantik}\n\n` +
-            `📍 *Alamat Tujuan:*\n${alamatPenerima}\n\n` + 
-            `Terima kasih telah berbelanja di MarketplacePlus!`;
-
-        const formData = new FormData();
-        formData.append("target", targetPhone);
-        formData.append("message", message);
-        formData.append("countryCode", "62"); 
-
-        try {
-            await fetch("https://api.fonnte.com/send", {
-                method: "POST", headers: { Authorization: token }, body: formData,
-            });
-        } catch (error) { console.error("Gagal kirim WA Fonnte:", error); }
-    };
 
     // --- FUNGSI EKSEKUSI API (Dipanggil saat klik "Ya" di Modal) ---
     const executeStatusUpdate = async () => {
@@ -311,15 +287,6 @@ export default function SellerOrders() {
                 setIsAcceptModalOpen(false); 
                 setCustomAlert({ isOpen: true, message: "Pesanan diterima! Segera siapkan paket.", type: 'success', onConfirm: null });
 
-                const buyerProfile = selectedOrder.pesanan?.user;
-                const phone = buyerProfile?.telepon || buyerProfile?.phone || buyerProfile?.no_hp || selectedOrder.pesanan?.telepon_penerima;
-                const name = selectedOrder.pesanan?.nama_penerima || "Pembeli";
-                const inv = selectedOrder.pesanan?.invoice_code || "-";
-                const address = selectedOrder.pesanan?.alamat_pengiriman || "Alamat tidak tersedia";
-                const total = selectedOrder.pesanan?.grand_total || (selectedOrder.jumlah * selectedOrder.harga_satuan);
-                const paymentMethod = selectedOrder.pesanan?.metode_pembayaran || "-";
-
-                sendWhatsappFonnte(phone, name, inv, deliveryTime, address, total, paymentMethod); 
                 fetchSellerOrders();
             } else {
                 alert("Gagal: " + (data.message || "Terjadi kesalahan"));
@@ -419,21 +386,21 @@ export default function SellerOrders() {
             
             {/* --- NAVBAR --- */}
             <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
-                <div className="max-w-7xl mx-auto h-16 flex items-center justify-between px-4 lg:px-8">
-                    <div className="flex items-center gap-8">
-                        <Link to="/" className="text-2xl font-bold text-blue-600 tracking-tight decoration-none">
+                <div className="max-w-7xl mx-auto min-h-[4rem] flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 py-2 sm:px-4 lg:px-8 md:h-16 md:flex-nowrap">
+                    <div className="flex min-w-0 items-center gap-4 lg:gap-8">
+                        <Link to="/" className="text-xl sm:text-2xl font-bold text-blue-600 tracking-tight decoration-none whitespace-nowrap">
                             Marketplace<span className="text-gray-700">Plus</span>
                         </Link>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <Link to="/my-products" className="text-gray-500 hover:text-blue-600 font-medium px-4 py-2 transition decoration-none border-r border-gray-300 pr-4">
+                    <div className="order-3 flex w-full items-center justify-end gap-1 md:order-none md:w-auto md:gap-3">
+                        <Link to="/my-products" className="text-gray-500 hover:text-blue-600 hover:bg-gray-100 font-medium px-3 sm:px-4 py-2 transition decoration-none rounded-lg sm:border-r sm:border-gray-300 sm:pr-4">
                             Produk Saya
                         </Link>
-                        <Link to="/" className="text-gray-500 hover:text-blue-600 font-medium px-4 py-2 transition decoration-none">
+                        <Link to="/" className="text-gray-500 hover:text-blue-600 hover:bg-gray-100 font-medium px-3 sm:px-4 py-2 transition decoration-none rounded-lg">
                             Dashboard
                         </Link>
                         <div className="relative" ref={dropdownRef}>
-                            <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-lg transition border border-transparent hover:border-gray-200">
+                            <button onClick={() => setIsDropdownOpen(!isDropdownOpen)} className="flex items-center gap-2 hover:bg-gray-100 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg transition border border-transparent hover:border-gray-200">
                                 <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-200 bg-gray-200">
                                     {getProfilePhoto() ? (
                                         <img src={getProfilePhoto()} alt="Profile" className="w-full h-full object-cover"/>
@@ -481,7 +448,7 @@ export default function SellerOrders() {
                 <div className="flex flex-col lg:flex-row gap-6 items-start">
                     
                     {/* --- BAGIAN KIRI: SIDEBAR MENU --- */}
-                    <div className="w-full lg:w-64 flex-shrink-0 sticky top-24 z-30">
+                    <div className="w-full lg:w-64 flex-shrink-0 sticky top-24 z-40 -mx-4 bg-blue-50 px-4 pt-3 pb-4 shadow-sm border-b border-blue-100 lg:mx-0 lg:bg-transparent lg:px-0 lg:pt-0 lg:pb-0 lg:shadow-none lg:border-b-0">
                         <div className="flex items-center justify-between mb-4 px-1">
                             <h1 className="text-2xl font-bold text-gray-800">Pesanan Masuk</h1>
                             <span className="lg:hidden bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-bold">{sellerOrders.length}</span>

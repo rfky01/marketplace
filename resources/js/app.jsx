@@ -17,6 +17,7 @@ import Keranjang from './components/Keranjang';
 import SellerOrders from './components/SellerOrders';
 import PublicProfile from "./components/PublicProfile";
 import AdminHelpChat from './components/AdminHelpChat';
+import SellerOrderNotification from './components/SellerOrderNotification';
 
 function App() {
     return (
@@ -38,6 +39,7 @@ function App() {
                     <Route path="/seller-orders" element={<SellerOrders />} />
                     <Route path="/profile/:id" element={<PublicProfile />} />
                 </Routes>
+                <SellerOrderNotification />
                 <AdminHelpChat />
             </div>
         </BrowserRouter>

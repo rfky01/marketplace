@@ -44,12 +44,8 @@ Route::middleware(['auth', IsAdmin::class, \App\Http\Middleware\LogUserActivity:
     // Aslinya: /admin/users/{id}/shop/orders
     Route::get('/users/{id}/shop/orders', [App\Http\Controllers\AdminController::class, 'showShopOrders'])->name('admin.users.shop.orders');
 
-    // PERBAIKAN 2: Hapus '/admin' di semua route kategori ini
-    // Aslinya: /categories (Otomatis jadi /admin/categories karena prefix grup)
+    // Kategori otomatis Decision Tree
     Route::get('/categories', [App\Http\Controllers\AdminCategoryController::class, 'index'])->name('admin.categories.index');
-    Route::post('/categories', [App\Http\Controllers\AdminCategoryController::class, 'store'])->name('admin.categories.store');
-    Route::put('/categories/{id}', [App\Http\Controllers\AdminCategoryController::class, 'update'])->name('admin.categories.update');
-    Route::delete('/categories/{id}', [App\Http\Controllers\AdminCategoryController::class, 'destroy'])->name('admin.categories.destroy');
 
     Route::get('/admin/products', [App\Http\Controllers\AdminController::class, 'allProducts'])->name('admin.products');
     // Route untuk melihat semua transaksi (Semua User)
@@ -59,8 +55,6 @@ Route::middleware(['auth', IsAdmin::class, \App\Http\Middleware\LogUserActivity:
     Route::get('/popup-chat/{id}', [AdminController::class, 'getPopupMessages'])->name('admin.popup.chat.get');
     Route::post('/popup-chat/{id}', [AdminController::class, 'sendPopupMessage'])->name('admin.popup.chat.send');
 
-    // ... route kategori lainnya ...
-Route::post('/categories/reorder', [App\Http\Controllers\AdminCategoryController::class, 'reorder'])->name('admin.categories.reorder');
 });
 
 Route::get('/', function () {
@@ -72,12 +66,10 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/profile-laravel', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile-laravel', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile-laravel', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::view('/{any}', 'welcome')->where('any', '.*');
-
-    // Route untuk melihat detail profil user
 });
 
 Route::get('/{any}', function () {

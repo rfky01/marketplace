@@ -34,7 +34,7 @@
     <div class="container mx-auto px-4 mt-8">
         <div class="flex flex-col lg:flex-row gap-6 items-start">
             
-            <div class="w-full lg:w-64 flex-shrink-0 sticky top-24 z-30">
+            <div class="w-full lg:w-64 flex-shrink-0 lg:sticky lg:top-24 z-30">
                 <div class="flex items-center justify-between mb-4 px-1">
                     <h1 class="text-2xl font-bold text-gray-800">Filter Status</h1>
                     <span class="lg:hidden bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded-full font-bold">{{ $totalSemua ?? 0 }}</span>
@@ -113,8 +113,73 @@
                     </div>
 
                     <div id="data-transaksi">
-                        <div class="overflow-x-auto overflow-y-auto max-h-[calc(100vh-16rem)]">
-                            <table class="w-full text-left border-collapse relative">
+                        <div class="overflow-y-auto max-h-[calc(100vh-16rem)]">
+                            <div class="md:hidden divide-y divide-gray-100 bg-white">
+                                @forelse($transactions as $mobileTrx)
+                                    @php
+                                        $fotoMobileArray = json_decode($mobileTrx->foto_barang, true);
+                                        $fotoMobileUtama = (is_array($fotoMobileArray) && count($fotoMobileArray) > 0) ? $fotoMobileArray[0] : null;
+                                        $mobileStatusClass = 'bg-gray-100 text-gray-600 border-gray-200';
+                                        $mobileStatusText = strtoupper($mobileTrx->status);
+
+                                        if(in_array(strtolower($mobileTrx->status), ['pending', 'panding'])) $mobileStatusClass = 'bg-yellow-50 text-yellow-600 border-yellow-200';
+                                        elseif(in_array(strtolower($mobileTrx->status), ['diproses', 'dibayar', 'dikemas', 'accepted', 'proses'])) $mobileStatusClass = 'bg-blue-50 text-blue-600 border-blue-200';
+                                        elseif(strtolower($mobileTrx->status) == 'dikirim') $mobileStatusClass = 'bg-purple-50 text-purple-600 border-purple-200';
+                                        elseif(strtolower($mobileTrx->status) == 'selesai') $mobileStatusClass = 'bg-green-50 text-green-600 border-green-200';
+                                        elseif(str_contains(strtolower($mobileTrx->status), 'return')) $mobileStatusClass = 'bg-orange-50 text-orange-600 border-orange-200';
+                                        elseif(in_array(strtolower($mobileTrx->status), ['batal', 'dibatalkan', 'canceled', 'canceled by seller', 'canceled by buyer', 'ditolak'])) $mobileStatusClass = 'bg-red-50 text-red-600 border-red-200';
+                                    @endphp
+
+                                    <div class="p-4">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div class="min-w-0">
+                                                <p class="font-bold text-indigo-700 truncate">{{ $mobileTrx->invoice_id }}</p>
+                                                <p class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($mobileTrx->tanggal)->format('d M Y, H:i') }}</p>
+                                            </div>
+                                            <span class="flex-shrink-0 px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider border {{ $mobileStatusClass }}">
+                                                {{ str_contains(strtolower($mobileTrx->status), 'return') ? 'RETURN' : $mobileStatusText }}
+                                            </span>
+                                        </div>
+
+                                        <div class="mt-4 flex items-center gap-3">
+                                            <div class="w-14 h-14 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden border border-gray-200">
+                                                @if($fotoMobileUtama)
+                                                    <img src="{{ asset('storage/' . $fotoMobileUtama) }}" class="w-full h-full object-cover">
+                                                @else
+                                                    <div class="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">No Img</div>
+                                                @endif
+                                            </div>
+                                            <div class="min-w-0">
+                                                <p class="font-semibold text-gray-800 line-clamp-2">{{ $mobileTrx->nama_barang }}</p>
+                                                <p class="text-xs text-gray-500 mt-0.5">{{ $mobileTrx->jumlah }} Pcs</p>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-4 grid grid-cols-2 gap-3 text-xs">
+                                            <div class="rounded-lg bg-blue-50 border border-blue-100 p-3">
+                                                <p class="text-blue-500 font-bold uppercase tracking-wide">Pembeli</p>
+                                                <p class="mt-1 font-bold text-blue-700 truncate">{{ $mobileTrx->nama_pembeli }}</p>
+                                            </div>
+                                            <div class="rounded-lg bg-purple-50 border border-purple-100 p-3">
+                                                <p class="text-purple-500 font-bold uppercase tracking-wide">Penjual</p>
+                                                <p class="mt-1 font-bold text-purple-700 truncate">{{ $mobileTrx->nama_penjual }}</p>
+                                            </div>
+                                        </div>
+
+                                        <div class="mt-3 rounded-lg bg-green-50 border border-green-100 p-3">
+                                            <p class="text-xs font-bold uppercase tracking-wide text-green-500">Total Harga</p>
+                                            <p class="mt-1 font-extrabold text-green-700">Rp {{ number_format($mobileTrx->total_harga, 0, ',', '.') }}</p>
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="p-10 text-center text-gray-500 font-medium">
+                                        Belum ada transaksi dengan filter tersebut.
+                                    </div>
+                                @endforelse
+                            </div>
+
+                            <div class="hidden md:block overflow-x-auto">
+                            <table class="min-w-[960px] w-full text-left border-collapse relative">
                                 
                                 <thead class="sticky top-0 z-20 shadow-sm">
                                     <tr class="text-gray-500 text-xs uppercase tracking-wider">
@@ -201,6 +266,7 @@
                                     @endforelse
                                 </tbody>
                             </table>
+                            </div>
                         </div>
 
                         @if($transactions->hasPages())
