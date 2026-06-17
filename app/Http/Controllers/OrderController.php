@@ -459,7 +459,7 @@ class OrderController extends Controller
                 : '-';
 
             $message = "Halo {$seller->name},\n\n"
-                . "Ada pesanan baru masuk di MarketplacePlus.\n\n"
+                . "Ada pesanan baru masuk di PangkalMart.\n\n"
                 . "Invoice: *{$pesanan->invoice_code}*\n"
                 . "Pembeli: {$pesanan->nama_penerima}\n"
                 . "Waktu Pengiriman: {$deliveryTime}\n\n"

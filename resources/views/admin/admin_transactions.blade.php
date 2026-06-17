@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Semua Transaksi - Admin</title>
+    <title>{{ isset($activeBuyer) && $activeBuyer ? 'Transaksi ' . $activeBuyer->name . ' - Admin' : 'Semua Transaksi - Admin' }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -13,20 +13,36 @@
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen pb-10">
+    @php
+        $activeBuyer = $activeBuyer ?? null;
+        $profileBackUrl = request('profile_back_url');
+        $backUrl = $activeBuyer
+            ? route('admin.users.profile', array_filter([
+                'id' => $activeBuyer->id,
+                'profile_back_url' => $profileBackUrl,
+            ]))
+            : route('admin.dashboard');
+        $pageTitle = $activeBuyer ? 'Transaksi ' . $activeBuyer->name : 'Semua Transaksi Marketplace';
+        $statusLinkBase = array_filter([
+            'search' => request('search'),
+            'buyer_id' => $activeBuyer ? $activeBuyer->id : request('buyer_id'),
+            'profile_back_url' => $profileBackUrl,
+        ], fn($value) => filled($value));
+    @endphp
 
     <nav class="bg-indigo-900 text-white p-4 shadow-xl sticky top-0 z-50">
         <div class="container mx-auto flex items-center justify-between">
             <div class="flex items-center gap-4">
-                <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded-lg transition text-sm font-semibold border border-transparent hover:border-white/20">
+                <a href="{{ $backUrl }}" class="flex items-center gap-2 hover:bg-white/10 px-3 py-2 rounded-lg transition text-sm font-semibold border border-transparent hover:border-white/20">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
                     Kembali
                 </a>
-                <h1 class="text-xl font-bold border-l border-white/20 pl-4">Semua Transaksi Marketplace</h1>
+                <h1 class="text-xl font-bold border-l border-white/20 pl-4">{{ $pageTitle }}</h1>
             </div>
             <div class="text-sm font-medium bg-white/10 px-4 py-2 rounded-lg" id="badge-nav">
-                Total: {{ count($transactions) }} Transaksi
+                Total: {{ $transactions->total() }} Transaksi
             </div>
         </div>
     </nav>
@@ -59,7 +75,7 @@
                             ];
                         @endphp
                         @foreach($menus as $key => $label)
-                            <a href="{{ route('admin.transactions', ['status' => $key, 'search' => request('search')]) }}" 
+                            <a href="{{ route('admin.transactions', array_merge($statusLinkBase, ['status' => $key])) }}" 
                                class="w-full text-left px-4 py-3 rounded-lg text-sm font-bold transition-all mb-1 flex justify-between items-center {{ ($activeStatus ?? 'semua') == $key ? 'bg-indigo-50 text-indigo-600 shadow-sm ring-1 ring-indigo-100' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700' }}">
                                 {{ $label }}
                                 @if(($activeStatus ?? 'semua') == $key)
@@ -71,7 +87,7 @@
 
                     <div class="lg:hidden flex overflow-x-auto no-scrollbar p-2 gap-2 border-b border-gray-100">
                         @foreach($menus as $key => $label)
-                            <a href="{{ route('admin.transactions', ['status' => $key, 'search' => request('search')]) }}" 
+                            <a href="{{ route('admin.transactions', array_merge($statusLinkBase, ['status' => $key])) }}" 
                                class="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap border transition-all {{ ($activeStatus ?? 'semua') == $key ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-500 border-gray-200' }}">
                                 {{ $label }}
                             </a>
@@ -93,6 +109,12 @@
 
                         <form method="GET" action="{{ route('admin.transactions') }}" class="w-full md:w-80 relative">
                             <input type="hidden" name="status" value="{{ $activeStatus ?? 'semua' }}">
+                            @if($activeBuyer)
+                                <input type="hidden" name="buyer_id" value="{{ $activeBuyer->id }}">
+                            @endif
+                            @if($profileBackUrl)
+                                <input type="hidden" name="profile_back_url" value="{{ $profileBackUrl }}">
+                            @endif
                             
                             <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                                 <svg class="w-4 h-4 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">

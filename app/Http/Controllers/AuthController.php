@@ -154,7 +154,7 @@ class AuthController extends Controller
                 ])
                 ->post('http://localhost:3000/send/message', [
                     'phone'   => $phone,
-                    'message' => "Kode OTP MarketplacePlus: *" . $otp . "*",
+                    'message' => "Kode OTP PangkalMart: *" . $otp . "*",
                 ]);
 
             // Cek apakah Server Go berhasil menerima request

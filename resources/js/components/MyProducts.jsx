@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import SellerNavActions from './SellerNavActions';
+import Pagination from './Pagination';
 import iconKosong from './asset/kosong.png'
+
+const PRODUCTS_PER_PAGE = 5;
 
 export default function MyProducts() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState({});
+    const [currentPage, setCurrentPage] = useState(1);
     
     // --- STATE NAVBAR ---
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -176,6 +180,14 @@ export default function MyProducts() {
         if (loading) return <div className="p-10 text-center">Memuat produk Anda...</div>;
         return new Date(dateString).toLocaleDateString('id-ID', options);
     };
+    const lastPage = Math.max(1, Math.ceil(products.length / PRODUCTS_PER_PAGE));
+    const paginatedProducts = products.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE);
+
+    useEffect(() => {
+        if (currentPage > lastPage) {
+            setCurrentPage(lastPage);
+        }
+    }, [currentPage, lastPage]);
 
     if (loading) return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -186,11 +198,12 @@ export default function MyProducts() {
     return (
         <div className="min-h-screen bg-blue-50 w-full font-sans pb-20">
             
-            <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
+            <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-2 lg:mb-8">
                 <div className="max-w-7xl mx-auto min-h-[4rem] flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 py-2 sm:px-4 lg:px-8 md:h-16 md:flex-nowrap">
                     <div className="flex min-w-0 items-center gap-4 lg:gap-8">
-                        <Link to="/" className="text-xl sm:text-2xl font-bold text-blue-600 tracking-tight decoration-none whitespace-nowrap">
-                            Marketplace<span className="text-gray-700">Plus</span>
+                        <Link to="/" className="inline-flex items-center gap-2 md:gap-3 text-xl sm:text-2xl font-bold text-blue-600 tracking-tight decoration-none whitespace-nowrap">
+                            <img src="/assets/burung.png" alt="Logo PangkalMart" className="h-9 w-9 md:h-12 md:w-12 shrink-0 object-contain" />
+                            <span>Pangkal<span className="text-gray-700">Mart</span></span>
                         </Link>
                     </div>
 
@@ -247,13 +260,20 @@ export default function MyProducts() {
                                         </div>
 
                                         <div className="py-2">
-                                            <Link to="/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">
-                                                Daftar Pesanan
+                                            <Link to="/orders" className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-3 transition">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-gray-500">
+                                                    <path fillRule="evenodd" d="M7.502 6h7.128A3.375 3.375 0 0118 9.375v9.375a3 3 0 003-3V6.108c0-1.505-1.125-2.811-2.664-2.94a48.972 48.972 0 00-.673-.05A3 3 0 0015 1.5h-1.5a3 3 0 00-2.663 1.618c-.225.015-.45.032-.673.05C8.662 3.295 7.554 4.542 7.502 6zM13.5 1.5h-3c.621 0 1.129.504 1.243 1.136.014.077.037.156.07.236h1.374c.033-.08.056-.159.07-.236.114-.632.622-1.136 1.243-1.136z" clipRule="evenodd" />
+                                                    <path fillRule="evenodd" d="M3.75 15a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zm0 4.5a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zm0-9a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75z" clipRule="evenodd" />
+                                                </svg>
+                                                <span className="flex-1">Daftar Pesanan</span>
                                             </Link>
                                         </div>
 
                                         <div className="border-t border-gray-100 mt-1 pt-1">
-                                            <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition">
+                                            <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-3 transition">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                                                </svg>
                                                 Keluar
                                             </button>
                                         </div>
@@ -264,9 +284,9 @@ export default function MyProducts() {
                 </div>
             </nav>
 
-            <div className="max-w-6xl mx-auto px-4">
+            <div className="max-w-6xl mx-auto px-4 pt-2 pb-6 lg:py-6">
                 
-                <div className="flex justify-between items-center mb-8">
+                <div className="sticky top-24 z-40 -ml-[calc(50vw-50%)] -mr-[calc(50vw-50%)] mb-6 flex w-screen items-center justify-between border-b border-blue-100 bg-blue-50 px-4 pt-4 pb-4 shadow-sm lg:static lg:mx-0 lg:mb-8 lg:w-auto lg:border-b-0 lg:bg-transparent lg:px-0 lg:pt-0 lg:shadow-none">
                     <h1 className="text-3xl font-bold text-gray-800">Produk Saya</h1>
                     <div className="text-gray-500 text-sm">Total: {products.length} Produk</div>
                 </div>
@@ -285,8 +305,9 @@ export default function MyProducts() {
                         </Link>
                     </div>
                 ) : (
+                    <>
                     <div className="grid grid-cols-1 gap-6">
-                        {products.map((product) => (
+                        {paginatedProducts.map((product) => (
                             <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col sm:flex-row items-center gap-6 transition hover:shadow-md">
                                 
                                 <div className="w-full sm:w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
@@ -357,6 +378,12 @@ export default function MyProducts() {
                             </div>
                         ))}
                     </div>
+                    <Pagination
+                        currentPage={currentPage}
+                        lastPage={lastPage}
+                        onPageChange={setCurrentPage}
+                    />
+                    </>
                 )}
             </div>
 

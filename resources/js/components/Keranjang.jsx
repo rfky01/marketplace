@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import SellerNavActions from './SellerNavActions';
+import Pagination from './Pagination';
 import iconHome from './asset/home.png';
 import keranjangKosongImg from './asset/keranjangkosong.png';
+
+const CART_ITEMS_PER_PAGE = 5;
 
 export default function Keranjang() { 
     const [keranjangItems, setKeranjangItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState({});
+    const [currentPage, setCurrentPage] = useState(1);
     
     // STATE: Menyimpan ID barang yang diceklis
     const [selectedItems, setSelectedItems] = useState([]); 
@@ -222,6 +226,14 @@ export default function Keranjang() {
     const checkoutItems = keranjangItems.filter(item => selectedItems.includes(item.id));
     const grandTotal = checkoutItems.reduce((total, item) => total + ((item.produk?.harga_barang || 0) * item.jumlah), 0);
     const totalItems = checkoutItems.reduce((total, item) => total + item.jumlah, 0);
+    const lastPage = Math.max(1, Math.ceil(keranjangItems.length / CART_ITEMS_PER_PAGE));
+    const paginatedCartItems = keranjangItems.slice((currentPage - 1) * CART_ITEMS_PER_PAGE, currentPage * CART_ITEMS_PER_PAGE);
+
+    useEffect(() => {
+        if (currentPage > lastPage) {
+            setCurrentPage(lastPage);
+        }
+    }, [currentPage, lastPage]);
 
     // --- BUKA MODAL ---
     const handleOpenCheckoutModal = () => {
@@ -325,8 +337,9 @@ export default function Keranjang() {
             <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
                 <div className="max-w-7xl mx-auto min-h-[4rem] flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 py-2 sm:px-4 lg:px-8 md:h-16 md:flex-nowrap">
                     <div className="flex min-w-0 items-center gap-4 lg:gap-8">
-                        <Link to="/" className="text-xl sm:text-2xl font-bold text-blue-600 tracking-tight decoration-none whitespace-nowrap">
-                            Marketplace<span className="text-gray-700">Plus</span>
+                        <Link to="/" className="inline-flex items-center gap-2 md:gap-3 text-xl sm:text-2xl font-bold text-blue-600 tracking-tight decoration-none whitespace-nowrap">
+                            <img src="/assets/burung.png" alt="Logo PangkalMart" className="h-9 w-9 md:h-12 md:w-12 shrink-0 object-contain" />
+                            <span>Pangkal<span className="text-gray-700">Mart</span></span>
                         </Link>
                     </div>
                     <div className="order-3 flex w-full items-center justify-end gap-1 md:order-none md:w-auto md:gap-3 lg:gap-6">
@@ -460,7 +473,7 @@ export default function Keranjang() {
                                 />
                                 <span className="text-gray-700 font-bold text-sm">Pilih Semua ({keranjangItems.length})</span>
                             </div>
-                            {keranjangItems.map((item) => (
+                            {paginatedCartItems.map((item) => (
                                 <div key={item.id} className={`bg-white p-4 rounded-xl shadow-sm flex items-center gap-4 border transition ${selectedItems.includes(item.id) ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-100'}`}>
                                     <div className="flex-shrink-0">
                                         <input 
@@ -514,6 +527,11 @@ export default function Keranjang() {
                                     </div>
                                 </div>
                             ))}
+                            <Pagination
+                                currentPage={currentPage}
+                                lastPage={lastPage}
+                                onPageChange={setCurrentPage}
+                            />
                         </div>
 
                         {/* RINGKASAN BELANJA */}

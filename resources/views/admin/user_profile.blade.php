@@ -11,7 +11,14 @@
 <body class="bg-gray-100 font-sans min-h-screen pb-10">
 
     @php
-        $prevUrl = url()->previous();
+        $requestedBackUrl = request('profile_back_url');
+        $appUrl = url('/');
+        $isSafeBackUrl = $requestedBackUrl
+            && (
+                str_starts_with($requestedBackUrl, $appUrl)
+                || str_starts_with($requestedBackUrl, '/')
+            );
+        $prevUrl = $isSafeBackUrl ? $requestedBackUrl : url()->previous();
         
         // Atur fallback jika halaman ini di-refresh (mencegah tombol kembali ke halaman ini sendiri)
         if ($prevUrl === url()->current()) {
@@ -33,6 +40,8 @@
                 $backText = 'Kembali';
             }
         }
+
+        $profileBackUrl = $backUrl;
     @endphp
 
     <nav class="bg-indigo-900 text-white p-4 shadow-lg sticky top-0 z-50">
@@ -273,9 +282,9 @@
                         </div>
 
                         <div class="space-y-3 mt-auto">
-                            <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100 hover:shadow-md transition">
+                            <a href="{{ route('admin.transactions', ['buyer_id' => $user->id, 'profile_back_url' => $profileBackUrl]) }}" class="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-100 hover:border-blue-200 hover:shadow-md transition decoration-none group">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded bg-blue-100 text-blue-600 flex items-center justify-center">
+                                    <div class="w-8 h-8 rounded bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-105 transition">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
                                     </div>
                                     <div>
@@ -286,12 +295,12 @@
                                 <div class="text-right">
                                     <span class="block text-lg font-extrabold text-blue-600">{{ $persenBeli }}%</span>
                                 </div>
-                            </div>
+                            </a>
 
                             @if($totalUpload > 0)
-                            <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100 hover:shadow-md transition">
+                            <a href="{{ route('admin.products', ['seller_id' => $user->id, 'profile_back_url' => $profileBackUrl]) }}" class="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-100 hover:border-green-200 hover:shadow-md transition decoration-none group">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded bg-green-100 text-green-600 flex items-center justify-center">
+                                    <div class="w-8 h-8 rounded bg-green-100 text-green-600 flex items-center justify-center group-hover:scale-105 transition">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                                     </div>
                                     <div>
@@ -302,7 +311,7 @@
                                 <div class="text-right">
                                     <span class="block text-lg font-extrabold text-green-600">{{ $persenUpload }}%</span>
                                 </div>
-                            </div>
+                            </a>
                             @endif
                         </div>
 

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import Cropper from 'react-easy-crop'; // IMPORT BARU
 import { getCroppedImg } from './canvasUtils'; // IMPORT BARU (Sesuaikan path jika perlu)
-import SellerNavActions from './SellerNavActions';
 
 export default function EditProduct() {
     const navigate = useNavigate();
@@ -202,7 +201,6 @@ export default function EditProduct() {
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                     <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Edit Produk</h2>
                     <div className="flex items-center justify-end gap-3">
-                        <SellerNavActions />
                         <Link to="/my-products" className="text-gray-500 hover:text-gray-700">Batal</Link>
                     </div>
                 </div>

@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ChatBox from './ChatBox';
+import Pagination from './Pagination';
 import iconPesanan from './asset/pesan.png'
 import iconPesananKosong from './asset/belumadapesanan.png'
+
+const SELLER_ORDERS_PER_PAGE = 5;
 
 export default function SellerOrders() {
     const [sellerOrders, setSellerOrders] = useState([]);
@@ -11,6 +14,7 @@ export default function SellerOrders() {
 
     // --- STATE TAB MENU ---
     const [activeTab, setActiveTab] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
 
     // --- STATE CHAT ---
     const [isChatOpen, setIsChatOpen] = useState(false);
@@ -170,6 +174,18 @@ export default function SellerOrders() {
         const targetStatuses = tabs.find(t => t.id === activeTab)?.statuses || [];
         return targetStatuses.includes(currentStatus);
     });
+    const lastPage = Math.max(1, Math.ceil(filteredOrders.length / SELLER_ORDERS_PER_PAGE));
+    const paginatedOrders = filteredOrders.slice((currentPage - 1) * SELLER_ORDERS_PER_PAGE, currentPage * SELLER_ORDERS_PER_PAGE);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeTab]);
+
+    useEffect(() => {
+        if (currentPage > lastPage) {
+            setCurrentPage(lastPage);
+        }
+    }, [currentPage, lastPage]);
 
     // --- FUNGSI EKSEKUSI API (Dipanggil saat klik "Ya" di Modal) ---
     const executeStatusUpdate = async () => {
@@ -385,11 +401,12 @@ export default function SellerOrders() {
         <div className="min-h-screen bg-blue-50 w-full font-sans pb-20">
             
             {/* --- NAVBAR --- */}
-            <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
+            <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-2 lg:mb-8">
                 <div className="max-w-7xl mx-auto min-h-[4rem] flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 py-2 sm:px-4 lg:px-8 md:h-16 md:flex-nowrap">
                     <div className="flex min-w-0 items-center gap-4 lg:gap-8">
-                        <Link to="/" className="text-xl sm:text-2xl font-bold text-blue-600 tracking-tight decoration-none whitespace-nowrap">
-                            Marketplace<span className="text-gray-700">Plus</span>
+                        <Link to="/" className="inline-flex items-center gap-2 md:gap-3 text-xl sm:text-2xl font-bold text-blue-600 tracking-tight decoration-none whitespace-nowrap">
+                            <img src="/assets/burung.png" alt="Logo PangkalMart" className="h-9 w-9 md:h-12 md:w-12 shrink-0 object-contain" />
+                            <span>Pangkal<span className="text-gray-700">Mart</span></span>
                         </Link>
                     </div>
                     <div className="order-3 flex w-full items-center justify-end gap-1 md:order-none md:w-auto md:gap-3">
@@ -429,11 +446,27 @@ export default function SellerOrders() {
                                         </div>
                                     </div>
                                     <div className="py-2">
-                                        <Link to="/my-products" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">Toko Saya</Link>
-                                        <Link to="/orders" className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2">Daftar Pesanan</Link>
+                                        <Link to="/my-products" className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-3 transition">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-500">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 1.138a3.002 3.002 0 012.28-.738h9.804a3.002 3.002 0 012.28.738l3.12 3.892a3.004 3.004 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z" />
+                                            </svg>
+                                            <span className="flex-1">Toko Saya</span>
+                                        </Link>
+                                        <Link to="/orders" className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-3 transition">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-gray-500">
+                                                <path fillRule="evenodd" d="M7.502 6h7.128A3.375 3.375 0 0118 9.375v9.375a3 3 0 003-3V6.108c0-1.505-1.125-2.811-2.664-2.94a48.972 48.972 0 00-.673-.05A3 3 0 0015 1.5h-1.5a3 3 0 00-2.663 1.618c-.225.015-.45.032-.673.05C8.662 3.295 7.554 4.542 7.502 6zM13.5 1.5h-3c.621 0 1.129.504 1.243 1.136.014.077.037.156.07.236h1.374c.033-.08.056-.159.07-.236.114-.632.622-1.136 1.243-1.136z" clipRule="evenodd" />
+                                                <path fillRule="evenodd" d="M3.75 15a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zm0 4.5a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75zm0-9a.75.75 0 01.75-.75h9a.75.75 0 010 1.5h-9a.75.75 0 01-.75-.75z" clipRule="evenodd" />
+                                            </svg>
+                                            <span className="flex-1">Daftar Pesanan</span>
+                                        </Link>
                                     </div>
                                     <div className="border-t border-gray-100 mt-1 pt-1">
-                                        <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition">Keluar</button>
+                                        <button onClick={handleLogout} className="w-full text-left px-4 py-3 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-3 transition">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                                            </svg>
+                                            Keluar
+                                        </button>
                                     </div>
                                 </div>
                             )}
@@ -443,12 +476,12 @@ export default function SellerOrders() {
             </nav>
 
             {/* --- CONTAINER UTAMA --- */}
-            <div className="max-w-7xl mx-auto px-4 py-6">
+            <div className="max-w-7xl mx-auto px-4 pt-2 pb-6 lg:py-6">
                 
                 <div className="flex flex-col lg:flex-row gap-6 items-start">
                     
                     {/* --- BAGIAN KIRI: SIDEBAR MENU --- */}
-                    <div className="w-full lg:w-64 flex-shrink-0 sticky top-24 z-40 -mx-4 bg-blue-50 px-4 pt-3 pb-4 shadow-sm border-b border-blue-100 lg:mx-0 lg:bg-transparent lg:px-0 lg:pt-0 lg:pb-0 lg:shadow-none lg:border-b-0">
+                    <div className="w-screen lg:w-64 flex-shrink-0 sticky top-24 z-40 -ml-[calc(50vw-50%)] -mr-[calc(50vw-50%)] bg-blue-50 px-4 pt-3 pb-4 shadow-sm border-b border-blue-100 lg:mx-0 lg:w-64 lg:bg-transparent lg:px-0 lg:pt-0 lg:pb-0 lg:shadow-none lg:border-b-0">
                         <div className="flex items-center justify-between mb-4 px-1">
                             <h1 className="text-2xl font-bold text-gray-800">Pesanan Masuk</h1>
                             <span className="lg:hidden bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-bold">{sellerOrders.length}</span>
@@ -514,7 +547,7 @@ export default function SellerOrders() {
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                {filteredOrders.map((item) => {
+                                {paginatedOrders.map((item) => {
                                     const rawStatus = item.pesanan?.status || 'pending';
                                     const currentStatus = rawStatus.toLowerCase().trim();
                                     const isCancelled = currentStatus.includes('dibatalkan') || currentStatus.includes('cancel') || currentStatus.includes('seller');
@@ -651,6 +684,11 @@ export default function SellerOrders() {
                                         </div>
                                     );
                                 })}
+                                <Pagination
+                                    currentPage={currentPage}
+                                    lastPage={lastPage}
+                                    onPageChange={setCurrentPage}
+                                />
                             </div>
                         )}
                     </div>

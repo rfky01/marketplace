@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ ($activeCategory ?? null) ? 'Produk ' . ucfirst($activeCategory) . ' - Admin' : 'Semua Produk - Admin' }}</title>
+    <title>{{ isset($activeSeller) && $activeSeller ? 'Produk ' . $activeSeller->name . ' - Admin' : (($activeCategory ?? null) ? 'Produk ' . ucfirst($activeCategory) . ' - Admin' : 'Semua Produk - Admin') }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -12,8 +12,29 @@
 <body class="bg-gray-50 min-h-screen pb-10">
     @php
         $fromCategories = request('from') === 'categories';
-        $backUrl = $fromCategories ? route('admin.categories.index') : route('admin.dashboard');
-        $resetUrl = $fromCategories ? route('admin.products', ['from' => 'categories']) : route('admin.products');
+        $activeSeller = $activeSeller ?? null;
+        $profileBackUrl = request('profile_back_url');
+        $backUrl = $activeSeller
+            ? route('admin.users.profile', array_filter([
+                'id' => $activeSeller->id,
+                'profile_back_url' => $profileBackUrl,
+            ]))
+            : ($fromCategories ? route('admin.categories.index') : route('admin.dashboard'));
+        $resetParams = [];
+
+        if ($fromCategories) {
+            $resetParams['from'] = 'categories';
+        }
+
+        if ($activeSeller) {
+            $resetParams['seller_id'] = $activeSeller->id;
+        }
+
+        if ($profileBackUrl) {
+            $resetParams['profile_back_url'] = $profileBackUrl;
+        }
+
+        $resetUrl = route('admin.products', $resetParams);
     @endphp
 
     <nav class="bg-indigo-900 text-white p-4 shadow-xl sticky top-0 z-50">
@@ -26,7 +47,7 @@
                     Kembali
                 </a>
                 <h1 class="text-xl font-bold border-l border-white/20 pl-4">
-                    {{ ($activeCategory ?? null) ? 'Produk ' . ucfirst($activeCategory) : 'Semua Produk Marketplace' }}
+                    {{ $activeSeller ? 'Produk ' . $activeSeller->name : (($activeCategory ?? null) ? 'Produk ' . ucfirst($activeCategory) : 'Semua Produk Marketplace') }}
                 </h1>
             </div>
             <div class="text-sm font-medium bg-white/10 px-4 py-2 rounded-lg">
@@ -42,6 +63,12 @@
                 @if($fromCategories)
                     <input type="hidden" name="from" value="categories">
                 @endif
+                @if($activeSeller)
+                    <input type="hidden" name="seller_id" value="{{ $activeSeller->id }}">
+                @endif
+                @if($profileBackUrl)
+                    <input type="hidden" name="profile_back_url" value="{{ $profileBackUrl }}">
+                @endif
                 
                 <div class="w-full md:flex-1 relative flex items-center">
                     <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -54,7 +81,7 @@
                         name="search" 
                         value="{{ request('search') }}" 
                         class="block w-full pl-12 pr-4 py-3 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition shadow-inner" 
-                        placeholder="Cari nama produk, kategori, atau nama penjual..." 
+                        placeholder="{{ $activeSeller ? 'Cari produk milik ' . $activeSeller->name . '...' : 'Cari nama produk, kategori, atau nama penjual...' }}" 
                         onchange="this.form.submit()"
                     >
                 </div>

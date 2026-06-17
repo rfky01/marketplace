@@ -148,7 +148,7 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <a href="{{ route('admin.users', ['filter' => 'penjual']) }}" class="block bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:border-blue-200 hover:shadow-md transition cursor-pointer decoration-none group">
                 <h4 class="font-bold text-gray-800 mb-6 flex items-center gap-3">
                     <div class="p-2 bg-blue-100 rounded-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -157,21 +157,21 @@
                     </div>
                     Statistik Penjual
                 </h4>
-                <div class="flex items-center justify-between bg-blue-50/50 p-5 rounded-xl border border-blue-100">
+                <div class="flex items-center justify-between bg-blue-50/50 p-5 rounded-xl border border-blue-100 group-hover:border-blue-200 transition">
                     <div>
                         <p class="text-3xl font-extrabold text-blue-700">{{ $totalPenjual }}</p>
                         <p class="text-xs text-blue-600 font-bold uppercase tracking-wider mt-1">Akun Toko Aktif</p>
                     </div>
-                    <div class="h-12 w-12 bg-white rounded-full flex items-center justify-center text-blue-600 shadow-sm border border-blue-100">
+                    <div class="h-12 w-12 bg-white rounded-full flex items-center justify-center text-blue-600 shadow-sm border border-blue-100 group-hover:scale-105 transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                         </svg>
                     </div>
                 </div>
                 <p class="text-xs text-gray-500 mt-4 px-1">User yang telah mengupload minimal 1 produk ke etalase.</p>
-            </div>
+            </a>
 
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <a href="{{ route('admin.users', ['filter' => 'pembeli']) }}" class="block bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:border-gray-300 hover:shadow-md transition cursor-pointer decoration-none group">
                 <h4 class="font-bold text-gray-800 mb-6 flex items-center gap-3">
                     <div class="p-2 bg-gray-100 rounded-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -180,19 +180,19 @@
                     </div>
                     Statistik Pembeli
                 </h4>
-                <div class="flex items-center justify-between bg-gray-50 p-5 rounded-xl border border-gray-100">
+                <div class="flex items-center justify-between bg-gray-50 p-5 rounded-xl border border-gray-100 group-hover:border-gray-200 transition">
                     <div>
                         <p class="text-3xl font-extrabold text-gray-700">{{ $totalPembeli }}</p>
                         <p class="text-xs text-gray-600 font-bold uppercase tracking-wider mt-1">Akun Pembeli</p>
                     </div>
-                    <div class="h-12 w-12 bg-white rounded-full flex items-center justify-center text-gray-600 shadow-sm border border-gray-100">
+                    <div class="h-12 w-12 bg-white rounded-full flex items-center justify-center text-gray-600 shadow-sm border border-gray-100 group-hover:scale-105 transition">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                     </div>
                 </div>
                 <p class="text-xs text-gray-500 mt-4 px-1">User yang terdaftar namun belum membuka toko.</p>
-            </div>
+            </a>
         </div>
 
         <!-- Grafik Akurasi Decision Tree -->

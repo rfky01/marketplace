@@ -235,15 +235,16 @@ export default function Dashboard() {
                 <div className="w-full max-w-7xl mx-auto min-h-[4rem] flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 py-2 sm:px-4 md:h-16 md:flex-nowrap">
                     
                     <div className="flex min-w-0 items-center gap-3 lg:gap-6 flex-1">
-                        <Link to="/" className="text-xl sm:text-2xl font-bold text-blue-900 tracking-tight whitespace-nowrap">
-                            Marketplace<span className="text-gray-700">Plus</span>
+                        <Link to="/" className="inline-flex items-center gap-2 md:gap-3 text-xl sm:text-2xl font-bold text-blue-900 tracking-tight whitespace-nowrap">
+                            <img src="/assets/burung.png" alt="Logo PangkalMart" className="h-9 w-9 md:h-12 md:w-12 shrink-0 object-contain" />
+                            <span>Pangkal<span className="text-gray-700">Mart</span></span>
                         </Link>
                         
                         <div className="hidden md:flex items-center bg-gray-100 rounded-lg px-3 py-2 w-full max-w-[400px] border border-gray-200 focus-within:border-blue-900 transition">
                             <img src={iconSearch} alt="Search" className="w-8 h-8 object-contain opacity-50 mr-2" />
                             <input 
                                 type="text" 
-                                placeholder="Cari di Marketplace Plus" 
+                                placeholder="Cari di PangkalMart" 
                                 className="bg-transparent outline-none text-sm w-full"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)} 
@@ -399,6 +400,52 @@ export default function Dashboard() {
                             </div>
                         )}
                     </div>
+
+                    <div className="order-4 w-full md:hidden">
+                        <div className="flex items-center rounded-xl border border-gray-200 bg-gray-100 px-3 py-2 transition focus-within:border-blue-900 focus-within:bg-white">
+                            <img src={iconSearch} alt="Search" className="h-6 w-6 object-contain opacity-50 mr-2" />
+                            <input
+                                type="text"
+                                placeholder="Cari produk"
+                                className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                            {searchTerm && (
+                                <button
+                                    onClick={() => setSearchTerm('')}
+                                    className="px-2 text-xs font-bold text-gray-400 transition hover:text-gray-600"
+                                    type="button"
+                                    aria-label="Hapus pencarian"
+                                >
+                                    x
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                            <select
+                                className="min-w-0 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 outline-none transition focus:border-blue-900"
+                                value={selectedCategory}
+                                onChange={(e) => setSelectedCategory(e.target.value)}
+                            >
+                                <option value="">Semua Kategori</option>
+                                {uniqueCategories.map((cat, index) => (
+                                    <option key={index} value={cat}>{cat}</option>
+                                ))}
+                            </select>
+
+                            <select
+                                className="min-w-0 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 outline-none transition focus:border-blue-900"
+                                value={sortOrder}
+                                onChange={(e) => setSortOrder(e.target.value)}
+                            >
+                                <option value="">Urutkan</option>
+                                <option value="lowest">Termurah</option>
+                                <option value="highest">Termahal</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </nav>
 
@@ -452,17 +499,16 @@ export default function Dashboard() {
 
                                 return (
                                     <div key={product.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition duration-300 transform hover:-translate-y-1 flex flex-col h-full group">
-                                        <Link to={`/product/${product.slug}`} className="block cursor-pointer relative">
+                                        <div className="block relative">
                                             <ProductImageSlider 
                                                 images={product.foto_barang} 
                                                 alt={product.nama_barang} 
+                                                detailUrl={`/product/${product.slug}`}
                                             />
                                             {product.stok_barang <= 0 && (<div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"><span className="text-white font-bold text-xs bg-red-600 px-2 py-1 rounded">HABIS</span></div>)}
-                                        </Link>
-                                        <div className="p-3 flex flex-col flex-1">
-                                            <Link to={`/product/${product.slug}`} className="block cursor-pointer relative">
-                                                <h3 className="text-sm font-semibold text-gray-800 mb-1 line-clamp-2 leading-snug hover:text-blue-900 transition min-h-[40px]" title={product.nama_barang}>{product.nama_barang}</h3>
-                                            </Link>
+                                        </div>
+                                        <Link to={`/product/${product.slug}`} className="p-3 flex flex-col flex-1 cursor-pointer decoration-none">
+                                            <h3 className="text-sm font-semibold text-gray-800 mb-1 line-clamp-2 leading-snug group-hover:text-blue-900 transition min-h-[40px]" title={product.nama_barang}>{product.nama_barang}</h3>
                                             <div className="mb-1">
                                                 <span className="text-gray-800 font-bold text-base">{formatRupiah(product.harga_barang)}</span>
                                             </div>
@@ -478,7 +524,7 @@ export default function Dashboard() {
                                                 <span className="text-[10px] bg-blue-100 text-blue-900 px-1.5 py-0.5 rounded font-bold">Stok {product.stok_barang}</span>
                                                 <span className="text-[10px] text-gray-400 truncate max-w-[100px]">{product.user ? product.user.name : 'Unknown'}</span>
                                             </div>
-                                        </div>
+                                        </Link>
                                     </div>
                                 );
                             })}

@@ -2,8 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import ChatBox from '../components/ChatBox'; 
 import SellerNavActions from './SellerNavActions';
+import Pagination from './Pagination';
 import iconKeranjang from './asset/keranjang.png'
 import iconBelumada from './asset/belumada.png'
+
+const ORDERS_PER_PAGE = 5;
 
 export default function Orders() {
     const [orders, setOrders] = useState([]);
@@ -11,6 +14,7 @@ export default function Orders() {
     const [user, setUser] = useState({});
 
     const [activeTab, setActiveTab] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
     
     // --- STATE NAVBAR ---
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -179,6 +183,18 @@ export default function Orders() {
         const targetStatuses = tabs.find(t => t.id === activeTab)?.statuses || [];
         return targetStatuses.includes(currentStatus);
     });
+    const lastPage = Math.max(1, Math.ceil(filteredOrders.length / ORDERS_PER_PAGE));
+    const paginatedOrders = filteredOrders.slice((currentPage - 1) * ORDERS_PER_PAGE, currentPage * ORDERS_PER_PAGE);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeTab]);
+
+    useEffect(() => {
+        if (currentPage > lastPage) {
+            setCurrentPage(lastPage);
+        }
+    }, [currentPage, lastPage]);
 
     // --- HELPER: CEK APAKAH WAKTU SUDAH LEWAT ---
     const isTimePassed = (dateString) => {
@@ -535,11 +551,12 @@ export default function Orders() {
         <div className="min-h-screen bg-blue-50 w-full font-sans pb-20">
             
             {/* 1. NAVBAR */}
-            <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
+            <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-2 lg:mb-8">
                 <div className="max-w-7xl mx-auto min-h-[4rem] flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 py-2 sm:px-4 lg:px-8 md:h-16 md:flex-nowrap">
                     <div className="flex min-w-0 items-center gap-4 lg:gap-8">
-                        <Link to="/" className="text-xl sm:text-2xl font-bold text-blue-600 tracking-tight decoration-none whitespace-nowrap">
-                            Marketplace<span className="text-gray-700">Plus</span>
+                        <Link to="/" className="inline-flex items-center gap-2 md:gap-3 text-xl sm:text-2xl font-bold text-blue-600 tracking-tight decoration-none whitespace-nowrap">
+                            <img src="/assets/burung.png" alt="Logo PangkalMart" className="h-9 w-9 md:h-12 md:w-12 shrink-0 object-contain" />
+                            <span>Pangkal<span className="text-gray-700">Mart</span></span>
                         </Link>
                     </div>
                     <div className="order-3 flex w-full items-center justify-end gap-1 md:order-none md:w-auto md:gap-3">
@@ -596,8 +613,8 @@ export default function Orders() {
                                         </div>
                                     </div>
                                     <div className="py-2">
-                                        <Link to="/profile" className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-2 transition-colors">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                        <Link to="/profile" className="px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 decoration-none flex items-center gap-3 transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-500">
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                                             </svg>
                                             Edit Profil
@@ -619,11 +636,11 @@ export default function Orders() {
             </nav>
 
             {/* 2. CONTAINER UTAMA */}
-            <div className="max-w-7xl mx-auto px-4 py-6">
+            <div className="max-w-7xl mx-auto px-4 pt-2 pb-6 lg:py-6">
                                 
                 <div className="flex flex-col lg:flex-row gap-6 items-start">                    
                     {/* SIDEBAR MENU (KIRI) */}
-                    <div className="w-full lg:w-64 flex-shrink-0 sticky top-24 z-30">
+                    <div className="w-screen lg:w-64 flex-shrink-0 sticky top-24 z-40 -ml-[calc(50vw-50%)] -mr-[calc(50vw-50%)] bg-blue-50 px-4 pt-3 pb-4 shadow-sm border-b border-blue-100 lg:mx-0 lg:w-64 lg:bg-transparent lg:px-0 lg:pt-0 lg:pb-0 lg:shadow-none lg:border-b-0">
                         <h1 className="text-2xl font-bold text-gray-800 mb-4 px-1 hidden lg:block">
                             Riwayat Pesanan
                         </h1>
@@ -695,7 +712,7 @@ export default function Orders() {
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                {filteredOrders.map((order) => (
+                                {paginatedOrders.map((order) => (
                                     <div key={order.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition duration-200">
                                         
                                         {/* Header Card */}
@@ -823,6 +840,11 @@ export default function Orders() {
                                         </div>
                                     </div>
                                 ))}
+                                <Pagination
+                                    currentPage={currentPage}
+                                    lastPage={lastPage}
+                                    onPageChange={setCurrentPage}
+                                />
                             </div>
                         )}
                     </div>

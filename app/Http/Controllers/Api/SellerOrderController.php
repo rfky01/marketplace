@@ -220,7 +220,7 @@ class SellerOrderController extends Controller
             . "Metode Pembayaran: {$paymentMethod}\n"
             . "Estimasi Tiba: {$deliveryTime}\n\n"
             . "Alamat Tujuan:\n{$address}\n\n"
-            . "Terima kasih telah berbelanja di MarketplacePlus!";
+            . "Terima kasih telah berbelanja di PangkalMart!";
 
         try {
             $response = Http::timeout(15)

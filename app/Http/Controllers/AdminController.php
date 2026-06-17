@@ -55,11 +55,16 @@ class AdminController extends Controller
         // Hitung Total Pengguna
         $totalUsers = \App\Models\User::count();
         
-        // Hitung Total Penjual (User yang punya minimal 1 produk)
-        $totalPenjual = \App\Models\User::has('products')->count(); 
+        $nonAdminUsers = \App\Models\User::where(function ($query) {
+            $query->where('role', '!=', 'admin')
+                ->orWhereNull('role');
+        });
+
+        // Hitung Total Penjual (User non-admin yang punya minimal 1 produk)
+        $totalPenjual = (clone $nonAdminUsers)->has('products')->count(); 
         
-        // Hitung Total Pembeli (Sisanya)
-        $totalPembeli = $totalUsers - $totalPenjual;
+        // Hitung Total Pembeli (User non-admin yang belum membuka toko)
+        $totalPembeli = (clone $nonAdminUsers)->doesntHave('products')->count();
 
         $totalProduk = \App\Models\Produk::count();
         $totalKategori = count(config('product_categories'));
@@ -78,6 +83,13 @@ class AdminController extends Controller
         $query = \App\Models\User::withCount('products')->latest();
 
         // 1. Cek request filter dari tombol (Penjual/Pembeli)
+        if (in_array($request->filter, ['penjual', 'pembeli'])) {
+            $query->where(function ($q) {
+                $q->where('role', '!=', 'admin')
+                  ->orWhereNull('role');
+            });
+        }
+
         if ($request->filter == 'penjual') {
             $query->has('products'); 
         } elseif ($request->filter == 'pembeli') {
@@ -406,6 +418,15 @@ class AdminController extends Controller
         $query = \App\Models\Produk::with(['user', 'ulasan']);
         $categories = config('product_categories');
         $activeCategory = strtolower((string) $request->query('category', ''));
+        $activeSeller = null;
+
+        if ($request->filled('seller_id')) {
+            $activeSeller = User::find($request->query('seller_id'));
+
+            if ($activeSeller) {
+                $query->where('user_id', $activeSeller->id);
+            }
+        }
 
         if ($activeCategory && in_array($activeCategory, $categories, true)) {
             $query->whereRaw('LOWER(kategori) = ?', [$activeCategory]);
@@ -445,15 +466,17 @@ class AdminController extends Controller
                           ->paginate(15)
                           ->withQueryString();
 
-        return view('admin.admin_products', compact('products', 'categories', 'activeCategory'));
+        return view('admin.admin_products', compact('products', 'categories', 'activeCategory', 'activeSeller'));
     }
 
     // --- Menampilkan Semua Transaksi (Untuk Admin) ---
     public function allTransactions(\Illuminate\Http\Request $request)
     {
         try {
+            $activeBuyer = null;
+
             // 1. Ambil semua data mentah dari database
-            $rawTransactions = \Illuminate\Support\Facades\DB::table('detail_pesanan')
+            $transactionsQuery = \Illuminate\Support\Facades\DB::table('detail_pesanan')
                 ->join('pesanan', 'detail_pesanan.pesanan_id', '=', 'pesanan.id')
                 ->join('produk', 'detail_pesanan.produk_id', '=', 'produk.id')
                 ->join('users as pembeli', 'pesanan.user_id', '=', 'pembeli.id')
@@ -470,8 +493,17 @@ class AdminController extends Controller
                     'detail_pesanan.jumlah',
                     'detail_pesanan.total_harga'
                 )
-                ->orderBy('pesanan.created_at', 'desc')
-                ->get();
+                ->orderBy('pesanan.created_at', 'desc');
+
+            if ($request->filled('buyer_id')) {
+                $activeBuyer = User::find($request->query('buyer_id'));
+
+                if ($activeBuyer) {
+                    $transactionsQuery->where('pesanan.user_id', $activeBuyer->id);
+                }
+            }
+
+            $rawTransactions = $transactionsQuery->get();
 
             // 2. Rakit Nomor Invoice
             $rawTransactions->transform(function ($trx) {
@@ -533,9 +565,10 @@ class AdminController extends Controller
             $transactions = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10, 1);
             $activeStatus = 'semua';
             $totalSemua = 0;
+            $activeBuyer = null;
         }
 
-        return view('admin.admin_transactions', compact('transactions', 'activeStatus', 'totalSemua'));
+        return view('admin.admin_transactions', compact('transactions', 'activeStatus', 'totalSemua', 'activeBuyer'));
     }
 
     // --- FUNGSI AMBIL PESAN UNTUK POPUP CHAT ---

@@ -544,8 +544,9 @@ export default function ProductDetail() {
             <nav className="bg-white shadow-sm sticky top-0 z-50 w-full mb-8">
                 <div className="max-w-7xl mx-auto min-h-[4rem] flex flex-wrap items-center justify-between gap-x-2 gap-y-2 px-3 py-2 sm:px-4 lg:px-8 md:h-16 md:flex-nowrap">
                     <div className="flex min-w-0 items-center gap-4 lg:gap-8">
-                        <Link to="/" className="text-xl sm:text-2xl font-bold text-blue-900 tracking-tight decoration-none whitespace-nowrap">
-                            Marketplace<span className="text-gray-700">Plus</span>
+                        <Link to="/" className="inline-flex items-center gap-2 md:gap-3 text-xl sm:text-2xl font-bold text-blue-900 tracking-tight decoration-none whitespace-nowrap">
+                            <img src="/assets/burung.png" alt="Logo PangkalMart" className="h-9 w-9 md:h-12 md:w-12 shrink-0 object-contain" />
+                            <span>Pangkal<span className="text-gray-700">Mart</span></span>
                         </Link>
                     </div>
                     <div className="order-3 flex w-full items-center justify-end gap-1 md:order-none md:w-auto md:gap-3">
