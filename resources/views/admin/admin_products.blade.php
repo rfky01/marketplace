@@ -57,6 +57,81 @@
     </nav>
 
     <div class="container mx-auto px-4 mt-8">
+        @if(session('success'))
+            <div class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {{ session('error') }}
+            </div>
+        @endif
+
+        @if ($errors->any())
+            <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <ul class="list-disc pl-5">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        @if(auth()->user()?->isSuperAdmin() && $activeSeller)
+            <div class="mb-6 rounded-xl border border-red-100 bg-white p-5 shadow-sm">
+                <div class="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 class="text-lg font-extrabold text-gray-800">Override Upload Produk</h2>
+                        <p class="text-sm text-gray-500">Produk akan tercatat sebagai milik {{ $activeSeller->name }}, tetapi dibuat oleh Super Admin.</p>
+                    </div>
+                    <span class="inline-flex w-fit rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600">Wajib alasan</span>
+                </div>
+
+                <form method="POST" action="{{ route('admin.users.override-products', $activeSeller->id) }}" enctype="multipart/form-data" class="grid grid-cols-1 gap-4 lg:grid-cols-12">
+                    @csrf
+                    @if($profileBackUrl)
+                        <input type="hidden" name="profile_back_url" value="{{ $profileBackUrl }}">
+                    @endif
+                    <div class="lg:col-span-4">
+                        <label class="mb-1 block text-xs font-bold uppercase text-gray-400">Nama Produk</label>
+                        <input type="text" name="nama_barang" value="{{ old('nama_barang') }}" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" required>
+                    </div>
+                    <div class="lg:col-span-2">
+                        <label class="mb-1 block text-xs font-bold uppercase text-gray-400">Harga</label>
+                        <input type="number" name="harga_barang" value="{{ old('harga_barang') }}" min="0" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" required>
+                    </div>
+                    <div class="lg:col-span-2">
+                        <label class="mb-1 block text-xs font-bold uppercase text-gray-400">Stok</label>
+                        <input type="number" name="stok_barang" value="{{ old('stok_barang') }}" min="0" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" required>
+                    </div>
+                    <div class="lg:col-span-4">
+                        <label class="mb-1 block text-xs font-bold uppercase text-gray-400">Kategori Cadangan</label>
+                        <select name="kategori" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-bold text-gray-600 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" required>
+                            @foreach($categories ?? [] as $category)
+                                <option value="{{ $category }}" {{ old('kategori') === $category ? 'selected' : '' }}>{{ ucfirst($category) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="lg:col-span-6">
+                        <label class="mb-1 block text-xs font-bold uppercase text-gray-400">Deskripsi</label>
+                        <textarea name="deskripsi" rows="4" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" required>{{ old('deskripsi') }}</textarea>
+                    </div>
+                    <div class="lg:col-span-6">
+                        <label class="mb-1 block text-xs font-bold uppercase text-gray-400">Foto Produk</label>
+                        <input type="file" name="foto_barang[]" accept="image/*" multiple class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" required>
+                        <label class="mb-1 mt-3 block text-xs font-bold uppercase text-gray-400">Alasan Override</label>
+                        <textarea name="override_reason" rows="2" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" placeholder="Contoh: Seller kesulitan upload foto produk dan meminta bantuan." required>{{ old('override_reason') }}</textarea>
+                    </div>
+                    <div class="lg:col-span-12 flex justify-end">
+                        <button type="submit" class="rounded-lg bg-red-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-red-700" onclick="return confirm('Buat produk ini sebagai override Super Admin untuk seller?')">
+                            Buat Produk Override
+                        </button>
+                    </div>
+                </form>
+            </div>
+        @endif
         
         <div class="mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
             <form method="GET" action="{{ route('admin.products') ?? url()->current() }}" class="flex flex-col md:flex-row justify-between items-center gap-4">
@@ -154,12 +229,22 @@
                         // RATING OTOMATIS DARI ELOQUENT
                         $jumlahUlasan = $product->ulasan ? $product->ulasan->count() : 0; 
                         $rataRata = $jumlahUlasan > 0 ? number_format($product->ulasan->avg('rating'), 1) : '0.0';
+                        $isOverride = $product->is_super_admin_override;
+                        $overrideAdminName = $product->override_admin_name ?? 'Super Admin';
                     @endphp
 
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 flex flex-col group relative">
                         
                         <a href="{{ route('admin.products.show', $product->id) }}" class="block relative">
                             <div x-data="{ activeSlide: 0, slides: {{ count($fotos) }} }" class="aspect-square bg-gray-100 relative overflow-hidden group/slider">
+                                @if($isOverride)
+                                    <div class="absolute left-2 top-2 z-30 inline-flex items-center gap-1 rounded-full border border-red-100 bg-red-600/95 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white shadow-sm" title="Dibuat oleh {{ $overrideAdminName }} sebagai override Super Admin">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M10 2a8 8 0 100 16 8 8 0 000-16zm.75 4.75a.75.75 0 00-1.5 0v3.19L7.47 8.16a.75.75 0 00-1.06 1.06l3.06 3.06a.75.75 0 001.06 0l3.06-3.06a.75.75 0 10-1.06-1.06l-1.78 1.78V6.75z" clip-rule="evenodd" />
+                                        </svg>
+                                        Override
+                                    </div>
+                                @endif
                                 
                                 @foreach($fotos as $index => $foto)
                                     <div x-show="activeSlide === {{ $index }}" 
@@ -225,6 +310,12 @@
                             <p class="text-[10px] text-gray-500 uppercase tracking-wide font-medium mb-3 pointer-events-none">
                                 {{ $product->kategori }}
                             </p>
+
+                            @if($isOverride)
+                                <div class="mb-3 rounded-lg border border-red-100 bg-red-50 px-2 py-1.5 text-[10px] font-semibold text-red-700 pointer-events-none">
+                                    Dibuat oleh {{ $overrideAdminName }} sebagai override
+                                </div>
+                            @endif
                             
                             <div class="flex items-center gap-1 mb-2 pointer-events-none">
                                 <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">

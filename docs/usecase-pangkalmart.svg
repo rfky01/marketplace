@@ -1,0 +1,235 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1200" viewBox="0 0 1800 1200">
+  <defs>
+    <style>
+      .bg { fill: #fff; }
+      .system { fill: #f8fbff; stroke: #111827; stroke-width: 3; }
+      .title-box { fill: #fff; stroke: #111827; stroke-width: 2; }
+      .title { font-family: "Times New Roman", serif; font-size: 34px; font-weight: 700; fill: #111827; }
+      .section { font-family: Arial, sans-serif; font-size: 15px; font-weight: 700; fill: #334155; letter-spacing: .6px; }
+      .actor-text { font-family: Arial, sans-serif; font-size: 20px; font-weight: 700; fill: #111827; text-anchor: middle; }
+      .usecase { fill: #fff; stroke: #111827; stroke-width: 2; }
+      .usecase-text { font-family: "Times New Roman", serif; font-size: 20px; fill: #111827; text-anchor: middle; dominant-baseline: middle; }
+      .usecase-small { font-family: "Times New Roman", serif; font-size: 18px; fill: #111827; text-anchor: middle; dominant-baseline: middle; }
+      .line { stroke: #111827; stroke-width: 2; fill: none; }
+      .include { stroke: #111827; stroke-width: 2; stroke-dasharray: 8 6; fill: none; marker-end: url(#arrow); }
+      .include-text { font-family: Arial, sans-serif; font-size: 14px; font-weight: 700; fill: #111827; }
+      .service { fill: #fff7ed; stroke: #c2410c; stroke-width: 2; }
+      .service-text { font-family: Arial, sans-serif; font-size: 18px; font-weight: 700; fill: #7c2d12; text-anchor: middle; dominant-baseline: middle; }
+      .note { fill: #eef2ff; stroke: #c7d2fe; }
+      .note-text { font-family: Arial, sans-serif; font-size: 15px; fill: #3730a3; text-anchor: middle; }
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10" fill="none" stroke="#111827" stroke-width="2"/>
+    </marker>
+    <marker id="triangle" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto">
+      <path d="M2,2 L12,7 L2,12 Z" fill="#fff" stroke="#111827" stroke-width="2"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1800" height="1200"/>
+
+  <rect class="system" x="245" y="45" width="1260" height="1050" rx="70"/>
+  <rect class="title-box" x="620" y="70" width="510" height="54"/>
+  <text class="title" x="875" y="107" text-anchor="middle">Sistem Marketplace PangkalMart</text>
+
+  <!-- Actors -->
+  <g transform="translate(95 230)">
+    <circle cx="0" cy="0" r="18" fill="#fff" stroke="#111827" stroke-width="2"/>
+    <line class="line" x1="0" y1="18" x2="0" y2="78"/>
+    <line class="line" x1="-38" y1="43" x2="38" y2="43"/>
+    <line class="line" x1="0" y1="78" x2="-35" y2="125"/>
+    <line class="line" x1="0" y1="78" x2="35" y2="125"/>
+    <text class="actor-text" x="0" y="158">Pengunjung</text>
+  </g>
+
+  <g transform="translate(95 550)">
+    <circle cx="0" cy="0" r="18" fill="#fff" stroke="#111827" stroke-width="2"/>
+    <line class="line" x1="0" y1="18" x2="0" y2="78"/>
+    <line class="line" x1="-38" y1="43" x2="38" y2="43"/>
+    <line class="line" x1="0" y1="78" x2="-35" y2="125"/>
+    <line class="line" x1="0" y1="78" x2="35" y2="125"/>
+    <text class="actor-text" x="0" y="158">User Pembeli</text>
+  </g>
+
+  <g transform="translate(95 870)">
+    <circle cx="0" cy="0" r="18" fill="#fff" stroke="#111827" stroke-width="2"/>
+    <line class="line" x1="0" y1="18" x2="0" y2="78"/>
+    <line class="line" x1="-38" y1="43" x2="38" y2="43"/>
+    <line class="line" x1="0" y1="78" x2="-35" y2="125"/>
+    <line class="line" x1="0" y1="78" x2="35" y2="125"/>
+    <text class="actor-text" x="0" y="158">User Penjual</text>
+  </g>
+
+  <g transform="translate(1665 355)">
+    <circle cx="0" cy="0" r="18" fill="#fff" stroke="#111827" stroke-width="2"/>
+    <line class="line" x1="0" y1="18" x2="0" y2="78"/>
+    <line class="line" x1="-38" y1="43" x2="38" y2="43"/>
+    <line class="line" x1="0" y1="78" x2="-35" y2="125"/>
+    <line class="line" x1="0" y1="78" x2="35" y2="125"/>
+    <text class="actor-text" x="0" y="158">Admin</text>
+  </g>
+
+  <g transform="translate(1665 735)">
+    <circle cx="0" cy="0" r="18" fill="#fff" stroke="#111827" stroke-width="2"/>
+    <line class="line" x1="0" y1="18" x2="0" y2="78"/>
+    <line class="line" x1="-38" y1="43" x2="38" y2="43"/>
+    <line class="line" x1="0" y1="78" x2="-35" y2="125"/>
+    <line class="line" x1="0" y1="78" x2="35" y2="125"/>
+    <text class="actor-text" x="0" y="158">Super Admin</text>
+  </g>
+
+  <rect class="service" x="1575" y="930" width="180" height="74" rx="12"/>
+  <text class="service-text" x="1665" y="955">Decision</text>
+  <text class="service-text" x="1665" y="980">Tree</text>
+
+  <rect class="service" x="1575" y="1038" width="180" height="74" rx="12"/>
+  <text class="service-text" x="1665" y="1063">GoWa</text>
+  <text class="service-text" x="1665" y="1088">WhatsApp</text>
+
+  <!-- Section labels -->
+  <text class="section" x="460" y="165">AKUN &amp; INTERAKSI</text>
+  <text class="section" x="775" y="165">PRODUK &amp; TOKO</text>
+  <text class="section" x="775" y="595">TRANSAKSI &amp; PESANAN</text>
+  <text class="section" x="1210" y="165">ADMINISTRASI</text>
+  <text class="section" x="1210" y="625">OVERRIDE SUPER ADMIN</text>
+
+  <!-- Account and common use cases -->
+  <ellipse class="usecase" cx="460" cy="220" rx="150" ry="48"/>
+  <text class="usecase-small" x="460" y="208">Registrasi, Login,</text>
+  <text class="usecase-small" x="460" y="232">Reset Password</text>
+
+  <ellipse class="usecase" cx="460" cy="350" rx="125" ry="40"/>
+  <text class="usecase-text" x="460" y="350">Melihat Produk</text>
+
+  <ellipse class="usecase" cx="460" cy="480" rx="115" ry="40"/>
+  <text class="usecase-text" x="460" y="480">Chat Website</text>
+
+  <ellipse class="usecase" cx="460" cy="610" rx="100" ry="38"/>
+  <text class="usecase-text" x="460" y="610">Logout</text>
+
+  <!-- Seller product use cases -->
+  <ellipse class="usecase" cx="775" cy="250" rx="110" ry="40"/>
+  <text class="usecase-text" x="775" y="250">Buka Toko</text>
+
+  <ellipse class="usecase" cx="775" cy="400" rx="165" ry="58"/>
+  <text class="usecase-small" x="775" y="376">Kelola Produk</text>
+  <text class="usecase-small" x="775" y="402">Upload, Update, Hapus</text>
+  <text class="usecase-small" x="775" y="428">Produk</text>
+
+  <ellipse class="usecase" cx="1060" cy="400" rx="150" ry="48"/>
+  <text class="usecase-small" x="1060" y="388">Klasifikasi Kategori</text>
+  <text class="usecase-small" x="1060" y="412">Produk Otomatis</text>
+
+  <!-- Buyer and seller transaction use cases -->
+  <ellipse class="usecase" cx="650" cy="680" rx="130" ry="40"/>
+  <text class="usecase-text" x="650" y="680">Kelola Keranjang</text>
+
+  <ellipse class="usecase" cx="650" cy="815" rx="120" ry="40"/>
+  <text class="usecase-text" x="650" y="815">Checkout Produk</text>
+
+  <ellipse class="usecase" cx="650" cy="950" rx="178" ry="62"/>
+  <text class="usecase-small" x="650" y="924">Kelola Pesanan Pembeli</text>
+  <text class="usecase-small" x="650" y="950">Batal, Status, Terima,</text>
+  <text class="usecase-small" x="650" y="976">Return, Ulasan</text>
+
+  <ellipse class="usecase" cx="955" cy="815" rx="185" ry="62"/>
+  <text class="usecase-small" x="955" y="789">Kelola Pesanan Masuk</text>
+  <text class="usecase-small" x="955" y="815">Pantau, Terima, Tolak,</text>
+  <text class="usecase-small" x="955" y="841">Kirim, Riwayat Toko</text>
+
+  <!-- Admin use cases -->
+  <ellipse class="usecase" cx="1210" cy="225" rx="150" ry="48"/>
+  <text class="usecase-small" x="1210" y="213">Dashboard dan</text>
+  <text class="usecase-small" x="1210" y="237">Statistik Admin</text>
+
+  <ellipse class="usecase" cx="1210" cy="365" rx="165" ry="58"/>
+  <text class="usecase-small" x="1210" y="341">Memantau Data</text>
+  <text class="usecase-small" x="1210" y="367">User, Produk,</text>
+  <text class="usecase-small" x="1210" y="393">Transaksi</text>
+
+  <ellipse class="usecase" cx="1210" cy="510" rx="120" ry="40"/>
+  <text class="usecase-text" x="1210" y="510">Chat dengan User</text>
+
+  <!-- Super admin use cases -->
+  <ellipse class="usecase" cx="1210" cy="685" rx="120" ry="40"/>
+  <text class="usecase-text" x="1210" y="685">Mengelola Admin</text>
+
+  <ellipse class="usecase" cx="1210" cy="830" rx="190" ry="70"/>
+  <text class="usecase-small" x="1210" y="800">Override Bantuan User</text>
+  <text class="usecase-small" x="1210" y="826">Reset Password, Upload Produk,</text>
+  <text class="usecase-small" x="1210" y="852">Buat Pesanan, Status Pesanan</text>
+
+  <ellipse class="usecase" cx="1395" cy="705" rx="115" ry="40"/>
+  <text class="usecase-text" x="1395" y="705">Catat Log Override</text>
+
+  <ellipse class="usecase" cx="1395" cy="835" rx="130" ry="48"/>
+  <text class="usecase-small" x="1395" y="823">Kirim Pesan</text>
+  <text class="usecase-small" x="1395" y="847">Otomatis Website</text>
+
+  <ellipse class="usecase" cx="1190" cy="955" rx="165" ry="48"/>
+  <text class="usecase-small" x="1190" y="943">Kirim Notifikasi</text>
+  <text class="usecase-small" x="1190" y="967">Transaksi WhatsApp</text>
+
+  <ellipse class="usecase" cx="1190" cy="1050" rx="135" ry="40"/>
+  <text class="usecase-text" x="1190" y="1050">Kirim OTP WhatsApp</text>
+
+  <!-- Actor associations -->
+  <line class="line" x1="125" y1="230" x2="310" y2="220"/>
+  <line class="line" x1="125" y1="240" x2="335" y2="350"/>
+  <line class="line" x1="125" y1="250" x2="345" y2="480"/>
+
+  <line class="line" x1="125" y1="550" x2="310" y2="220"/>
+  <line class="line" x1="125" y1="560" x2="335" y2="350"/>
+  <line class="line" x1="125" y1="570" x2="520" y2="680"/>
+  <line class="line" x1="125" y1="580" x2="530" y2="815"/>
+  <line class="line" x1="125" y1="590" x2="472" y2="950"/>
+  <line class="line" x1="125" y1="600" x2="345" y2="480"/>
+  <line class="line" x1="125" y1="610" x2="360" y2="610"/>
+
+  <line class="line" x1="125" y1="870" x2="310" y2="220"/>
+  <line class="line" x1="125" y1="880" x2="665" y2="250"/>
+  <line class="line" x1="125" y1="890" x2="610" y2="400"/>
+  <line class="line" x1="125" y1="900" x2="770" y2="815"/>
+  <line class="line" x1="125" y1="910" x2="345" y2="480"/>
+  <line class="line" x1="125" y1="920" x2="360" y2="610"/>
+
+  <line class="line" x1="1635" y1="355" x2="1360" y2="225"/>
+  <line class="line" x1="1635" y1="365" x2="1375" y2="365"/>
+  <line class="line" x1="1635" y1="375" x2="1330" y2="510"/>
+
+  <line class="line" x1="1665" y1="735" x2="1665" y2="498" marker-end="url(#triangle)"/>
+  <line class="line" x1="1635" y1="745" x2="1330" y2="685"/>
+  <line class="line" x1="1635" y1="760" x2="1400" y2="830"/>
+
+  <!-- External service associations -->
+  <line class="line" x1="1575" y1="967" x2="1210" y2="400"/>
+  <line class="line" x1="1575" y1="1075" x2="1325" y2="1050"/>
+  <line class="line" x1="1575" y1="1075" x2="1355" y2="955"/>
+
+  <!-- Include relations -->
+  <path class="include" d="M610 220 C805 350, 1010 790, 1160 1015"/>
+  <text class="include-text" x="690" y="282">&lt;&lt;include&gt;&gt;</text>
+
+  <path class="include" d="M940 400 C982 400, 1015 400, 1048 400"/>
+  <text class="include-text" x="946" y="384">&lt;&lt;include&gt;&gt;</text>
+
+  <path class="include" d="M1088 830 C1070 700, 1000 540, 1060 448"/>
+  <text class="include-text" x="1008" y="615">&lt;&lt;include&gt;&gt;</text>
+
+  <path class="include" d="M770 815 C910 850, 1050 900, 1140 925"/>
+  <text class="include-text" x="885" y="870">&lt;&lt;include&gt;&gt;</text>
+
+  <path class="include" d="M1080 815 C1135 850, 1170 895, 1185 907"/>
+  <text class="include-text" x="1110" y="872">&lt;&lt;include&gt;&gt;</text>
+
+  <path class="include" d="M1360 830 C1370 795, 1382 745, 1392 725"/>
+  <text class="include-text" x="1310" y="775">&lt;&lt;include&gt;&gt;</text>
+
+  <path class="include" d="M1390 830 C1392 832, 1394 834, 1396 836"/>
+  <text class="include-text" x="1310" y="875">&lt;&lt;include&gt;&gt;</text>
+
+  <!-- Note -->
+  <rect class="note" x="315" y="1125" width="760" height="48" rx="10"/>
+  <text class="note-text" x="695" y="1146">Catatan: Super Admin melakukan aksi user sebagai override/bantuan,</text>
+  <text class="note-text" x="695" y="1166">bukan sebagai aktivitas user biasa.</text>
+</svg>

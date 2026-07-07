@@ -84,6 +84,16 @@ class User extends Authenticatable
         return $this->hasMany(\App\Models\Produk::class, 'user_id'); 
     }
 
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin' || $this->email === 'admin@marketplace.com';
+    }
+
+    public function isAdminUser(): bool
+    {
+        return $this->isSuperAdmin() || $this->role === 'admin';
+    }
+
     // Tambahkan ini di Model User
     public function isOnline()
     {

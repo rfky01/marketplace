@@ -1,0 +1,261 @@
+{
+  "dataset": {
+    "path": "C:\\Users\\rifki\\Magang\\marketplaceCopy\\ml-api\\data\\dataset_produk_umkm.xlsx",
+    "rows": 1000,
+    "class_distribution": {
+      "makanan": 250,
+      "kerajinan": 250,
+      "pertanian": 250,
+      "perikanan": 250
+    },
+    "unique_product_names": 248
+  },
+  "old_model": {
+    "dataset_accuracy": 0.971,
+    "dataset_macro_f1": 0.9709877423951743,
+    "free_test_accuracy": 0.9090909090909091
+  },
+  "selected_model": {
+    "algorithm": "TF-IDF + Decision Tree",
+    "feature_strategy": "word_tfidf",
+    "dataset_file": "dataset_produk_umkm.xlsx",
+    "dataset_sheet": "Dataset_1000",
+    "dataset_sha256": "758b65079173d5933c971b59f07343079648f39c433baffb1a4aef8b8142c71f",
+    "row_count": 1000,
+    "unique_product_names": 248,
+    "class_distribution": {
+      "makanan": 250,
+      "kerajinan": 250,
+      "pertanian": 250,
+      "perikanan": 250
+    },
+    "trained_at_utc": "2026-07-06T17:53:07.368165+00:00",
+    "sklearn_version": "1.7.2",
+    "best_params": {
+      "class_weight": null,
+      "criterion": "entropy",
+      "max_depth": 12,
+      "min_samples_leaf": 1,
+      "min_samples_split": 2
+    },
+    "cv_macro_f1": 0.9884494783228156,
+    "holdout_accuracy": 0.9900497512437811,
+    "holdout_macro_f1": 0.9898148148148148,
+    "free_test_accuracy": 1.0
+  },
+  "selected_classification_report": {
+    "kerajinan": {
+      "precision": 1.0,
+      "recall": 0.9565217391304348,
+      "f1-score": 0.9777777777777777,
+      "support": 46.0
+    },
+    "makanan": {
+      "precision": 0.9636363636363636,
+      "recall": 1.0,
+      "f1-score": 0.9814814814814815,
+      "support": 53.0
+    },
+    "perikanan": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 62.0
+    },
+    "pertanian": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 40.0
+    },
+    "accuracy": 0.9900497512437811,
+    "macro avg": {
+      "precision": 0.990909090909091,
+      "recall": 0.9891304347826086,
+      "f1-score": 0.9898148148148148,
+      "support": 201.0
+    },
+    "weighted avg": {
+      "precision": 0.9904115784712799,
+      "recall": 0.9900497512437811,
+      "f1-score": 0.9900313248571955,
+      "support": 201.0
+    }
+  },
+  "selected_confusion_matrix": [
+    [
+      53,
+      0,
+      0,
+      0
+    ],
+    [
+      2,
+      44,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      40,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      62
+    ]
+  ],
+  "free_test_results": [
+    {
+      "nama_produk": "Bolu Kukus Manis dan Lezat",
+      "expected": "makanan",
+      "predicted": "makanan",
+      "correct": true
+    },
+    {
+      "nama_produk": "Bibit Ikan Nila",
+      "expected": "perikanan",
+      "predicted": "perikanan",
+      "correct": true
+    },
+    {
+      "nama_produk": "Bibit Ikan Nila",
+      "expected": "perikanan",
+      "predicted": "perikanan",
+      "correct": true
+    },
+    {
+      "nama_produk": "Keripik Pisang",
+      "expected": "makanan",
+      "predicted": "makanan",
+      "correct": true
+    },
+    {
+      "nama_produk": "Pisang Goreng",
+      "expected": "makanan",
+      "predicted": "makanan",
+      "correct": true
+    },
+    {
+      "nama_produk": "Bibit Pisang Goreng",
+      "expected": "pertanian",
+      "predicted": "pertanian",
+      "correct": true
+    },
+    {
+      "nama_produk": "Bakso Ikan",
+      "expected": "makanan",
+      "predicted": "makanan",
+      "correct": true
+    },
+    {
+      "nama_produk": "Pakan Ikan Lele",
+      "expected": "perikanan",
+      "predicted": "perikanan",
+      "correct": true
+    },
+    {
+      "nama_produk": "Sapu Lidi",
+      "expected": "kerajinan",
+      "predicted": "kerajinan",
+      "correct": true
+    },
+    {
+      "nama_produk": "Bibit Bambu",
+      "expected": "pertanian",
+      "predicted": "pertanian",
+      "correct": true
+    },
+    {
+      "nama_produk": "Tikar Bambu",
+      "expected": "kerajinan",
+      "predicted": "kerajinan",
+      "correct": true
+    }
+  ],
+  "candidates": [
+    {
+      "name": "word_tfidf",
+      "cv_macro_f1": 0.9884494783228156,
+      "holdout_accuracy": 0.9900497512437811,
+      "holdout_macro_f1": 0.9898148148148148,
+      "best_params": {
+        "class_weight": null,
+        "criterion": "entropy",
+        "max_depth": 12,
+        "min_samples_leaf": 1,
+        "min_samples_split": 2
+      },
+      "confusion_matrix": [
+        [
+          53,
+          0,
+          0,
+          0
+        ],
+        [
+          2,
+          44,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          40,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          62
+        ]
+      ],
+      "free_test_accuracy": 1.0
+    },
+    {
+      "name": "hybrid_word_char_tfidf",
+      "cv_macro_f1": 0.9850958763114562,
+      "holdout_accuracy": 0.9850746268656716,
+      "holdout_macro_f1": 0.9847926267281106,
+      "best_params": {
+        "class_weight": null,
+        "criterion": "gini",
+        "max_depth": 12,
+        "min_samples_leaf": 1,
+        "min_samples_split": 2
+      },
+      "confusion_matrix": [
+        [
+          51,
+          2,
+          0,
+          0
+        ],
+        [
+          1,
+          45,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          40,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          62
+        ]
+      ],
+      "free_test_accuracy": 1.0
+    }
+  ]
+}

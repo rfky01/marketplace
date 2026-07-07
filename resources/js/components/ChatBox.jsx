@@ -107,7 +107,7 @@ export default function ChatBox({ isOpen, onClose, receiverId, receiverName }) {
                                         ? 'bg-blue-600 text-white rounded-br-none' 
                                         : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none'
                                     }`}>
-                                        <p>{msg.message}</p>
+                                        <p className="whitespace-pre-line break-words leading-relaxed">{msg.message}</p>
                                         <p className={`text-[9px] mt-1 text-right ${isMe ? 'text-blue-200' : 'text-gray-400'}`}>
                                             {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                         </p>

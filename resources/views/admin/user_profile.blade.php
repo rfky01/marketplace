@@ -58,6 +58,27 @@
 
     <div class="container mx-auto px-4 mt-8">
         <div class="max-w-6xl mx-auto">
+            @if(session('success'))
+                <div class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            @if(session('error'))
+                <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                    {{ session('error') }}
+                </div>
+            @endif
+
+            @if ($errors->any())
+                <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <ul class="list-disc pl-5">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
             
             <div class="bg-white rounded-2xl shadow-lg overflow-hidden mb-6 relative">
                 
@@ -193,6 +214,30 @@
                             </span>
                         </div>
                     </div>
+
+                    @if(auth()->user()?->isSuperAdmin() && !$user->isSuperAdmin() && auth()->id() !== $user->id)
+                        <div class="mt-6 border-t border-gray-100 pt-5">
+                            <h4 class="mb-3 text-sm font-extrabold text-red-700">Override Bantuan Login</h4>
+                            <form method="POST" action="{{ route('admin.users.override-password', $user->id) }}" class="space-y-3">
+                                @csrf
+                                <div>
+                                    <label class="text-xs font-bold text-gray-400 uppercase block mb-1">Password Sementara</label>
+                                    <input type="password" name="temporary_password" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" required>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-gray-400 uppercase block mb-1">Konfirmasi Password</label>
+                                    <input type="password" name="temporary_password_confirmation" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" required>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-gray-400 uppercase block mb-1">Alasan Override</label>
+                                    <textarea name="override_reason" rows="2" class="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100" placeholder="Contoh: User tidak bisa login dan meminta reset password." required></textarea>
+                                </div>
+                                <button type="submit" class="w-full rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-700" onclick="return confirm('Reset password user ini sebagai override Super Admin?')">
+                                    Reset Password User
+                                </button>
+                            </form>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="bg-white rounded-xl shadow-md p-6 h-fit">
@@ -362,6 +407,34 @@
                 </div>
 
             </div>
+
+            @if(auth()->user()?->isSuperAdmin())
+                <div class="mt-6 rounded-xl border border-gray-100 bg-white p-6 shadow-md">
+                    <h3 class="mb-4 flex items-center gap-2 text-lg font-extrabold text-gray-800">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M9 8h6m2 13H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414A1 1 0 0119 9.414V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Riwayat Override User
+                    </h3>
+
+                    @if(($overrideLogs ?? collect())->isEmpty())
+                        <p class="text-sm text-gray-500">Belum ada override yang tercatat untuk user ini.</p>
+                    @else
+                        <div class="space-y-3">
+                            @foreach($overrideLogs as $log)
+                                <div class="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                                        <p class="text-sm font-extrabold text-gray-800">{{ ucwords(str_replace('_', ' ', $log->action)) }}</p>
+                                        <p class="text-xs font-semibold text-gray-400">{{ $log->created_at->format('d M Y, H:i') }}</p>
+                                    </div>
+                                    <p class="mt-1 text-xs text-gray-500">Oleh: {{ $log->actor->name ?? 'Super Admin' }}</p>
+                                    <p class="mt-2 text-sm text-gray-700">{{ $log->reason }}</p>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            @endif
 
         </div>
     </div>

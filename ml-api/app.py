@@ -1,13 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from pathlib import Path
-from functools import lru_cache
 
-import re
 import joblib
+import re
 
-from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
-from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
+from text_preprocessing import preprocessing_teks as preprocess_text
 
 
 # =========================================================
@@ -16,7 +14,7 @@ from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFacto
 app = FastAPI(
     title="API Klasifikasi Produk UMKM",
     description="API untuk klasifikasi kategori produk UMKM menggunakan TF-IDF dan Decision Tree",
-    version="1.0"
+    version="1.1"
 )
 
 
@@ -36,54 +34,72 @@ pipeline_model = joblib.load(MODEL_PATH)
 model = pipeline_model["model"]
 tfidf = pipeline_model["tfidf"]
 kamus_normalisasi = pipeline_model.get("kamus_normalisasi", {})
-
-
-# =========================================================
-# Inisialisasi Sastrawi
-# =========================================================
-stemmer_factory = StemmerFactory()
-stemmer = stemmer_factory.create_stemmer()
-
-stopword_factory = StopWordRemoverFactory()
-stopwords = set(stopword_factory.get_stop_words())
-
-
-@lru_cache(maxsize=20000)
-def stem_kata(kata: str) -> str:
-    return stemmer.stem(kata)
+model_metadata = pipeline_model.get("metadata", {})
 
 
 def preprocessing_teks(teks: str) -> str:
-    """
-    Fungsi preprocessing teks produk.
-    Tahapan:
-    1. Cleaning
-    2. Case folding
-    3. Tokenizing
-    4. Normalisasi kata tidak baku
-    5. Stopword removal
-    6. Stemming
-    """
+    return preprocess_text(teks, kamus_normalisasi)
 
-    # 1. Cleaning
-    teks = re.sub(r"[^a-zA-Z\s]", " ", str(teks))
 
-    # 2. Case folding
-    teks = teks.lower()
-
-    # 3. Tokenizing
+def normalisasi_ringan(teks: str) -> str:
+    teks = re.sub(r"[^a-zA-Z\s]", " ", str(teks)).lower()
     tokens = teks.split()
-
-    # 4. Normalisasi kata tidak baku
     tokens = [kamus_normalisasi.get(kata, kata) for kata in tokens]
-
-    # 5. Stopword removal
-    tokens = [kata for kata in tokens if kata not in stopwords]
-
-    # 6. Stemming
-    tokens = [stem_kata(kata) for kata in tokens]
-
     return " ".join(tokens)
+
+
+def aturan_kategori_otomatis(nama_produk: str, deskripsi_produk: str):
+    teks = normalisasi_ringan(f"{nama_produk} {deskripsi_produk}")
+
+    # PERIKANAN - dibuat lebih dulu agar "bibit ikan" tidak terbaca sebagai pertanian.
+    kata_perikanan = [
+        "bibit ikan", "benih ikan", "pakan ikan", "pelet ikan",
+        "siap tebar", "ikan hidup", "kolam ikan", "budidaya ikan",
+        "bibit lele", "bibit nila", "bibit gurame",
+        "pakan lele", "pakan nila", "pakan gurame",
+    ]
+
+    if any(kata in teks for kata in kata_perikanan):
+        return "perikanan"
+
+    # PERTANIAN - bibit/benih/pupuk/hasil tani mentah.
+    # Aturan ini sengaja diletakkan sebelum makanan agar kasus seperti
+    # "bibit pisang goreng" tetap masuk pertanian, bukan makanan.
+    kata_pertanian = [
+        "bibit", "benih", "pupuk", "npk", "urea", "kompos",
+        "pupuk kandang", "pupuk organik", "pupuk cair",
+        "obat hama", "obat wereng", "wereng", "walang sangit",
+        "pestisida", "insektisida", "fungisida", "herbisida",
+        "racun rumput", "siap tanam", "ditanam", "tanam",
+        "semai", "hasil panen", "hasil kebun", "panen",
+        "petani", "mentah",
+    ]
+
+    if any(kata in teks for kata in kata_pertanian):
+        return "pertanian"
+
+    # MAKANAN - produk sudah dimasak / siap konsumsi.
+    kata_makanan = [
+        "tumis", "oseng", "goreng", "digoreng", "masak", "dimasak",
+        "matang", "siap makan", "siap santap", "lauk",
+        "sayur matang", "olahan", "cemilan", "camilan",
+        "keripik", "kerupuk", "kue", "bolu", "sambal",
+    ]
+
+    if any(kata in teks for kata in kata_makanan):
+        return "makanan"
+
+    # KERAJINAN - produk buatan tangan.
+    kata_kerajinan = [
+        "anyaman", "rotan", "kerajinan", "buatan tangan",
+        "handmade", "tikar", "bilik", "tas rotan",
+        "keranjang", "hiasan", "souvenir", "suvenir",
+    ]
+
+    if any(kata in teks for kata in kata_kerajinan):
+        return "kerajinan"
+
+    return None
 
 
 # =========================================================
@@ -102,7 +118,17 @@ def index():
     return {
         "status": "success",
         "message": "API Klasifikasi Produk UMKM aktif",
-        "kategori": ["makanan", "kerajinan", "pertanian", "perikanan"]
+        "kategori": ["makanan", "kerajinan", "pertanian", "perikanan"],
+        "model": model_metadata,
+    }
+
+
+@app.get("/model-info")
+def model_info():
+    return {
+        "status": "success",
+        "metadata": model_metadata,
+        "classes": [str(kelas) for kelas in model.classes_],
     }
 
 
@@ -127,6 +153,25 @@ def predict_produk(data: ProdukRequest):
         # Preprocessing
         teks_bersih = preprocessing_teks(teks_produk)
 
+        kategori_aturan = aturan_kategori_otomatis(nama_produk, deskripsi_produk)
+
+        if kategori_aturan is not None:
+            detail_probabilitas = {
+                str(kelas): (100.0 if str(kelas) == kategori_aturan else 0.0)
+                for kelas in model.classes_
+            }
+
+            return {
+                "status": "success",
+                "nama_produk": nama_produk,
+                "deskripsi_produk": deskripsi_produk,
+                "teks_bersih": teks_bersih,
+                "kategori": kategori_aturan,
+                "skor_kepercayaan": 100.0,
+                "probabilitas": detail_probabilitas,
+                "sumber_prediksi": "aturan_kategori_otomatis"
+            }
+
         # TF-IDF
         teks_tfidf = tfidf.transform([teks_bersih])
 
@@ -148,9 +193,12 @@ def predict_produk(data: ProdukRequest):
             "teks_bersih": teks_bersih,
             "kategori": kategori_prediksi,
             "skor_kepercayaan": round(float(skor_kepercayaan), 2),
-            "probabilitas": detail_probabilitas
+            "probabilitas": detail_probabilitas,
+            "sumber_prediksi": "decision_tree"
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=500,

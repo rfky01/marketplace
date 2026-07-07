@@ -206,10 +206,17 @@
                     
                     // Hitung Persentase (Opsional, misal 4.5/5 = 90%)
                     $persentase = $totalUlasanToko > 0 ? round(($totalRatingToko / ($totalUlasanToko * 5)) * 100) : 0;
+                    $isOverride = $product->is_super_admin_override;
+                    $overrideAdminName = $product->override_admin_name ?? 'Super Admin';
                 @endphp
 
                 <a href="{{ route('admin.products.show', $product->id) }}" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg transition duration-300 transform hover:-translate-y-1 flex flex-col h-full group relative cursor-pointer block">                    
                     <div x-data="{ activeSlide: 0, slides: {{ count($fotos) }} }" class="relative w-full pt-[100%] bg-gray-100 overflow-hidden">
+                        @if($isOverride)
+                            <div class="absolute left-2 top-2 z-30 inline-flex items-center gap-1 rounded-full border border-red-100 bg-red-600/95 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white shadow-sm" title="Dibuat oleh {{ $overrideAdminName }} sebagai override Super Admin">
+                                Override
+                            </div>
+                        @endif
                         
                         @foreach($fotos as $index => $foto)
                             <div x-show="activeSlide === {{ $index }}" 
@@ -276,6 +283,12 @@
                         <p class="text-[10px] text-gray-500 uppercase tracking-wide font-medium mb-3">
                             {{ $product->kategori }}
                         </p>
+
+                        @if($isOverride)
+                            <div class="mb-3 rounded-lg border border-red-100 bg-red-50 px-2 py-1.5 text-[10px] font-semibold text-red-700">
+                                Dibuat oleh {{ $overrideAdminName }} sebagai override
+                            </div>
+                        @endif
                         
                         <div class="flex items-center gap-1 mb-2">
                             <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">

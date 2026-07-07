@@ -24,12 +24,14 @@
 
             <div class="flex items-center gap-3">
 
-                <a href="{{ route('admin.list') }}" class="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow-md border border-purple-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                    Admin
-                </a>
+                @if(auth()->user()?->isSuperAdmin())
+                    <a href="{{ route('admin.list') }}" class="flex items-center gap-2 bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition shadow-md border border-purple-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        Kelola Admin
+                    </a>
+                @endif
 
                 <a href="{{ route('admin.chats') }}" class="flex items-center gap-2 bg-indigo-800/50 hover:bg-indigo-700 text-indigo-100 hover:text-white px-4 py-2 rounded-lg text-sm font-semibold transition border border-indigo-700/50">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -38,7 +40,7 @@
                     Chat
                 </a>
 
-                <form method="POST" action="{{ route('logout') }}">
+                <form method="POST" action="{{ route('logout') }}" onsubmit="localStorage.removeItem('token'); localStorage.removeItem('user');">
                     @csrf
                     <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition shadow-sm flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -203,7 +205,7 @@
             </h3>
 
             <span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1 rounded-full text-xs font-bold">
-                TF-IDF + Decision Tree
+                {{ $modelStats['algorithm'] }}
             </span>
         </div>
 
@@ -212,32 +214,34 @@
                 <div class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                     <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
                         <p class="text-[10px] text-slate-600 font-bold uppercase tracking-wider">Semua Data</p>
-                        <h4 class="text-2xl font-extrabold text-slate-700 mt-1">1050</h4>
+                        <h4 class="text-2xl font-extrabold text-slate-700 mt-1">{{ $modelStats['total_data'] ?? '-' }}</h4>
                     </div>
 
                     <div class="bg-purple-50 border border-purple-100 rounded-xl p-4">
                         <p class="text-[10px] text-purple-600 font-bold uppercase tracking-wider">Data Latih</p>
-                        <h4 class="text-2xl font-extrabold text-purple-700 mt-1">840</h4>
+                        <h4 class="text-2xl font-extrabold text-purple-700 mt-1">{{ $modelStats['training_data'] ?? '-' }}</h4>
                     </div>
 
                     <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
                         <p class="text-[10px] text-blue-600 font-bold uppercase tracking-wider">Data Testing</p>
-                        <h4 class="text-2xl font-extrabold text-blue-700 mt-1">210</h4>
+                        <h4 class="text-2xl font-extrabold text-blue-700 mt-1">{{ $modelStats['testing_data'] ?? '-' }}</h4>
                     </div>
 
                     <div class="bg-green-50 border border-green-100 rounded-xl p-4">
                         <p class="text-[10px] text-green-600 font-bold uppercase tracking-wider">Accuracy</p>
-                        <h4 class="text-2xl font-extrabold text-green-700 mt-1">94,76%</h4>
+                        <h4 class="text-2xl font-extrabold text-green-700 mt-1">
+                            {{ $modelStats['accuracy_percent'] !== null ? number_format($modelStats['accuracy_percent'], 2, ',', '.') . '%' : '-' }}
+                        </h4>
                     </div>
 
                     <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
                         <p class="text-[10px] text-indigo-600 font-bold uppercase tracking-wider">Prediksi Benar</p>
-                        <h4 class="text-2xl font-extrabold text-indigo-700 mt-1">199</h4>
+                        <h4 class="text-2xl font-extrabold text-indigo-700 mt-1">{{ $modelStats['correct_predictions'] ?? '-' }}</h4>
                     </div>
 
                     <div class="bg-red-50 border border-red-100 rounded-xl p-4">
                         <p class="text-[10px] text-red-600 font-bold uppercase tracking-wider">Prediksi Salah</p>
-                        <h4 class="text-2xl font-extrabold text-red-700 mt-1">11</h4>
+                        <h4 class="text-2xl font-extrabold text-red-700 mt-1">{{ $modelStats['incorrect_predictions'] ?? '-' }}</h4>
                     </div>
                 </div>
 
@@ -246,9 +250,11 @@
                         <canvas id="accuracyDecisionTreeChart"></canvas>
 
                         <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                            <span class="text-2xl font-extrabold text-gray-800 leading-none">94,76%</span>
+                            <span class="text-2xl font-extrabold text-gray-800 leading-none">
+                                {{ $modelStats['accuracy_percent'] !== null ? number_format($modelStats['accuracy_percent'], 2, ',', '.') . '%' : '-' }}
+                            </span>
                             <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1">
-                                Akurasi Model
+                                Accuracy
                             </span>
                         </div>
                     </div>
@@ -261,6 +267,7 @@
 
     <script>
         const ctxAccuracy = document.getElementById('accuracyDecisionTreeChart');
+        const modelAccuracy = @json($modelStats['accuracy_percent'] ?? 0);
 
         if (ctxAccuracy) {
             new Chart(ctxAccuracy, {
@@ -268,7 +275,7 @@
                 data: {
                     labels: ['Prediksi Benar', 'Prediksi Salah'],
                     datasets: [{
-                        data: [94.76, 5.24],
+                        data: [modelAccuracy, Math.max(0, 100 - modelAccuracy)],
                         backgroundColor: [
                             '#22c55e',
                             '#ef4444'

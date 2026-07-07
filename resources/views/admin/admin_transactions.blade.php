@@ -48,6 +48,28 @@
     </nav>
 
     <div class="container mx-auto px-4 mt-8">
+        @if(session('success'))
+            <div class="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {{ session('error') }}
+            </div>
+        @endif
+
+        @if ($errors->any())
+            <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <ul class="list-disc pl-5">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <div class="flex flex-col lg:flex-row gap-6 items-start">
             
             <div class="w-full lg:w-64 flex-shrink-0 lg:sticky lg:top-24 z-30">
@@ -192,6 +214,22 @@
                                             <p class="text-xs font-bold uppercase tracking-wide text-green-500">Total Harga</p>
                                             <p class="mt-1 font-extrabold text-green-700">Rp {{ number_format($mobileTrx->total_harga, 0, ',', '.') }}</p>
                                         </div>
+
+                                        @if(auth()->user()?->isSuperAdmin())
+                                            <details class="mt-3 rounded-lg border border-red-100 bg-red-50 p-3">
+                                                <summary class="cursor-pointer text-xs font-extrabold text-red-700">Override Status</summary>
+                                                <form method="POST" action="{{ route('admin.orders.override-status', $mobileTrx->order_id) }}" class="mt-3 space-y-2">
+                                                    @csrf
+                                                    <select name="status" class="w-full rounded-lg border border-red-100 bg-white px-3 py-2 text-xs font-bold text-gray-700 outline-none" required>
+                                                        @foreach(['pending' => 'Pending', 'accepted' => 'Accepted', 'dikirim' => 'Dikirim', 'selesai' => 'Selesai', 'canceled by seller' => 'Dibatalkan Penjual', 'canceled by buyer' => 'Dibatalkan Pembeli', 'return_requested' => 'Return Diajukan', 'return_accepted' => 'Return Diterima', 'return_rejected' => 'Return Ditolak'] as $value => $label)
+                                                            <option value="{{ $value }}" {{ $mobileTrx->status === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    <textarea name="override_reason" rows="2" class="w-full rounded-lg border border-red-100 bg-white px-3 py-2 text-xs outline-none" placeholder="Alasan override status..." required></textarea>
+                                                    <button type="submit" class="w-full rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white" onclick="return confirm('Ubah status pesanan ini sebagai override Super Admin?')">Simpan Override</button>
+                                                </form>
+                                            </details>
+                                        @endif
                                     </div>
                                 @empty
                                     <div class="p-10 text-center text-gray-500 font-medium">
@@ -274,6 +312,22 @@
                                                 <span class="px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider border {{ $statusClass }}">
                                                     {{ str_contains(strtolower($trx->status), 'return') ? 'RETURN' : $statusText }}
                                                 </span>
+
+                                                @if(auth()->user()?->isSuperAdmin())
+                                                    <details class="mt-2 text-left">
+                                                        <summary class="cursor-pointer text-[10px] font-extrabold text-red-600">Override</summary>
+                                                        <form method="POST" action="{{ route('admin.orders.override-status', $trx->order_id) }}" class="mt-2 space-y-2 rounded-lg border border-red-100 bg-red-50 p-2">
+                                                            @csrf
+                                                            <select name="status" class="w-full rounded border border-red-100 bg-white px-2 py-1 text-[11px] font-bold text-gray-700 outline-none" required>
+                                                                @foreach(['pending' => 'Pending', 'accepted' => 'Accepted', 'dikirim' => 'Dikirim', 'selesai' => 'Selesai', 'canceled by seller' => 'Dibatalkan Penjual', 'canceled by buyer' => 'Dibatalkan Pembeli', 'return_requested' => 'Return Diajukan', 'return_accepted' => 'Return Diterima', 'return_rejected' => 'Return Ditolak'] as $value => $label)
+                                                                    <option value="{{ $value }}" {{ $trx->status === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                            <textarea name="override_reason" rows="2" class="w-full rounded border border-red-100 bg-white px-2 py-1 text-[11px] outline-none" placeholder="Alasan override..." required></textarea>
+                                                            <button type="submit" class="w-full rounded bg-red-600 px-2 py-1.5 text-[11px] font-bold text-white" onclick="return confirm('Ubah status pesanan ini sebagai override Super Admin?')">Simpan</button>
+                                                        </form>
+                                                    </details>
+                                                @endif
                                             </td>
                                         </tr>
                                     @empty
@@ -336,6 +390,23 @@
                 searchInput.addEventListener('focus', () => isUserTyping = true);
                 searchInput.addEventListener('blur', () => isUserTyping = false);
             }
+
+            document.addEventListener('focusin', function(event) {
+                if (event.target.closest('form') && event.target.closest('#data-transaksi')) {
+                    isUserTyping = true;
+                }
+            });
+
+            document.addEventListener('focusout', function(event) {
+                if (event.target.closest('form') && event.target.closest('#data-transaksi')) {
+                    setTimeout(() => {
+                        const stillFocusedInOverride = document.activeElement && document.activeElement.closest && document.activeElement.closest('#data-transaksi form');
+                        if (!stillFocusedInOverride && document.activeElement !== searchInput) {
+                            isUserTyping = false;
+                        }
+                    }, 100);
+                }
+            });
 
             // 2. Tarik data baru dari server setiap 5 detik
             setInterval(() => {

@@ -278,7 +278,7 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    <div className="order-3 flex w-full items-center justify-end gap-1 flex-shrink-0 md:order-none md:ml-4 md:w-auto md:gap-3">
+                    <div className="order-3 flex w-full items-center justify-between gap-2 flex-shrink-0 md:order-none md:ml-4 md:w-auto md:justify-end md:gap-3">
                         {user.role === 'pembeli' ? (
                             <button 
                                 onClick={handleOpenShopClick}

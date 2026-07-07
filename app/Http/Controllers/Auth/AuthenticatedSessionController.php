@@ -43,12 +43,12 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect('/login');
     }
 
     protected function authenticated(Request $request, $user)
     {
-        if ($user->role === 'admin') {
+        if (in_array($user->role, ['admin', 'super_admin'], true)) {
             return redirect()->intended('/admin/dashboard');
         }
 

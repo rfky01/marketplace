@@ -13,13 +13,16 @@ class AdminSeeder extends Seeder
      */
     public function run(): void
     {
-        User::create([
-            'name' => 'ADMIN',
-            'email' => 'admin@marketplace.com', 
-            'password' => Hash::make('password123'),
-            'role' => 'admin',
-            'phone' => '082251979931',
-            'address' => 'Lampung Timur, Lampung'
-        ]);
+        $admin = User::firstOrCreate(
+            ['email' => 'admin@marketplace.com'],
+            [
+                'name' => 'ADMIN',
+                'password' => Hash::make('password123'),
+                'phone' => '082251979931',
+                'address' => 'Lampung Timur, Lampung'
+            ]
+        );
+
+        $admin->forceFill(['role' => 'super_admin'])->save();
     }
 }

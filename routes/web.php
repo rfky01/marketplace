@@ -34,10 +34,13 @@ Route::middleware(['auth', IsAdmin::class, \App\Http\Middleware\LogUserActivity:
     Route::get('/users', [AdminController::class, 'manageUsers'])->name('admin.users');   
     Route::delete('/users/{id}', [AdminController::class, 'destroyUser'])->name('admin.users.delete');
     Route::get('/users/{id}/profile', [AdminController::class, 'showUserProfile'])->name('admin.users.profile');
+    Route::post('/users/{id}/override-password', [AdminController::class, 'overrideUserPassword'])->name('admin.users.override-password');
+    Route::post('/users/{id}/override-products', [AdminController::class, 'overrideStoreProduct'])->name('admin.users.override-products');
     
     // Shop & Product
     Route::get('/users/{id}/shop', [AdminController::class, 'showShop'])->name('admin.users.shop');
     Route::get('/products/{id}', [AdminController::class, 'showProduct'])->name('admin.products.show');
+    Route::post('/products/{id}/override-order', [AdminController::class, 'overrideCreateOrderForBuyer'])->name('admin.products.override-order');
     
     
     // PERBAIKAN 1: Hapus '/admin' disini
@@ -50,6 +53,7 @@ Route::middleware(['auth', IsAdmin::class, \App\Http\Middleware\LogUserActivity:
     Route::get('/admin/products', [App\Http\Controllers\AdminController::class, 'allProducts'])->name('admin.products');
     // Route untuk melihat semua transaksi (Semua User)
     Route::get('/transactions', [App\Http\Controllers\AdminController::class, 'allTransactions'])->name('admin.transactions');
+    Route::post('/orders/{id}/override-status', [App\Http\Controllers\AdminController::class, 'overrideOrderStatus'])->name('admin.orders.override-status');
 
     // Route khusus untuk Popup Chat Admin
     Route::get('/popup-chat/{id}', [AdminController::class, 'getPopupMessages'])->name('admin.popup.chat.get');

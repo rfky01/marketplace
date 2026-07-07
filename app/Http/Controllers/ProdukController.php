@@ -186,7 +186,7 @@ class ProdukController extends Controller
         $user = $request->user();
 
         $products = Produk::where('user_id', $user->id)
-                    ->with('updater') 
+                    ->with(['updater', 'overrideCreationLog.actor']) 
                     ->latest()
                     ->get();
 

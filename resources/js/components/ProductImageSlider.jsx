@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function ProductImageSlider({ images, alt, detailUrl }) {
     const [currentIndex, setCurrentIndex] = useState(0);
+    const hoverTimerRef = useRef(null);
     const navigate = useNavigate();
 
     // 1. Normalisasi data gambar (jaga-jaga kalau datanya string atau array)
@@ -36,6 +37,33 @@ export default function ProductImageSlider({ images, alt, detailUrl }) {
         if (imageList.length <= 1) return;
         setCurrentIndex((prevIndex) => (prevIndex - 1 + imageList.length) % imageList.length);
     };
+
+    const canUseDesktopHover = () => {
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+        return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    };
+
+    const stopHoverSlide = () => {
+        if (hoverTimerRef.current) {
+            window.clearInterval(hoverTimerRef.current);
+            hoverTimerRef.current = null;
+        }
+    };
+
+    const startHoverSlide = () => {
+        if (imageList.length <= 1 || !canUseDesktopHover() || hoverTimerRef.current) return;
+
+        hoverTimerRef.current = window.setInterval(() => {
+            setCurrentIndex((prevIndex) => (prevIndex + 1) % imageList.length);
+        }, 1100);
+    };
+
+    useEffect(() => {
+        stopHoverSlide();
+        setCurrentIndex(0);
+
+        return stopHoverSlide;
+    }, [imageList.length]);
 
     const openDetail = () => {
         if (detailUrl) {
@@ -79,34 +107,14 @@ export default function ProductImageSlider({ images, alt, detailUrl }) {
         <div 
             className="relative w-full h-48 bg-white overflow-hidden group cursor-pointer"
             onClick={handleImageClick}
+            onMouseEnter={startHoverSlide}
+            onMouseLeave={stopHoverSlide}
         >
             <img 
                 src={getImageUrl(imageList[currentIndex])} 
                 alt={alt} 
                 className="w-full h-full object-contain transition-all duration-300"
             />
-
-            {imageList.length > 1 && (
-                <>
-                    <button
-                        type="button"
-                        onClick={goToPrev}
-                        className="absolute left-2 top-1/2 z-20 hidden h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-white/65 text-gray-600 shadow-sm backdrop-blur-sm transition hover:bg-white/85 hover:text-blue-700 sm:flex sm:opacity-0 sm:group-hover:opacity-100"
-                        aria-label="Foto sebelumnya"
-                    >
-                        <span className="text-sm leading-none">&lsaquo;</span>
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={goToNext}
-                        className="absolute right-2 top-1/2 z-20 hidden h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-white/65 text-gray-600 shadow-sm backdrop-blur-sm transition hover:bg-white/85 hover:text-blue-700 sm:flex sm:opacity-0 sm:group-hover:opacity-100"
-                        aria-label="Foto berikutnya"
-                    >
-                        <span className="text-sm leading-none">&rsaquo;</span>
-                    </button>
-                </>
-            )}
 
             {imageList.length > 1 && (
                 <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 z-20">

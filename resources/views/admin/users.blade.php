@@ -136,7 +136,9 @@
                                             </span>
                                         @endif
 
-                                        @if($mobileUser->role === 'admin')
+                                        @if($mobileUser->isSuperAdmin())
+                                            <span class="inline-flex items-center bg-red-50 text-red-700 px-2.5 py-1 rounded-full text-[10px] font-bold border border-red-100">Super Admin</span>
+                                        @elseif($mobileUser->role === 'admin')
                                             <span class="inline-flex items-center bg-purple-50 text-purple-700 px-2.5 py-1 rounded-full text-[10px] font-bold border border-purple-100">Administrator</span>
                                         @elseif($mobileUser->products_count > 0)
                                             <span class="inline-flex items-center bg-green-50 text-green-700 px-2.5 py-1 rounded-full text-[10px] font-bold border border-green-100">Penjual</span>
@@ -165,10 +167,12 @@
                             </div>
 
                             <div class="mt-4 flex flex-wrap gap-2">
-                                @if($mobileUser->email === 'admin@marketplace.com')
-                                    <span class="inline-flex items-center text-xs font-bold text-red-600 bg-red-100 px-3 py-1.5 rounded-full border border-red-200">ADMIN</span>
+                                @if($mobileUser->isSuperAdmin())
+                                    <span class="inline-flex items-center text-xs font-bold text-red-600 bg-red-100 px-3 py-1.5 rounded-full border border-red-200">SUPER ADMIN</span>
                                 @elseif(auth()->id() == $mobileUser->id)
                                     <span class="inline-flex items-center text-xs font-bold text-gray-400 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200">Akun Anda</span>
+                                @elseif($mobileUser->role === 'admin' && !auth()->user()?->isSuperAdmin())
+                                    <span class="inline-flex items-center text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1.5 rounded-full border border-purple-100">ADMIN</span>
                                 @else
                                     <button type="button" onclick="openAdminChat({{ $mobileUser->id }}, '{{ addslashes($mobileUser->name) }}')" class="flex items-center gap-1 bg-white text-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-50 transition border border-gray-200 hover:border-indigo-200 shadow-sm">
                                         Chat
@@ -241,7 +245,11 @@
                             </td>
 
                             <td class="px-6 py-4 text-center">
-                                @if($user->role === 'admin')
+                                @if($user->isSuperAdmin())
+                                    <span class="inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-3 py-1 rounded-full text-xs font-bold border border-red-100">
+                                        Super Admin
+                                    </span>
+                                @elseif($user->role === 'admin')
                                     <span class="inline-flex items-center gap-1.5 bg-purple-50 text-purple-700 px-3 py-1 rounded-full text-xs font-bold border border-purple-100">
                                         Administrator
                                     </span>
@@ -279,13 +287,17 @@
                             </td>
 
                             <td class="px-6 py-4 text-center">
-                                @if($user->email === 'admin@marketplace.com')
+                                @if($user->isSuperAdmin())
                                     <span class="inline-flex items-center gap-1 text-xs font-bold text-red-600 bg-red-100 px-3 py-1.5 rounded-full border border-red-200 select-none cursor-not-allowed" title="Akun Utama Dilindungi">
-                                        ADMIN
+                                        SUPER ADMIN
                                     </span>
                                 @elseif(auth()->id() == $user->id)
                                     <span class="inline-flex items-center gap-1 text-xs font-bold text-gray-400 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200 select-none cursor-not-allowed">
                                         Akun Anda
+                                    </span>
+                                @elseif($user->role === 'admin' && !auth()->user()?->isSuperAdmin())
+                                    <span class="inline-flex items-center gap-1 text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1.5 rounded-full border border-purple-100 select-none cursor-not-allowed" title="Hanya Super Admin yang dapat menghapus admin">
+                                        ADMIN
                                     </span>
                                 @else
                                     <div class="flex items-center justify-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition duration-200">

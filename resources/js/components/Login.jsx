@@ -74,7 +74,7 @@ export default function Login() {
                         console.log("Mengecek tujuan redirect...", data);
                         if (data.redirect_url) {
                             window.location.href = data.redirect_url;
-                        } else if (userData && userData.role === 'admin') {
+                        } else if (userData && ['admin', 'super_admin'].includes(userData.role)) {
                             window.location.href = '/admin/dashboard';
                         } else {
                             window.location.href = '/';

@@ -180,6 +180,26 @@ export default function MyProducts() {
         if (loading) return <div className="p-10 text-center">Memuat produk Anda...</div>;
         return new Date(dateString).toLocaleDateString('id-ID', options);
     };
+
+    const isOverrideProduct = (product) => Boolean(
+        product.is_super_admin_override ||
+        product.override_creation_log ||
+        product.updater?.role === 'super_admin'
+    );
+
+    const getOverrideAdminName = (product) => (
+        product.override_admin_name ||
+        product.override_creation_log?.actor?.name ||
+        product.updater?.name ||
+        'Super Admin'
+    );
+
+    const getOverrideReason = (product) => (
+        product.override_reason ||
+        product.override_creation_log?.reason ||
+        ''
+    );
+
     const lastPage = Math.max(1, Math.ceil(products.length / PRODUCTS_PER_PAGE));
     const paginatedProducts = products.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE);
 
@@ -208,7 +228,7 @@ export default function MyProducts() {
                     </div>
 
                     <div className="order-3 flex w-full items-center justify-end gap-1 md:order-none md:w-auto md:gap-3">
-                        <SellerNavActions />
+                        <SellerNavActions showUpload />
 
                         <div className="hidden sm:block h-6 w-px bg-gray-300 mx-1"></div>
 
@@ -326,13 +346,34 @@ export default function MyProducts() {
                                     >
                                         {product.nama_barang}
                                     </h3>
-                                    <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded uppercase font-bold mb-2">{product.kategori}</span>
+                                    <div className="mb-2 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                                        <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded uppercase font-bold">{product.kategori}</span>
+                                        {isOverrideProduct(product) && (
+                                            <span
+                                                className="inline-flex items-center rounded-full border border-red-100 bg-red-50 px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide text-red-700"
+                                                title={`Dibuat oleh ${getOverrideAdminName(product)} sebagai override Super Admin`}
+                                            >
+                                                Override Super Admin
+                                            </span>
+                                        )}
+                                    </div>
                                     
                                     <div className="flex flex-col sm:flex-row gap-4 text-sm text-gray-500 justify-center sm:justify-start">
                                         <p className="text-blue-600 font-bold text-lg">{formatRupiah(product.harga_barang)}</p>
                                         <span className="hidden sm:block">|</span>
                                         <p>Stok: <span className="font-bold text-gray-800">{product.stok_barang}</span></p>
                                     </div>
+                                    {isOverrideProduct(product) && (
+                                        <p className="mt-2 text-xs font-semibold text-red-600">
+                                            Dibuat oleh {getOverrideAdminName(product)} sebagai bantuan override.
+                                        </p>
+                                    )}
+                                    {isOverrideProduct(product) && getOverrideReason(product) && (
+                                        <div className="mt-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700">
+                                            <span className="font-extrabold">Alasan bantuan: </span>
+                                            <span>{getOverrideReason(product)}</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="flex flex-col items-center sm:items-end gap-3 flex-shrink-0">

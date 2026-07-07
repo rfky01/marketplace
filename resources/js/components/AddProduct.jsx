@@ -2,7 +2,6 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { getCroppedImg } from './canvasUtils';
 import Cropper from 'react-easy-crop'; // IMPORT TAMBAHAN
-import SellerNavActions from './SellerNavActions';
 
 export default function AddProduct() {
     const navigate = useNavigate();
@@ -219,7 +218,6 @@ export default function AddProduct() {
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                     <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Upload Produk Baru</h2>
                     <div className="flex items-center justify-end gap-3">
-                        <SellerNavActions />
                         <Link to="/" className="text-gray-500 hover:text-gray-700">Batal</Link>
                     </div>
                 </div>
@@ -275,9 +273,6 @@ export default function AddProduct() {
 
                     <div className="bg-blue-50 border border-blue-200 text-blue-800 p-3 rounded">
                         <p className="text-sm font-semibold">Kategori Produk Otomatis</p>
-                        <p className="text-sm">
-                            Kategori produk akan ditentukan otomatis oleh sistem berdasarkan nama barang dan deskripsi produk menggunakan algoritma Decision Tree.
-                        </p>
                     </div>
 
                     <div>

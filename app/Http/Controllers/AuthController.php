@@ -320,7 +320,7 @@ class AuthController extends Controller
         // Penentu Arah Login (REDIRECT)
         $tujuan = '/'; // Dashboard Users (Utama)
         
-        if ($user->role === 'admin') {
+        if (in_array($user->role, ['admin', 'super_admin'], true)) {
             $tujuan = '/admin/dashboard'; // Dashboard Admin
         }
 

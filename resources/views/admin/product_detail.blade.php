@@ -52,6 +52,22 @@
         </div>
     </nav>
 
+    @if(session('success') || session('error'))
+        <div class="max-w-6xl mx-auto px-4 mb-4">
+            @if(session('success'))
+                <div class="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700 shadow-sm">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            @if(session('error'))
+                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 shadow-sm">
+                    {{ session('error') }}
+                </div>
+            @endif
+        </div>
+    @endif
+
     @php
         $rawFoto = $product->foto_barang;
         $images = [];
@@ -67,6 +83,11 @@
     @endphp
 
     <div class="max-w-6xl mx-auto px-4" x-data="{ mainImage: '{{ $mainImage }}', expanded: false }">
+        @php
+            $isOverride = $product->is_super_admin_override;
+            $overrideAdminName = $product->override_admin_name ?? 'Super Admin';
+            $overrideReason = $product->override_reason;
+        @endphp
         
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 mb-8">
             <div class="flex flex-col md:flex-row items-start relative">
@@ -113,7 +134,23 @@
                         <span class="text-xs font-bold px-3 py-1 rounded-full border {{ $product->stok_barang > 0 ? 'border-green-200 text-green-700 bg-green-50' : 'border-red-200 text-red-700 bg-red-50' }}">
                             {{ $product->stok_barang > 0 ? "Stok: {$product->stok_barang} Unit" : 'Stok Habis' }}
                         </span>
+                        @if($isOverride)
+                            <span class="inline-flex items-center gap-1 rounded-full border border-red-100 bg-red-50 px-3 py-1 text-xs font-extrabold uppercase tracking-wide text-red-700" title="Dibuat oleh {{ $overrideAdminName }} sebagai override Super Admin">
+                                Override Super Admin
+                            </span>
+                        @endif
                     </div>
+
+                    @if($isOverride)
+                        <div class="mb-5 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                            <p>Produk ini dibuat oleh {{ $overrideAdminName }} sebagai bantuan override untuk seller.</p>
+                            @if($overrideReason)
+                                <p class="mt-2 text-red-800">
+                                    <span class="font-extrabold">Alasan:</span> {{ $overrideReason }}
+                                </p>
+                            @endif
+                        </div>
+                    @endif
 
                     <h1 class="text-3xl font-extrabold text-gray-900 mb-4 leading-tight break-words">
                         {{ $product->nama_barang }}
@@ -163,6 +200,108 @@
                 </div>
             </div>
         </div>
+
+        @if(auth()->user()?->isSuperAdmin())
+            <div class="bg-white rounded-2xl shadow-sm border border-blue-100 p-5 md:p-8 mb-8">
+                <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+                    <div>
+                        <p class="text-xs font-extrabold text-blue-600 uppercase tracking-wider mb-2">Override Super Admin</p>
+                        <h2 class="text-xl font-extrabold text-gray-900">Buat Pesanan Manual untuk Pembeli</h2>
+                        <p class="text-sm text-gray-500 mt-1">Dipakai saat pembeli mengalami kendala checkout. Aktivitas ini dicatat sebagai override.</p>
+                    </div>
+                    <div class="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 text-sm">
+                        <p class="text-gray-500 font-semibold">Harga Produk</p>
+                        <p class="text-blue-700 font-extrabold">Rp {{ number_format($product->harga_barang, 0, ',', '.') }}</p>
+                    </div>
+                </div>
+
+                <form method="POST" action="{{ route('admin.products.override-order', $product->id) }}" class="space-y-5">
+                    @csrf
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Pembeli</label>
+                            <select name="buyer_id" required class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="">Pilih pembeli</option>
+                                @foreach($buyers ?? [] as $buyer)
+                                    <option value="{{ $buyer->id }}" @selected(old('buyer_id') == $buyer->id)>
+                                        {{ $buyer->name }} - {{ $buyer->email }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('buyer_id')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Jumlah</label>
+                            <input type="number" name="jumlah" min="1" max="{{ max(1, $product->stok_barang) }}" value="{{ old('jumlah', 1) }}" required class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            <p class="text-xs text-gray-400 mt-1">Stok tersedia: {{ $product->stok_barang }}</p>
+                            @error('jumlah')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nama Penerima</label>
+                            <input type="text" name="nama_penerima" value="{{ old('nama_penerima') }}" required class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            @error('nama_penerima')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Email Penerima</label>
+                            <input type="email" name="email_penerima" value="{{ old('email_penerima') }}" required class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            @error('email_penerima')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">No WhatsApp Penerima</label>
+                            <input type="text" name="telepon_penerima" value="{{ old('telepon_penerima') }}" required class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            @error('telepon_penerima')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Waktu Pengiriman</label>
+                            <input type="datetime-local" name="waktu_pengiriman" value="{{ old('waktu_pengiriman') }}" required class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            @error('waktu_pengiriman')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Metode Pembayaran</label>
+                            <select name="metode_pembayaran" required class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="">Pilih metode pembayaran</option>
+                                <option value="COD" @selected(old('metode_pembayaran') === 'COD')>COD</option>
+                                <option value="Transfer" @selected(old('metode_pembayaran') === 'Transfer')>Transfer Bank</option>
+                                <option value="E-Wallet" @selected(old('metode_pembayaran') === 'E-Wallet')>E-Wallet</option>
+                            </select>
+                            @error('metode_pembayaran')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Catatan</label>
+                            <input type="text" name="catatan" value="{{ old('catatan') }}" class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Opsional">
+                            @error('catatan')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Alamat Pengiriman</label>
+                        <textarea name="alamat_pengiriman" required rows="3" class="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none">{{ old('alamat_pengiriman') }}</textarea>
+                        @error('alamat_pengiriman')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Alasan Override</label>
+                        <textarea name="override_reason" required rows="3" class="w-full border border-blue-200 bg-blue-50 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none" placeholder="Contoh: Pembeli gagal checkout karena kendala perangkat, pesanan dibuat setelah konfirmasi manual.">{{ old('override_reason') }}</textarea>
+                        @error('override_reason')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-gray-100 pt-5">
+                        <p class="text-xs text-gray-500">Status awal pesanan akan dibuat sebagai <span class="font-bold text-gray-700">pending</span>, lalu seller tetap dapat menerima atau menolak.</p>
+                        <button type="submit" @disabled($product->stok_barang <= 0) class="px-5 py-3 rounded-xl bg-blue-600 text-white text-sm font-extrabold hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed">
+                            Buat Pesanan Override
+                        </button>
+                    </div>
+                </form>
+            </div>
+        @endif
 
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
             <div class="flex items-center gap-4 mb-8 border-b border-gray-100 pb-4">
